@@ -20,13 +20,13 @@ final class LFgrasp {
     private boolean catcherUpdated = false;
     /* these flags are set by catcher and used by catchee */
     private int injury = 0;
-    
+
     private LFgrasp() {
         state = State.NOGRASP;
         catcher = null;
         catchee = null;
     }
-    
+
     private LFgrasp(LFobject o1, LFhero o2) {
         catcher = o1;
         catcher.grasp = this;
@@ -34,7 +34,7 @@ final class LFgrasp {
         catchee.grasp = this;
         catchee.fp = 0;/* reset fall point */
     }
-    
+
     public synchronized static boolean initialize(LFobject o1, int catchingact, LFobject o2, int caughtact) {
         /* only LFhero can be caught */
         if (!(o2 instanceof LFhero))
@@ -44,15 +44,15 @@ final class LFgrasp {
         new LFgrasp(o1, (LFhero)o2);
         return true;
     }
-    
+
     public boolean isNotCaught(LFobject h) {
         return (state != State.CATCHING) || (catcher == h);
     }
-    
+
     public boolean hasBdy(LFobject h) {
         return (state != State.CATCHING) || ((catchee == h) && cpoint.hurtable);
     }
-    
+
     public void update(LFobject o) {
         if (o == catcher)
             catcherUpdate();
@@ -60,7 +60,7 @@ final class LFgrasp {
             catcheeUpdate();
         return;
     }
-    
+
     private synchronized void catcherUpdate() {
         cpoint = catcher.currFrame.cpoint;
         if (state != State.CATCHING || cpoint == null) {
@@ -95,14 +95,14 @@ final class LFgrasp {
         this.notify();
         return;
     }
-    
+
     private synchronized void catcheeUpdate() {
         while (!catcherUpdated) {
             try {
                 this.wait(900);
             } catch (InterruptedException ex) {}
         }
-        
+
         if (state == State.DROP || state == State.TIMEUP || state == State.THROW_END)
             return;
         if (state == State.THROW_START) {
@@ -133,5 +133,5 @@ final class LFgrasp {
         catcherUpdated = false;
         return;
     }
-    
+
 }

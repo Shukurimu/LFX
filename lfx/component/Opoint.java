@@ -9,7 +9,7 @@ final class LFopoint {
     public static final double vzMultiplier = 2.5;
     public static final int NORM = 1;
     public static final int HOLD = 2;
-    
+
     public final int kind;
     public final int x, y;
     public final int action;
@@ -18,11 +18,11 @@ final class LFopoint {
     public final String oid;
     public final int facing;
     public final double hp;
-    
+
     public LFopoint(int k, int xx, int yy, int dx, int dy, String i, int a, int f) {
         this(k, xx, yy, dx, dy, i, a, f, 500.0);
     }
-    
+
     public LFopoint(int k, int xx, int yy, int dx, int dy, String i, int a, int f, double h) {
         kind = k;
         x = xx;
@@ -34,7 +34,7 @@ final class LFopoint {
         facing = f;
         hp = h;
     }
-    
+
     public ArrayList<LFobject> launch(final LFobject o, double ctrlVz) {
         final int quantity = Math.max(facing / 10, 1);
         ArrayList<LFobject> output = new ArrayList<>(quantity);
@@ -42,7 +42,7 @@ final class LFopoint {
         if (target == null)
             return output;
         /* some of states cannot have z-velocity */
-        
+
         double zStep = (quantity == 1) ? 0.0 : (2.0 * vzRange / (quantity - 1));
         boolean sameFacing = (facing & 1) == 0;
         for (int i = 0; i < quantity; ++i) {
@@ -88,14 +88,14 @@ final class LFopoint {
         }
         return output;
     }
-    
+
     public static LFobject idmapWrapper(String oid) {
         final LFobject target = LFX.objPool.getOrDefault(oid, null);
         if (target == null)
             System.err.printf("Error: Required LFobject `%s' is not existing.\n", oid);
         return target;
     }
-    
+
     public static ArrayList<LFobject> createArmour(final LFobject o) {
         final ThreadLocalRandom rc = ThreadLocalRandom.current();
         /* implementation is very likely different from LF2 */
@@ -129,7 +129,7 @@ final class LFopoint {
         }
         return output;
     }
-    
+
     public static String parserType(String originalKind) {
         switch (originalKind) {
             case "1":
@@ -140,5 +140,5 @@ final class LFopoint {
                 return null;
         }
     }
-    
+
 }

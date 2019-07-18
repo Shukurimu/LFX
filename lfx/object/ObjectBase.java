@@ -1,23 +1,34 @@
+package lfx.object
+			x1 = px - owner.currFrame.centerR + itr.x;
+			x2 = x1 + itr.w;
+		} else {
+			x2 = px + owner.currFrame.centerR - itr.x;
+			x1 = x2 - itr.w;
+		}
+		y1 = owner.py - owner.currFrame.centerY + itr.y;
+
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.WeakHashMap;
-import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
-import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
-/*
-https://github.com/Project-F/F.LF/tree/master/LF
-https://www.lf-empire.de/forum/showthread.php?tid=10733
-https://lf-empire.de/lf2-empire/data-changing/types/167-effect-0-characters
-https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1&limitstart=
-http://lf2.wikia.com/wiki/Health_and_mana
-http://gjp4860sev.myweb.hinet.net/lf2/page10.htm
-*/
-abstract class LFobject implements Cloneable {
-    public static final int DEFAULT_ACT = 1236987450;/* arbitrary number */
+
+import lfx.component.Bdy
+import lfx.component.Itr
+/** https://github.com/Project-F/F.LF/tree/master/LF
+    https://www.lf-empire.de/forum/showthread.php?tid=10733
+    https://lf-empire.de/lf2-empire/data-changing/types/167-effect-0-characters
+    https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1&limitstart=
+    http://lf2.wikia.com/wiki/Health_and_mana
+    http://gjp4860sev.myweb.hinet.net/lf2/page10.htm */
+
+abstract class ObjectBase implements Cloneable {
+    public static final int DEFAULT_ACT = 1236987450;  // arbitrary number
     private static int teamIDcounter = 32;
     protected static final int Act_NX0 = 0;
     protected static final int Act_1K = 1000;
