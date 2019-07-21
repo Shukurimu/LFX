@@ -1,5 +1,6 @@
+package lfx.component;
 
-final class LFgrasp {
+public class LFgrasp {
     enum State {
         NOGRASP,
         CATCHING,

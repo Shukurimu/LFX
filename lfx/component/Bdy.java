@@ -4,7 +4,7 @@ import java.util.EnumSet;
 import lfx.component.Itr;
 import lfx.component.Itr.Effect;
 
-public final class Bdy {
+public class Bdy {
   public static final int ZWIDTH = 12;
 
   public enum Attribute {

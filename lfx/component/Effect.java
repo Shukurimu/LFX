@@ -1,18 +1,17 @@
 package lfx.component;
 
-final class Effect implements Cloneable {
+public class Effect {
   /** The purpose of this class is to make special moves more functional.
       For instance, healing faster, landing to other than Frame94,
       or even applying posion attack (I have heard in some DC version). */
-  private static final Effect ONE_TIME = new Effect(1, 0, 0.0, "");
   public enum Kind {
     LANDING_ACT,
     TRANSFORM_TO,
     TRANSFORM_BACK,
     TELEPORT_ENEMY,
     TELEPORT_TEAM,
-    HEALING,  // restored hp limited by potential hp
-    REGENERATION,  // restored hp limited by max hp
+    HEALING,  // limited by potential hp
+    REGENERATION,  // limited by max hp
     INVISIBILITY,
     SONATA,
     CREATE_ARMOUR,
@@ -40,47 +39,38 @@ final class Effect implements Cloneable {
 
   // e.g., INVISIBILITY
   public Effect(int effectiveTime) {
-      this(effectiveTime, 0, 0.0, "");
+    this(effectiveTime, 0, 0.0, "");
   }
 
   // e.g., LANDING_ACT
   public Effect(int effectiveTime, int intValue) {
-      this(effectiveTime, intValue, 0.0, "");
+    this(effectiveTime, intValue, 0.0, "");
   }
 
   // e.g., HEALING
   public Effect(int effectiveTime, double doubleValue) {
-      this(effectiveTime, 0, doubleValue, "");
+    this(effectiveTime, 0, doubleValue, "");
   }
 
   // e.g., TRANSFORM
   public Effect(int effectiveTime, String stringValue) {
-      this(effectiveTime, 0, 0.0, stringValue);
+    this(effectiveTime, 0, 0.0, stringValue);
   }
 
-  @Override
-  protected Effect clone() {
-    try {
-      return (Effect)super.clone();
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      return null;
-    }
+  // e.g., TELEPORT
+  public Effect() {
+    this(0, 0, 0.0, "");
   }
 
-  /* temporarily replace by new one */
-  public LFextra stack(Kind k, LFextra e) {
+  public Effect stackOn(Kind k, Effect e) {
     return this.clone();
   }
 
   /** The Effect will be removed when this method returns true.
-      You can set a negative effectiveTime for those condition-based actions (e.g., LANDING_ACT) */
+      Called once per update tick.
+      Set a negative effectiveTime for those condition-based actions (e.g., LANDING_ACT) */
   public boolean lapse() {
     return --effectiveTime == 0;
-  }
-
-  public static LFextra oneTime() {
-    return ONE_TIME.clone();
   }
 
   public static String parserState(int originalState) {

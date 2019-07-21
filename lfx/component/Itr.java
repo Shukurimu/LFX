@@ -2,7 +2,7 @@ package lfx.component;
 
 import java.util.List;
 
-public final class Itr {
+public class Itr {
   public static final int ZWIDTH = 12;
   public static final int DVX = 0;
   public static final int DVY = -7;

@@ -1,6 +1,6 @@
-package lfx.util
+package lfx.util;
 
-final class Area {
+public class Area {
   private double x1 = 0.0;
   private double x2 = 0.0;
   private double y1 = 0.0;

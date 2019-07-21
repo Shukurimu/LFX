@@ -2,7 +2,7 @@ package lfx.component;
 
 import java.util.ArrayList;
 
-final class Cpoint {
+public class Cpoint {
   public static final Cpoint dummy = new Cpoint(0, 0, 0, 0);
   public static final int FRONTHURTACT = 221;
   public static final int BACKHURTACT  = 223;

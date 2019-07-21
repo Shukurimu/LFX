@@ -1,27 +1,27 @@
+package lfx.component;
 
-final class LFwpoint {
-  public final int x, y;
-  public final int waction;// weaponact
-  public final int attacking;// < 0 to drop
+public class Wpoint {
+  public static final double Z_OFFSET = 1e-3;
+
+  public final int x;
+  public final int y;
+  public final int weaponact;
+  public final int attacking;  // set a negative value to drop
   public final int dvx;
   public final int dvy;
   public final int dvz;
-  public final boolean cover;
+  public final double zOffset;  // rendering z-offset
 
-  public LFwpoint() {
-    x = y = waction = attacking = dvx = dvy = dvz = 0;
-    cover = false;
-  }
-
-  public LFwpoint(int xx, int yy, int wa, int a, int dx, int dy, int dz, int c) {
-    x = xx;
-    y = yy;
-    waction = wa;
-    attacking = a;
-    dvx = dx;
-    dvy = dy;
-    dvz = dz;
-    cover = (c == 1);
+  public Wpoint(int x, int y, int weaponact, int attacking,
+                int dvx, int dvy, int dvz, int cover) {
+    this.x = x;
+    this.y = y;
+    this.weaponact = weaponact;
+    this.attacking = attacking;
+    this.dvx = dvx;
+    this.dvy = dvy;
+    this.dvz = dvz;
+    this.zOffset = cover == 0 ? Z_OFFSET : -Z_OFFSET;
   }
 
 }

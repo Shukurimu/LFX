@@ -1,3 +1,4 @@
+package lfx.component;
 
 final class LFdamage {
   public double center = 0.0;
