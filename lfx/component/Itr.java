@@ -1,7 +1,5 @@
 package lfx.component;
 
-import java.util.List;
-
 public class Itr {
   public static final int ZWIDTH = 12;
   public static final int DVX = 0;
@@ -11,20 +9,18 @@ public class Itr {
   public static final int INJURY = 0;
   public static final int VREST = 9;  // weapon default
   public static final int AREST = -7;  // hero default
-  public static final List<> nowhere = List.of(0, 0, 0, 0, 0);
-  public static final List<> everywhere = List.of(-1000000, -1000000, 2000000, 2000000, 3000);
 
   public enum Effect {
     // basic move
-    WEAPON_ATK(""),
-    VORTEX    (""),
     LET_SPUNCH(""),
-    FENCE     (""),
-    HEAL      (""),
     PICK      (""),
-    PICK_ROLL (""),
+    ROLL_PICK (""),
     GRASP_DOP (""),
     GRASP_BDY (""),
+    BLOCK     (""),
+    HEAL      (""),
+    VORTEX    (""),
+    WEAPON_ATK(""),  // used by Weapon
 
     SONATA  (""),
     REFLECT (""),
@@ -67,15 +63,14 @@ public class Itr {
   public final int vrest;  // negative value -> arest
   public final int scope;
 
-  // range must have size 4 (x, y, w, h) or 5 (x, y, w, h, zwidth)
-  public Itr(Effect effect, List<Integer> range, int dvx, int dvy,
+  public Itr(int x, int y, int w, int h, int zwidth, Effect effect, int dvx, int dvy,
              int bdefend, int injury, int fall, int vrest, int scope) {
     this.effect = effect;
-    this.x = range.get(0);
-    this.y = range.get(1);
-    this.w = range.get(2);
-    this.h = range.get(3);
-    this.zwidth = range.size() == 4 ? ZWIDTH : range.get(4);
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.zwidth = zwidth;
     this.dvx = dvx;
     this.dvy = dvy;
     this.bdefend = bdefend;
@@ -85,21 +80,32 @@ public class Itr {
     this.scope = scope;
   }
 
-  // grasp
-  public Itr(Effect effect, List<Integer> range, int catchingact, int caughtact, int scope) {
-    this(effect, range, catchingact, caughtact,
-         0, 0, 0, 0, scope);
+  // common grasp (default zwidth)
+  public Itr(int x, int y, int w, int h,
+             int catchingact, int caughtact) {
+    this(x, y, w, h, ZWIDTH, Effect.GRASP_DOP,
+         catchingact, caughtact, 0, 0, 0, 0, Type.HERO.enemyView());
   }
 
-  // only effect (e.g., ice column block)
-  public Itr(Effect effect, List<Integer> range, int scope) {
-    this(effect, range, 0, 0,
-         0, 0, 0, 0, scope);
+  // general grasp (use complete constructor if you really want to grasp teammate)
+  public Itr(int x, int y, int w, int h, int zwidth, boolean forceGrasp,
+             int catchingact, int caughtact) {
+    this(x, y, w, h, zwidth, forceGrasp ? Effect.GRASP_BDY : Effect.GRASP_DOP,
+         catchingact, caughtact, 0, 0, 0, 0, Type.HERO.enemyView());
+  }
+
+  // only effect (e.g., picking weapon)
+  public Itr(int x, int y, int w, int h, Effect effect, int scope) {
+    this(x, y, w, h, ZWIDTH, effect, 0, 0, 0, 0, 0, 0, scope);
+  }
+
+  public Itr(int x, int y, int w, int h, int zwidth, Effect effect, int scope) {
+    this(x, y, w, h, zwidth, effect, 0, 0, 0, 0, 0, 0, scope);
   }
 
   // weapon strength list
   public Itr(Effect effect, int dvx, int dvy,
-             int bdefend, int injury, int fall, int vrest, int scope) {
+             int bdefend, int injury, int fall, int vrest) {
     this(effect, nowhere, dvx, dvy,
          bdefend, injury, fall, vrest, scope);
   }
@@ -120,9 +126,9 @@ public class Itr {
     }
   }
 
-  /* The followings are the self implementation of several itr kinds
-     since no documentation discussing about this effect
-     the result is very likely different from LF2 */
+  /** The followings are the self implementation of several itr kinds
+      since no documentation discussing about this effect
+      the result is very likely different from LF2 */
   public static final double SONATA_VELOCITY_DEDUCTION = 0.7;
   public static final double SONATA_Y_RATIO = 0.7;
 

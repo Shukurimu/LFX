@@ -5,7 +5,6 @@ import java.util.ArrayList;
 abstract class LFweapon extends LFobject {
   public static final LFweapon dummy = new LFweapon("noWeapon", LFtype.NULL) {};
   /* this small value is added to pz while being held, so that the weapon image is rendered above the character */
-  public static final double PICKINGOFFSET = 0.001;
   public static final int NONHEAVY_HITGROUND = 7;
 
   public String soundHit;
@@ -227,16 +226,6 @@ abstract class LFweapon extends LFobject {
   }
 
   @Override
-  protected boolean checkBoundary(LFmap map) {
-    if ((currFrame.state != LFstate.ONGROUND) || (px > map.xwidthl && px < map.xwidthr)) {
-      pz = (pz > map.zboundB) ? map.zboundB : ((pz < map.zboundT) ? map.zboundT : pz);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  @Override
   public void registerItr() {
     currItr.clear();
     if (picker == null) {
@@ -266,6 +255,15 @@ abstract class LFweapon extends LFobject {
     return;
   }
 
+  @Override
+  protected boolean adjustBoundary(int[] xzBound) {
+    if ((currFrame.state != LFstate.ONGROUND) || (px > xzBound[0] && px < xzBound[1])) {
+      pz = Function.clamp(pz, xzBound[2], xzBound[3]);
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   @Override
   public void statusOverwrite(final LFhero target) {

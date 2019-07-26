@@ -1,5 +1,7 @@
 package lfx.util;
 
+import lfx.util.Global;
+
 public enum Direction {
   SAME {
     @Override public boolean getFacing(boolean origin) {
@@ -23,7 +25,7 @@ public enum Direction {
   },
   RANDOM {
     @Override public boolean getFacing(boolean origin) {
-      return Math.random() < 0.5;
+      return Global.randomBool();
     }
   };
 

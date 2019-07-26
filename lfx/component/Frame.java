@@ -48,9 +48,9 @@ public class Frame {
     this.sound = sound;
     this.combo = Map.copyOf(combo);
     this.effect = Map.copyOf(effect);
-    this.bdy = List.copyOf​(bdy);
-    this.itr = List.copyOf​(itr);
-    this.opoint = List.copyOf​(opoint);
+    this.bdy = List.copyOf(bdy);
+    this.itr = List.copyOf(itr);
+    this.opoint = List.copyOf(opoint);
     this.cpoint = cpoint;
     this.wpoint = wpoint;
   }

@@ -1,16 +1,17 @@
-package lfx.util;
+package lfx.component;
 
 public enum Type {
-  HERO (0, 0, 0, 0, 0.0, 0.0, 0.0),
-  BLAST(0, 0, 0, 0, 0.0, 0.0, 0.0),
+  OTHER(0x000, 0, 0, 0, 0, 0.0, 0.0, 0.0),
+  HERO (0x100, 0, 0, 0, 0, 0.0, 0.0, 0.0),
+  BLAST(0x010, 0, 0, 0, 0, 0.0, 0.0, 0.0),
   // type1
-  LIGHT(1.000, -20, 70, 7, 10.0, 0.6, -0.4) {
+  LIGHT(0x001, 1.000, -20, 70, 7, 10.0, 0.6, -0.4) {
     @Override public int hitAct(int fp, double vx) {
       return (int)(Math.random() * 16);
     }
   },
   // type2
-  HEAVY(1.000, -10, 20, LFobject.DEFAULT_ACT, 10.0, 0.3, -0.2) {
+  HEAVY(0x001, 1.000, -10, 20, LFobject.DEFAULT_ACT, 10.0, 0.3, -0.2) {
     @Override public int hittingAct() {
       return LFobject.DEFAULT_ACT;
     }
@@ -19,10 +20,11 @@ public enum Type {
     }
   },
   // type4
-  SMALL(0.500, -20, 70, 0, 9.0, 0.6, -0.4),
+  SMALL(0x001, 0.500, -20, 70, 0, 9.0, 0.6, -0.4),
   // type6
-  DRINK(0.667, -20, 70, 0, 9.0, 0.6, -0.4);
+  DRINK(0x001, 0.667, -20, 70, 0, 9.0, 0.6, -0.4);
 
+  public final int scopeBits;
   public final double gRatio;
   public final int throwOffset;  // onhand to throwing offset
   public final int landingAct;
@@ -31,7 +33,8 @@ public enum Type {
   public final double vxLast;
   public final double vyLast;
 
-  private Type(double g, int o, int l, int b, double t, double vx, double vy) {
+  private Type(int scopeBits, double g, int o, int l, int b, double t, double vx, double vy) {
+    this.scopeBits = scopeBits;
     gRatio = g;
     throwOffset = o;
     landingAct = l;
@@ -52,6 +55,22 @@ public enum Type {
   @Override
   public String toString() {
     return String.format("%s.%s", this.getClass().getSimpleName(), super.toString());
+  }
+
+  public int enemyView() {
+    return scopeBits;
+  }
+
+  public int teamView() {
+    return scopeBits << 1;
+  }
+
+  public int allView() {
+    return scopeBits | (scopeBits << 1);
+  }
+
+  public static int grantTeamScope(int scopeView) {
+    return scopeView | (scopeView << 1);
   }
 
   public static String parserType(int originalType, String originalID) {

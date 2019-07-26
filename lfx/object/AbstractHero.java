@@ -1,37 +1,30 @@
 package lfx.object;
 
-import javafx.scene.image.Image;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.EnumMap;
+import lfx.util.Act;
+import lfx.util.Numeric;
 
-abstract class LFhero extends LFobject {
-  /** the defend point is set to NODEF_DP if one got hit not in defend state */
+abstract class AbstractHero extends AbstractObject {
+  /** The defend point is set to NODEF_DP if got hit not in defend state. */
   public static final int NODEF_DP = 45;
-  public static final double ICED_FALLDOWN_DAMAGE = 10.0;
-  public static final double SONATA_FALLDOWN_DAMAGE = 10.0;
-  public static final double DEFEND_DMG_REDUCTION = 0.10;
+  public static final double DEFEND_INJURY_REDUCTION = 0.10;
   public static final double DEFEND_DVX_REDUCTION = 0.10;
-  /** (uncertain value) the velocity of bouncing up after falling */
-  public static final double FALLING_BOUNCE_VY = -4.25;
-  /** (uncertain value) the waitTU non-y velocity ratio after character landing */
-  public static final double LANDING_VELOCITY_REMAIN = 0.5;
-  /** (self-test value) the z-velocity of opoint if press U or D */
-  public static final double OPOINT_DVZ = 2.5;
-  /** (self-test value) the x-velocity ratio if move diagonally */
-  public static final double DIAMOVE_VX_RATIO = 1.0 / 1.4;
-  /** (uncertain value) velocity of being caught and dropped by time out */
-  public static final double CAUGHT_TIMEUP_DVX =  8.0;
-  public static final double CAUGHT_TIMEUP_DVY = -3.0;
-  public static final double CAUGHT_DROP_DVY = -2.0;
+  public static final double FALLING_BOUNCE_VY = -4.25;  // guess-value
+  public static final double LANDING_VELOCITY_REMAIN = 0.5;  // guess-value
+  public static final double CONTROL_VZ = 2.5;  // press U or D; test-value
+  public static final double DIAGONAL_MOVE_VX_RATIO = 1.0 / 1.4;  // test-value
 
-  public final Image faceImage;
-  public LFweapon weapon = LFweapon.dummy;
   private LFcontrol ctrl = LFcontrol.noControl;
   private int lastHitTime = 0;
-
-  protected int dp = 0, dpDec = 1;
-  protected int fp = 0, fpDec = 1;
+  /** Hidden action frame counter */
+  private final Numeric walkingIndexer = Numeric.generator(new int[] {2, 3, 2, 1, 0, 1});
+  private final Numeric runningIndexer = Numeric.generator(new int[] {0, 1, 2, 1});
+  protected Weapon weapon = Weapon.dummy;
+  protected int dp = 0;  // defend point
+  protected int fp = 0;  // fall point
+  protected int dpReg = 1;
+  protected int fpReg = 1;
   protected double hp2nd = 500.0;
   protected double hpReg = 1.0 / 12.0;
   protected double mpReg = 1.0 / 3.00;
@@ -47,44 +40,111 @@ abstract class LFhero extends LFobject {
   protected double Value_heavy_running_speed  = 0.0;
   protected double Value_heavy_running_speedz = 0.0;
   protected double Value_heavy_running_speedx = 0.0;
-  protected double Value_jump_height   = 0.0;
+  protected double Value_jump_height     = 0.0;
   protected double Value_jump_distance   = 0.0;
   protected double Value_jump_distancez  = 0.0;
-  protected double Value_dash_height   = 0.0;
+  protected double Value_dash_height     = 0.0;
   protected double Value_dash_distance   = 0.0;
   protected double Value_dash_distancez  = 0.0;
   protected double Value_rowing_height   = 0.0;
   protected double Value_rowing_distance = 0.0;
+  /** Hidden flying-velocity-related status.
+      lsb indicates whether the velocity will be applied. */
+  private int flyState = NOTFLYING;
+  private static final int NOTFLYING = 0;
+  private static final int JUMP_V0_0 = 1 << 1;  // jump vertically
+  private static final int JUMP_VP_0 = 2 << 1;  // jump with positive velocity
+  private static final int JUMP_VN_0 = 3 << 1;  // jump with negative velocity
+  private static final int DASH_RP_0 = 4 << 1;  // dash with positive velocity and facing right
+  private static final int DASH_RN_0 = 5 << 1;  // dash with negative velocity and facing right
+  private static final int DASH_LP_0 = 6 << 1;  // dash with positive velocity and facing left
+  private static final int DASH_LN_0 = 7 << 1;  // dash with negative velocity and facing left
+  private static final int  ROW_VP_0 = 8 << 1;  //  row with positive velocity
+  private static final int  ROW_VN_0 = 9 << 1;  //  row with negative velocity
+  private static final int JUMP_V0_1 = JUMP_V0_0 | 1;
+  private static final int JUMP_VP_1 = JUMP_VP_0 | 1;
+  private static final int JUMP_VN_1 = JUMP_VN_0 | 1;
+  private static final int DASH_RP_1 = DASH_RP_0 | 1;
+  private static final int DASH_RN_1 = DASH_RN_0 | 1;
+  private static final int DASH_LP_1 = DASH_LP_0 | 1;
+  private static final int DASH_LN_1 = DASH_LN_0 | 1;
+  private static final int  ROW_VP_1 =  ROW_VP_0 | 1;
+  private static final int  ROW_VN_1 =  ROW_VN_0 | 1;
+  /** Action number lookup */
+  public static final int ACT_TRANSFORM_INVALID = ACT_DEF;
+  public static final int ACT_TRANSFORM_BACK = 245;  // default
+  public static final int ACT_STANDING = 0;
+  public static final int ACT_WALKING = 5;
+  public static final int ACT_RUNNING = 9;
+  public static final int ACT_HEAVY_WALK = 12;
+  public static final int ACT_HEAVY_RUN = 16;
+  public static final int ACT_HEAVY_STOP_RUN = 19;
+  public static final int ACT_WEAPON_ATK1 = 20;
+  public static final int ACT_WEAPON_ATK2 = 25;
+  public static final int ACT_JUMP_WEAPON_ATK = 30;
+  public static final int ACT_RUN_WEAPON_ATK = 35;
+  public static final int ACT_DASH_WEAPON_ATK = 40;
+  public static final int ACT_LIGHT_WEAPON_THROW = 45;
+  public static final int ACT_HEAVY_WEAPON_THROW = 50;
+  public static final int ACT_SKY_WEAPON_THROW = 52;
+  public static final int ACT_DRINK = 55;
+  public static final int ACT_PUNCH1 = 60;
+  public static final int ACT_PUNCH2 = 65;
+  public static final int ACT_SUPER_PUNCH = 70;
+  public static final int ACT_JUMP_ATK = 80;
+  public static final int ACT_RUN_ATK = 85;
+  public static final int ACT_DASH_ATK = 90;
+  public static final int ACT_DASH_DEF = 95;
+  public static final int ACT_ROLLING = 102;
+  public static final int ACT_ROWING1 = 100;
+  public static final int ACT_ROWING2 = 108;
+  public static final int ACT_DEFEND = 110;
+  public static final int ACT_DEFEND_HIT = 111;
+  public static final int ACT_BROKEN_DEF = 112;
+  public static final int ACT_PICK_LIGHT = 115;
+  public static final int ACT_PICK_HEAVY = 116;
+  public static final int ACT_CATCH = 120;
+  public static final int ACT_CAUGHT = 130;
+  public static final int ACT_FORWARD_FALL1 = 180;
+  public static final int ACT_FORWARD_FALL2 = 181;
+  public static final int ACT_FORWARD_FALL3 = 182;
+  public static final int ACT_FORWARD_FALL4 = 183;
+  public static final int ACT_FORWARD_FALL5 = 184;
+  public static final int ACT_FORWARD_FALLR = 185;
+  public static final int ACT_BACKWARD_FALL1 = 186;
+  public static final int ACT_BACKWARD_FALL2 = 187;
+  public static final int ACT_BACKWARD_FALL3 = 188;
+  public static final int ACT_BACKWARD_FALL4 = 189;
+  public static final int ACT_BACKWARD_FALL5 = 190;
+  public static final int ACT_BACKWARD_FALLR = 191;
+  public static final int ACT_ICE = 200;
+  public static final int ACT_UPWARD_FIRE = 203;
+  public static final int ACT_DOWNWARD_FIRE = 205;
+  public static final int ACT_TIRED = 207;
+  public static final int ACT_JUMP = 210;
+  public static final int ACT_JUMPAIR = 212;
+  public static final int ACT_DASH1 = 213;
+  public static final int ACT_DASH2 = 214;
+  public static final int ACT_CROUCH1 = 215;
+  public static final int ACT_STOPRUN = 218;
+  public static final int ACT_CROUCH2 = 219;
+  public static final int ACT_INJURE1 = 220;
+  public static final int ACT_INJURE2 = 222;
+  public static final int ACT_INJURE3 = 224;
+  public static final int ACT_DOP = 226;
+  public static final int ACT_LYING1 = 230;
+  public static final int ACT_LYING2 = 231;
+  public static final int ACT_THROW_LYING_MAN = 232;
+  public static final int ACT_DUMMY = 399;
 
-  protected LFhero(String id, LFtype t, String c) {
-    super(id, t, 400);
-    faceImage = LFobject.loadImage(c);
-  }
-
-  public final void ctrlRegister(EnumMap<javafx.scene.input.KeyCode, LFkeyrecord> keyStatus) {
-    ctrl.register(keyStatus);
+  /** used in StatusBar */
+  public final void fillStatus(double[] values) {
+    values[0] = hp;
+    values[1] = hp2nd;
+    values[2] = hpMax;
+    values[3] = mp;
+    values[4] = mp2nd;
     return;
-  }
-
-  @Override
-  public final double getControlZ() {
-    return ctrl.do_Z ? (ctrl.do_U ? -1.0 : 1.0) : 0.0;
-  }
-
-  /* used in LFstatus */
-  public final void getHealth(double[] values) {
-    if (hp > 0.0) {
-      values[0] = hp2nd / hpMax;
-      values[1] = hp  / hpMax;
-      values[2] = mp  / mpMax;
-    } else
-      values[0] = values[1] = values[2] = 0.0;
-    return;
-  }
-
-  @Override
-  public final int checkItrScope(LFobject o) {
-    return (teamID == o.teamID) ? 0b000001 : 0b000010;
   }
 
   @Override
@@ -95,56 +155,28 @@ abstract class LFhero extends LFobject {
   }
 
   @Override
-  public final void damageCallback(LFitr i, LFobject o) {
-    hitLag = HITLAG_SPAN;
-    return;
-  }
-
-  @Override
-  public void damageReceived(LFitrarea ia, LFbdyarea ba) {
-    recvDmg.add(ia, ba);
-    return;
-  }
-
-  @Override
-  protected final int resolveAct(int index) {
+  protected final Pair<Integer, Boolean> resolveAct(int index) {
     if (index < 0)
       index = -index;
-    return (index != Act_999) ? index :
-        ((weapon.type == LFtype.HEAVY) ? Act_hvwalking : ((py >= 0) ? Act_standing : Act_jumpair));
+    return index != ACT_DEF ? index :
+           (weapon.type == Type.HEAVY ? ACT_HEAVY_WALK : (py >= 0 ? ACT_STANDING : ACT_JUMPAIR));
   }
 
-  /* if the hero satisfies the limitation and has enough mana, then consume the mana and return true. */
-  public final boolean tryCombo(LFact combo, LFframe comboFrame, boolean changeFacing) {
-    if (LFX.currMap.isUnlimitedMode()) {
-      /* you can do the combo anyway ! */
-    } else if (comboFrame.limit > 0.0 && hp >= comboFrame.limit * hpMax) {
-      return false;
-    } else if (comboFrame.mpCost < 1000) {
-      if (mp >= comboFrame.mpCost)
-        mp -= comboFrame.mpCost;
-      else
-        return false;
-    } else {
-      if (mp >= comboFrame.mpCost % 1000 && hp > comboFrame.mpCost / 100) {
-        mp -= comboFrame.mpCost % 1000;
-        hp -= comboFrame.mpCost / 100;
-      } else
-        return false;
-    }
-    faceRight = (combo.facing == null) ? (faceRight ^ changeFacing) : combo.facing;
-    currFrame = comboFrame;
-    waitTU = currFrame.wait;
-    ctrl.consumeKey(combo);
-    return true;
+  public final boolean castCombo(Combo combo, Frame comboFrame) {
+    // TODO: Louis transform hp limit
+    if (comboFrame.cost == 0 || GlobalVariable.isUnlimitedMode)
+      return true;
+    if (comboFrame.cost < 1000)
+      return mp >= comboFrame.cost;
+    return mp >= comboFrame.cost % 1000 && hp > comboFrame.cost / 1000 * 10;
   }
 
-  /* most of the time, dark HP is reduced by one-third of received damage
-     use `sync=true' for the situations not following this rule (e.g., throwinjury)
-     note that the lower bound is zero in LFX, which is different from LF2 */
-  public final void hpLost(double dmg, boolean sync) {
-    hp -= dmg;
-    hp2nd -= sync ? dmg : Math.floor(dmg / 3.0);
+  /** Most of the time, potential HP is reduced by one-third of the received damage.
+      Use `sync=true` for the situations not following this rule (e.g., throwinjury).
+      Note: the lower bound is zero in LFX, which is different from LF2. */
+  public final void hpLost(double injury, boolean sync) {
+    hp -= injury;
+    hp2nd -= sync ? injury : Math.floor(injury / 3.0);
     if (hp < 0.0) {
       hp = 0.0;
       hp2nd = Math.max(hp2nd, 0.0);
@@ -152,135 +184,61 @@ abstract class LFhero extends LFobject {
     return;
   }
 
-  /* ActNumber lookup table */
-  protected static final int Act_notransform = 0;// default
-  protected static final int Act_transformback = 245;// default
-  protected static final int Act_standing = 0;
-  protected static final int Act_walking = 5;
-  protected static final int Act_running = 9;
-  protected static final int Act_hvwalking = 12;
-  protected static final int Act_hvrunning = 16;
-  protected static final int Act_hvstoprun = 19;
-  protected static final int Act_nrmwpatk1 = 20;
-  protected static final int Act_nrmwpatk2 = 25;
-  protected static final int Act_jumpwpatk = 30;
-  protected static final int Act_runwpatk = 35;
-  protected static final int Act_dashwpatk = 40;
-  protected static final int Act_lgwpthw = 45;
-  protected static final int Act_hvwpthw = 50;
-  protected static final int Act_skywpthw = 52;
-  protected static final int Act_drink = 55;
-  protected static final int Act_punch1 = 60;
-  protected static final int Act_punch2 = 65;
-  protected static final int Act_spunch = 70;
-  protected static final int Act_jumpatk = 80;
-  protected static final int Act_runatk = 85;
-  protected static final int Act_dashatk = 90;
-  // protected static final int Act_dashdef = 95;// nouse
-  protected static final int Act_rolling = 102;
-  protected static final int Act_rowing1 = 100;
-  protected static final int Act_rowing2 = 108;
-  protected static final int Act_defend = 110;
-  protected static final int Act_defendhit = 111;
-  protected static final int Act_broken = 112;
-  protected static final int Act_picklight = 115;
-  protected static final int Act_pickheavy = 116;
-  protected static final int Act_catch = 120;
-  protected static final int Act_caught = 130;
-  protected static final int Act_fwfall1 = 180;
-  protected static final int Act_fwfall2 = 181;
-  protected static final int Act_fwfall3 = 182;
-  protected static final int Act_fwfall4 = 183;
-  protected static final int Act_fwfall5 = 184;
-  protected static final int Act_fwfallR = 185;
-  protected static final int Act_bwfall1 = 186;
-  protected static final int Act_bwfall2 = 187;
-  protected static final int Act_bwfall3 = 188;
-  protected static final int Act_bwfall4 = 189;
-  protected static final int Act_bwfall5 = 190;
-  protected static final int Act_bwfallR = 191;
-  protected static final int Act_ice = 200;
-  protected static final int Act_fireU = 203;
-  protected static final int Act_fireD = 205;
-  // protected static final int Act_tired = 207;// nouse
-  protected static final int Act_jump = 210;
-  protected static final int Act_jumpair = 212;
-  protected static final int Act_dash1 = 213;
-  protected static final int Act_dash2 = 214;
-  protected static final int Act_crouch1 = 215;
-  protected static final int Act_stoprun = 218;
-  protected static final int Act_crouch2 = 219;
-  protected static final int Act_injure1 = 220;
-  protected static final int Act_injure2 = 222;
-  protected static final int Act_injure3 = 224;
-  protected static final int Act_dop = 226;
-  protected static final int Act_lying1 = 230;
-  protected static final int Act_lying2 = 231;
-  protected static final int Act_thwlyman = 232;
-  // protected static final int Act_dummy = 399;// nouse
-
-  /* hidden action frame counter */
-  private static final int[] walkingCycle = { 2, 3, 2, 1, 0, 1 };
-  private int walkingIndex = 0;
-  private static final int[] runningCycle = { 0, 1, 2, 1 };
-  private int runningIndex = 0;
-
-  /* hidden flying-related status, lsb indicates whether the velocity need to be granted */
-  private static final byte NOTFLYING = 0;
-  private static final byte JUMP_V0_1 = (1 << 1) | 1, JUMP_V0_0 = (1 << 1) | 0;// jump vx=0
-  private static final byte JUMP_VP_1 = (2 << 1) | 1, JUMP_VP_0 = (2 << 1) | 0;// jump vx>0
-  private static final byte JUMP_VN_1 = (3 << 1) | 1, JUMP_VN_0 = (3 << 1) | 0;// jump vx<0
-  private static final byte DASH_RP_1 = (4 << 1) | 1, DASH_RP_0 = (4 << 1) | 0;// dash vx>0 facing right
-  private static final byte DASH_RN_1 = (5 << 1) | 1, DASH_RN_0 = (5 << 1) | 0;// dash vx<0 facing right
-  private static final byte DASH_LP_1 = (6 << 1) | 1, DASH_LP_0 = (6 << 1) | 0;// dash vx>0 facing left
-  private static final byte DASH_LN_1 = (7 << 1) | 1, DASH_LN_0 = (7 << 1) | 0;// dash vx<0 facing left
-  private static final byte  ROW_VP_1 = (8 << 1) | 1,  ROW_VP_0 = (8 << 1) | 0;//  row vx>0
-  private static final byte  ROW_VN_1 = (9 << 1) | 1,  ROW_VN_0 = (9 << 1) | 0;//  row vx<0
-  private byte flyState = NOTFLYING;
-
   @Override
   public boolean reactAndMove(LFmap map) {
-    for (LFitrarea r: recvItr) {
-      switch (r.itr.effect) {
-        case PICKSTAND:
-          /* assert you finally get the weapon */
-          if (weapon.picker != this)
-            weapon = LFweapon.dummy;
-          else
-            setCurr((weapon.type == LFtype.HEAVY) ? Act_pickheavy : Act_picklight);
+    int nextAct = ACT_TBA;
+    int bdefend = 0;
+    int injury = 0;
+    int fall = 0;
+    int dvx = 0;
+    int dvy = 0;
+    for (Pair<AbstractObject, Itr> pair: resultItrList) {
+      final AbstractObject that = pair.first;
+      final Itr itr = pair.second;
+      switch (itr.effect) {
+        case LET_SPUNCH:
+          status.put(Extension.Kind.ATTACK_SPUNCH, Extension.oneshot());
           break;
-        case PICKROLL:
-          /* assert you finally get the weapon */
-          if (weapon.picker != this)
-            weapon = LFweapon.dummy;
+        case PICK:
+          if (assertRaceCondition(this, that)) {
+            weapon = what;
+            nextAct = weapon.type == Type.HEAVY ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+          }
           break;
-        case LETSP:
-          extra.put(LFextra.Kind.LETSPUNCH, LFextra.oneTime());
+        case ROLL_PICK:
+          if (assertRaceCondition(this, that))
+            weapon = what;
           break;
-        case FENCE:
-          extra.put(LFextra.Kind.MOVEBLOCK, LFextra.oneTime());
+        case GRASP_DOP:
+        case GRASP_BDY:
+          if (assertRaceCondition(this, that)) {
+            // TODO: distinguish this & that
+          }
+          break;
+        case BLOCK:
+          status.put(Extension.Kind.MOVE_BLOCKING, Extension.oneshot());
           break;
         case SONATA:
-          vx = r.sonataVxz(vx);
-          vz = r.sonataVxz(vz);
-          vy = r.sonataVy(py, vy);
-          hpLost(r.itr.injury, false);
-          extra.put(LFextra.Kind.SONATA, new LFextra(Integer.MAX_VALUE, 1.0));
-          setCurr((vy < 0.0) ? 182 : 183);
-          break;
-        case VORTEX:
-          vx += r.vortexAx(px);
-          vz += r.vortexAz(pz);
-          vy += r.vortexAy(py, vy);
+          vx = itr.sonataVxz(vx);
+          vz = itr.sonataVxz(vz);
+          vy = itr.sonataVy(py, vy);
+          hpLost(itr.injury, false);
+          status.put(Extension.Kind.SONATA, new Extension(Integer.MAX_VALUE, 1.0));
+          nextAct = vy < 0.0 ? ACT_FORWARD_FALL3 : ACT_FORWARD_FALL4;
           break;
         case HEAL:
-          extra.put(LFextra.Kind.HEALING, new LFextra(r.itr.dvy, (double)(r.itr.injury / r.itr.dvy)));
+          status.put(Extension.Kind.HEALING, new Extension(itr.dvy, (double)(itr.injury / itr.dvy)));
+          break;
+        case VORTEX:
+          vx += itr.vortexAx(px);
+          vz += itr.vortexAz(pz);
+          vy += itr.vortexAy(py, vy);
           break;
         default:
-          System.out.printf("\n%s should not receive effect: %d", this, r.itr.effect);
+          System.out.printf("%s received unexpected Itr %s", this, itr);
       }
     }
-    recvItr.clear();
+    resultItrList.clear();
 
     /* react to the damage */
     if (recvDmg.effect != LFeffect.NONE) {
@@ -388,7 +346,7 @@ abstract class LFhero extends LFobject {
 
     /* We do not set the `new' currFrame directly, since there might be
        several reasons leading to other results. e.g., landing on ground. */
-    int nextAct = DEFAULT_ACT;
+    int nextAct = ACT.UNASSIGNED;
 
     if (grasp != null)
       grasp.update(this);
@@ -426,10 +384,10 @@ abstract class LFhero extends LFobject {
         } else if (ctrl.do_d) {
           nextAct = Act_defend;
         } else if (ctrl.do_RR | ctrl.do_LL)  {
-          nextAct = Act_running + runningCycle[runningIndex = 0];
+          nextAct = Act_running + runningIndexer.restart();
           faceRight = ctrl.do_RR;
         } else if (ctrl.do_F | ctrl.do_Z) {
-          nextAct = Act_walking + walkingCycle[walkingIndex = 0];
+          nextAct = Act_walking + walkingIndexer.restart();
           faceRight = ctrl.do_R || (ctrl.do_L ? false : faceRight);
         }
         break;
@@ -466,7 +424,7 @@ abstract class LFhero extends LFobject {
         } else if (ctrl.do_d) {
           nextAct = Act_defend;
         } else if (ctrl.do_RR | ctrl.do_LL)  {
-          nextAct = Act_running + runningCycle[runningIndex = 0];
+          nextAct = Act_running + runningIndexer.restart();
           faceRight = ctrl.do_RR;
         } else if (ctrl.do_F | ctrl.do_Z) {
           if    (ctrl.do_R) { vx =  Value_walking_speed; faceRight = true;  }
@@ -474,8 +432,7 @@ abstract class LFhero extends LFobject {
           if    (ctrl.do_U)   vz = -Value_walking_speedz;
           else if (ctrl.do_D)   vz =  Value_walking_speedz;
           if (waitTU < 1) {
-            walkingIndex = (walkingIndex + 1) % 6;
-            nextAct = Act_walking + walkingCycle[walkingIndex];
+            nextAct = Act_walking + walkingIndexer.next();
           }
         }
         break;
@@ -492,8 +449,7 @@ abstract class LFhero extends LFobject {
           if    (ctrl.do_U)   vz = -Value_heavy_walking_speedz;
           else if (ctrl.do_D)   vz =  Value_heavy_walking_speedz;
           if (waitTU < 1) {
-            walkingIndex = (walkingIndex + 1) % 6;
-            nextAct = Act_hvwalking + walkingCycle[walkingIndex];
+            nextAct = Act_hvwalking + walkingIndexer.next();
           }
         }
         break;
@@ -523,8 +479,7 @@ abstract class LFhero extends LFobject {
         } else if ((faceRight && ctrl.do_L) || (!faceRight && ctrl.do_R)) {
           nextAct = Act_stoprun;
         } else if (waitTU < 1) {
-          runningIndex = (runningIndex + 1) & 3;
-          nextAct = Act_running + runningCycle[runningIndex];
+          nextAct = Act_running + runningIndexer.next();
         }
         break;
       case HRUN:
@@ -537,8 +492,7 @@ abstract class LFhero extends LFobject {
         } else if ((faceRight && ctrl.do_L) || (!faceRight && ctrl.do_R)) {
           nextAct = Act_hvstoprun;
         } else if (waitTU < 1) {
-          runningIndex = (runningIndex + 1) & 3;
-          nextAct = Act_hvrunning + runningCycle[runningIndex];
+          nextAct = Act_hvrunning + runningIndexer.next();
         }
         break;
       case JUMP:
@@ -1014,7 +968,7 @@ abstract class LFhero extends LFobject {
   }
 
   @Override
-  public void registerItr() {
+  public List<Pair<Itr, Area>> registerItrArea() {
     currItr.clear();
     for (LFitr i: currFrame.itr) {
       // weapon press a
@@ -1025,53 +979,13 @@ abstract class LFhero extends LFobject {
   }
 
   @Override
-  public void registerBdy() {
-    currBdy.clear();
-    if (grasp == null || grasp.hasBdy(this)) {
-      for (LFbdy b: currFrame.bdy)
-        currBdy.add(new LFbdyarea(this, b));
-    }
-    return;
-  }
-
-  @Override
-  public void statusOverwrite(final LFhero target) {
-    super.statusOverwrite(target);
-    if (weapon != LFweapon.dummy) {
-      weapon.picker = target;
-      target.weapon = weapon;
-    }
-    target.ctrl = ctrl;
-    target.hp2nd = hp2nd;
-    /* self cleaning */
-    lastHitTime = 0;
-    dp = fp = 0;
-    flyState = NOTFLYING;
-    return;
-  }
-
-  @Override
   protected final void preprocess() {
     super.preprocess();
-    /* while z-velocity is always the same, x-velocity is reduced when you move diagonally */
-    Value_walking_speedx = Value_walking_speed * DIAMOVE_VX_RATIO;
-    Value_running_speedx = Value_running_speed * DIAMOVE_VX_RATIO;
-    Value_heavy_walking_speedx = Value_heavy_walking_speed * DIAMOVE_VX_RATIO * .5;
-    Value_heavy_running_speedx = Value_heavy_running_speed * DIAMOVE_VX_RATIO * .5;
-    /* distance kind is not affacted by z-direction move */
+    Value_walking_speedx = Value_walking_speed * DIAGONAL_MOVE_VX_RATIO;
+    Value_running_speedx = Value_running_speed * DIAGONAL_MOVE_VX_RATIO;
+    Value_heavy_walking_speedx = Value_heavy_walking_speed * DIAGONAL_MOVE_VX_RATIO * .5;
+    Value_heavy_running_speedx = Value_heavy_running_speed * DIAGONAL_MOVE_VX_RATIO * .5;
     return;
-  }
-
-  @Override
-  protected final LFhero clone() {
-    System.out.printf("%s.clone()\n", identifier);
-    return (LFhero)super.clone();
-  }
-
-  public final LFhero makeCopyPick(LFcontrol c, int t) {
-    LFhero p = (LFhero)makeCopy(Math.random() >= 0.5, t);
-    p.ctrl = c;
-    return p;
   }
 
 }

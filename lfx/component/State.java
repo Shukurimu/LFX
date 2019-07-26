@@ -1,55 +1,70 @@
 package lfx.component;
 
-import java.util.HashMap;
+import java.util.EnumSet;
 
 public enum State {
-  NORM   (false),
-  UNIMPLEMENTED(false),
-  // states for hero
-  STAND  (false),
-  WALK   (false),
-  RUN    (false),
-  HWALK  (false),
-  HRUN   (false),
-  JUMP   (false),
-  DASH   (false),
-  ROW    (false),
-  DRINK  (false),
-  DEFEND (false),
-  CATCH  (false),
-  CAUGHT (false),
-  FALL   (false),
-  ICE    (false),
-  FIRE   (false),
-  INJURED(false),
-  DOP    (false),
-  LYING  (false),
-  LAND   (false),
-  TRY_TRANSFORM(false),
-  // states for weapon
-  INSKY   (true),
-  ONHAND  (false),
-  THROW   (true),
-  ONGROUND(false),
-  JUST_ONGROUND(false),
-  BROKENWEAPON (false),
-  // states for blast
-  NORMAL (true),
-  HITSUCC(false),
-  HITFAIL(false),
-  REBOUND(false),
-  ENERGY (false),
-  PIERCE (true);
+  NORMAL(true),
+  /** Hero */
+  STAND (true),  // direction keys
+  WALK  (true),  // direction keys
+  RUN   (true),  // direction keys
+  HEAVY_WALK(true),  // direction keys
+  HEAVY_RUN (true),  // direction keys
+  JUMP    (true),  // with hidden flying state; direction keys
+  DASH    (true),  // with hidden flying state; direction keys
+  ROW     (true),  // with hidden flying state
+  DEFEND  (true),  // goes to act 111 if being hit
+  FALL    (true),  // changes action accroding to vy
+  FIRE    (true),  // changes action accroding to vy
+  LYING   (true),  // loops in same act if no hp
+  /** Weapon */
+  INSKY        (true),
+  ONHAND       (true),
+  THROW        (true),
+  ONGROUND     (true),
+  JUST_ONGROUND(true),
+  /** Blast */
+  HITTING (true),
+  HIT     (true),
+  REBOUND (true),
+  ENERGY  (true),
+  PIERCE  (true),
+  UNIMPLEMENTED(true),
 
-  public final boolean createVz;
+  /** There can be only one State of basicMove. */
+  public static final EnumSet<State> BASIC_MOVES = EnumSet.range(NORMAL, UNIMPLEMENTED);
+  public final boolean basicMove;
 
-  private State(boolean createVz) {
-    this.createVz = createVz;
+  private State(boolean basicMove) {
+    this.basicMove = basicMove;
   }
 
   @Override
   public String toString() {
-    return String.format("%s.%s", this.getClass().getSimpleName(), super.toString());
+    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+  }
+
+  public static String parserState(int originalState) {
+    switch (originalState) {
+      case 9996:
+        return "LFextra.Kind.ARMOUR, LFextra.oneTime()";
+      case 1700:
+        return "LFextra.Kind.HEALING, new LFextra(100, 1.0)";
+      case 400:
+        return "LFextra.Kind.TELEPORT_ENEMY, new LFextra(1, 120.0)";
+      case 401:
+        return "LFextra.Kind.TELEPORT_TEAM, new LFextra(1, 60.0)";
+      case 100:
+        return "LFextra.Kind.LANDING, new LFextra(-1, 94)";
+      case 501:
+        return "LFextra.Kind.TRANSFORM_BACK, LFextra.oneTime()";
+      default:
+        return null;
+    }
+  }
+
+  public static String parserInvisibility(int invisibility) {
+      return String.format("LFextra.Kind.INVISIBLE, new LFextra(%d)", invisibility);
   }
 
   public static HashMap<String, State> buildParserMap() {

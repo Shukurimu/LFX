@@ -3,7 +3,9 @@ package lfx.component;
 import java.util.ArrayList;
 
 public class Cpoint {
-  public static final Cpoint dummy = new Cpoint(0, 0, 0, 0);
+  public static final double TIMEUP_DVX = +8.0;
+  public static final double TIMEUP_DVY = -3.0;
+  public static final double DROP_DVY = -2.0;
   public static final int FRONTHURTACT = 221;
   public static final int BACKHURTACT  = 223;
   public static final int DIRCONTROL = 0b10000;

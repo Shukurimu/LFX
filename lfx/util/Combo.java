@@ -5,10 +5,10 @@ public enum Combo {
   hit_a (1),
   hit_j (1),
   hit_d (1),
-  hit_Ua(2),
-  hit_Uj(2),
   hit_Fa(2),
   hit_Fj(2),
+  hit_Ua(2),
+  hit_Uj(2),
   hit_Da(2),
   hit_Dj(2),
   hit_ja(3);

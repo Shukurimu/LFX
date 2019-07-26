@@ -1,23 +1,21 @@
 package lfx.util;
 
-public class Area {
-  private double x1 = 0.0;
-  private double x2 = 0.0;
-  private double y1 = 0.0;
-  private double y2 = 0.0;
-  private double z1 = 0.0;
-  private double z2 = 0.0;
+public final class Area {
+  private final double x1 = 0.0;
+  private final double x2 = 0.0;
+  private final double y1 = 0.0;
+  private final double y2 = 0.0;
+  private final double z1 = 0.0;
+  private final double z2 = 0.0;
 
-  public static Area build(double cx, double cy, boolean faceRight,
-                           int x, int y, int w, int h, int zwidth) {
-    Area area = new Area();
-    area.x1 = cx + faceRight ? x : -(x + w);
-    area.x2 = area.x1 + w;
-    area.y1 = cy + y;
-    area.y2 = area.y1 + h;
-    area.z1 = cz - zwidth;
-    area.z2 = cz + zwidth;
-    return area;
+  public Area(double cx, double cy, boolean faceRight,
+              int x, int y, int w, int h, int zwidth) {
+    x1 = cx + faceRight ? x : -(x + w);
+    x2 = x1 + w;
+    y1 = cy + y;
+    y2 = y1 + h;
+    z1 = cz - zwidth;
+    z2 = cz + zwidth;
   }
 
   public boolean collidesWith(Area another) {
