@@ -2,6 +2,7 @@ package lfx.component;
 
 import java.util.EnumSet;
 
+// https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1
 public enum State {
   NORMAL(true),
   /** Hero */
@@ -13,6 +14,7 @@ public enum State {
   JUMP    (true),  // with hidden flying state; direction keys
   DASH    (true),  // with hidden flying state; direction keys
   ROW     (true),  // with hidden flying state
+  GRASP   (true),  // complicated cpoint
   DEFEND  (true),  // goes to act 111 if being hit
   FALL    (true),  // changes action accroding to vy
   FIRE    (true),  // changes action accroding to vy

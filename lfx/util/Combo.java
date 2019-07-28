@@ -2,16 +2,16 @@ package lfx.util;
 
 public enum Combo {
   NONE  (0),
-  hit_a (1),
-  hit_j (1),
-  hit_d (1),
-  hit_Fa(2),
-  hit_Fj(2),
-  hit_Ua(2),
-  hit_Uj(2),
-  hit_Da(2),
-  hit_Dj(2),
-  hit_ja(3);
+  hit_a (2),
+  hit_j (2),
+  hit_d (2),
+  hit_Fa(3),
+  hit_Fj(3),
+  hit_Ua(3),
+  hit_Uj(3),
+  hit_Da(3),
+  hit_Dj(3),
+  hit_ja(4);
 
   public final int priority;
 
@@ -21,7 +21,7 @@ public enum Combo {
 
   @Override
   public String toString() {
-    return String.format("%s.%s", this.getClass().getSimpleName(), super.toString());
+    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
   }
 
 }

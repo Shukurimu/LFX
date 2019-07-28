@@ -14,7 +14,6 @@ public class Cpoint {
   public static final int HURTABLE   = 0b00010;
   public static final int COVER      = 0b00001;
 
-  // `kind` is removed from this implementation.
   public final int x;
   public final int y;
   public final int injury;
@@ -60,7 +59,7 @@ public class Cpoint {
   }
 
   // graspee
-  public LFcpoint(int x, int y, int frontHurtAct, int backHurtAct) {
+  public Cpoint(int x, int y, int frontHurtAct, int backHurtAct) {
     this(x, y, 0,
          0, 0, 0, 0,
          frontHurtAct, backHurtAct, 0, 0,

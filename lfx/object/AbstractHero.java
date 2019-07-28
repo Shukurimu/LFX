@@ -1,9 +1,16 @@
 package lfx.object;
 
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import lfx.component.Type;
+import lfx.object.AbstractObject;
 import lfx.util.Act;
-import lfx.util.Numeric;
+import lfx.util.Looper;
+
+// https://lf-empire.de/lf2-empire/data-changing/types/167-effect-0-characters
+// http://lf2.wikia.com/wiki/Health_and_mana
 
 abstract class AbstractHero extends AbstractObject {
   /** The defend point is set to NODEF_DP if got hit not in defend state. */
@@ -13,14 +20,13 @@ abstract class AbstractHero extends AbstractObject {
   public static final double FALLING_BOUNCE_VY = -4.25;  // guess-value
   public static final double LANDING_VELOCITY_REMAIN = 0.5;  // guess-value
   public static final double CONTROL_VZ = 2.5;  // press U or D; test-value
-  public static final double DIAGONAL_MOVE_VX_RATIO = 1.0 / 1.4;  // test-value
+  public static final double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test-value
 
-  private LFcontrol ctrl = LFcontrol.noControl;
   private int lastHitTime = 0;
   /** Hidden action frame counter */
-  private final Numeric walkingIndexer = Numeric.generator(new int[] {2, 3, 2, 1, 0, 1});
-  private final Numeric runningIndexer = Numeric.generator(new int[] {0, 1, 2, 1});
-  protected Weapon weapon = Weapon.dummy;
+  private final Looper walkingIndexer = Looper.generator(new int[] {2, 3, 2, 1, 0, 1});
+  private final Looper runningIndexer = Looper.generator(new int[] {0, 1, 2, 1});
+  protected final Set<Combo> = new EnumSet<>();
   protected int dp = 0;  // defend point
   protected int fp = 0;  // fall point
   protected int dpReg = 1;
@@ -173,7 +179,7 @@ abstract class AbstractHero extends AbstractObject {
 
   /** Most of the time, potential HP is reduced by one-third of the received damage.
       Use `sync=true` for the situations not following this rule (e.g., throwinjury).
-      Note: the lower bound is zero in LFX, which is different from LF2. */
+      Note that the lower bound is zero in LFX, which is different from LF2. */
   public final void hpLost(double injury, boolean sync) {
     hp -= injury;
     hp2nd -= sync ? injury : Math.floor(injury / 3.0);
@@ -961,18 +967,18 @@ abstract class AbstractHero extends AbstractObject {
   }
 
   @Override
-  protected boolean checkBoundary(LFmap map) {
-    px = (px > map.xwidth)  ? map.xwidth  : ((px < 0.0) ? 0.0 : px);
-    pz = (pz > map.zboundB) ? map.zboundB : ((pz < map.zboundT) ? map.zboundT : pz);
+  protected boolean adjustBoundary(int[] xzBound) {
+    px = Global.clamp(px, xzBound[0], xzBound[1]);
+    pz = Global.clamp(pz, xzBound[2], xzBound[3]);
     return true;
   }
 
   @Override
   public List<Pair<Itr, Area>> registerItrArea() {
-    currItr.clear();
-    for (LFitr i: currFrame.itr) {
+    List<Pair<Itr, Area>> result = new ArrayList<>();
+    for (Itr itr: currFrame.itr) {
       // weapon press a
-      if (i.effect != LFeffect.FALLING || extra.containsKey(LFextra.Kind.THROWINJURY))
+      if (itr.effect != Effect.THROW_ATK || extra.containsKey(LFextra.Kind.THROWINJURY))
         currItr.add(new LFitrarea(this, i));
     }
     return;
@@ -981,10 +987,10 @@ abstract class AbstractHero extends AbstractObject {
   @Override
   protected final void preprocess() {
     super.preprocess();
-    Value_walking_speedx = Value_walking_speed * DIAGONAL_MOVE_VX_RATIO;
-    Value_running_speedx = Value_running_speed * DIAGONAL_MOVE_VX_RATIO;
-    Value_heavy_walking_speedx = Value_heavy_walking_speed * DIAGONAL_MOVE_VX_RATIO * .5;
-    Value_heavy_running_speedx = Value_heavy_running_speed * DIAGONAL_MOVE_VX_RATIO * .5;
+    Value_walking_speedx = Value_walking_speed * DIAGONAL_VX_RATIO;
+    Value_running_speedx = Value_running_speed * DIAGONAL_VX_RATIO;
+    Value_heavy_walking_speedx = Value_heavy_walking_speed * DIAGONAL_VX_RATIO * 0.5;
+    Value_heavy_running_speedx = Value_heavy_running_speed * DIAGONAL_VX_RATIO * 0.5;
     return;
   }
 

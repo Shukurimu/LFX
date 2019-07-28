@@ -1,9 +1,10 @@
 package lfx.object;
 
 import java.util.ArrayList;
+import lfx.component.Type;
+import lfx.object.AbstractObject;
 
-abstract class LFweapon extends LFobject {
-  public static final LFweapon dummy = new LFweapon("noWeapon", LFtype.NULL) {};
+abstract class Weapon extends AbstractObject {
   /* this small value is added to pz while being held, so that the weapon image is rendered above the character */
   public static final int NONHEAVY_HITGROUND = 7;
 

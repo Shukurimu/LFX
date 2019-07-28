@@ -1,7 +1,12 @@
 package lfx.component;
 
-public class Itr {
-  public static final int ZWIDTH = 12;
+import lfx.component.Type;
+import lfx.util.Box;
+
+// https://lf-empire.de/lf2-empire/data-changing/frame-elements/174-itr-interaction?showall=1
+
+public final class Itr {
+  public static final int LAG = 3;
   public static final int DVX = 0;
   public static final int DVY = -7;
   public static final int BDEFEND = 0;
@@ -9,32 +14,36 @@ public class Itr {
   public static final int INJURY = 0;
   public static final int VREST = 9;  // weapon default
   public static final int AREST = -7;  // hero default
+  public static final int HERO_SCOPE =
+      Type.HERO.enemyView() | Type.BLAST.allView() | Type.WEAPON.allView();
+  public static final int WEAPON_SCOPE = HERO_SCOPE;
+  public static final int BLAST_SCOPE =
+      Type.HERO.enemyView() | Type.BLAST.enemyView() | Type.WEAPON.allView();
+  public static final int NON_HERO_SCOPE = Type.BLAST.allView() | Type.WEAPON.allView();
 
   public enum Effect {
-    // basic move
-    LET_SPUNCH(""),
-    PICK      (""),
-    ROLL_PICK (""),
-    GRASP_DOP (""),
-    GRASP_BDY (""),
-    BLOCK     (""),
-    HEAL      (""),
-    VORTEX    (""),
-    WEAPON_ATK(""),  // used by Weapon
-
-    SONATA  (""),
-    REFLECT (""),
-    FALLING (""),
-    SILENT  (""),
-
-    NONE    (""),
-    OTHER   (""),
-    PUNCH   ("data/001.wav"),
-    STAB    ("data/032.wav"),
-    FIRE    ("data/070.wav"),
-    ICE     ("data/065.wav"),
-    WEAKFIRE("data/070.wav"),
-    WEAKICE ("data/065.wav");
+    GRASP_DOP (""),  // kind1
+    PICK      (""),  // kind2
+    GRASP_BDY (""),  // kind3
+    THROW_ATK (""),  // kind4
+    W_STRENGTH(""),  // kind5
+    LET_SPUNCH(""),  // kind6
+    ROLL_PICK (""),  // kind7
+    HEAL      (""),  // kind8
+    SHIELD    (""),  // kind9
+    SONATA    (""),  // kind10.kind11
+    BLOCK     (""),  // kind14
+    VORTEX    (""),  // kind15
+    // kind16 is replaced by ICE and calling smooth()
+    PUNCH   ("data/001.wav"),  // effect0
+    STAB    ("data/032.wav"),  // effect1
+    FIRE    ("data/070.wav"),  // effect2
+    ICE     ("data/065.wav"),  // effect3
+    WEAKFIRE("data/070.wav"),  // effect20.effect21
+    WEAKICE ("data/065.wav"),  // effect30
+    NONE    ("");
+    // effect4 is replaced by NON_HERO_SCOPE
+    // effect23 is replaced by calling exp()
 
     public final String sound;
 
@@ -44,33 +53,27 @@ public class Itr {
 
     @Override
     public String toString() {
-      return String.format("%s.%s", this.getClass().getSimpleName(), super.toString());
+      return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
     }
 
   }
 
+  public final Box box;
   public final Effect effect;
-  public final int x;
-  public final int y;
-  public final int w;
-  public final int h;
-  public final int zwidth;
   public final int dvx;  // also catchingact
   public final int dvy;  // also caughtact
   public final int bdefend;
   public final int injury;
   public final int fall;
-  public final int vrest;  // negative value -> arest
+  public final int vrest;  // negative value as arest
   public final int scope;
+  private int lag = LAG;
+  private boolean explosion = false;
 
-  public Itr(int x, int y, int w, int h, int zwidth, Effect effect, int dvx, int dvy,
+  public Itr(Box box, Effect effect, int dvx, int dvy,
              int bdefend, int injury, int fall, int vrest, int scope) {
+    this.box = box;
     this.effect = effect;
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.zwidth = zwidth;
     this.dvx = dvx;
     this.dvy = dvy;
     this.bdefend = bdefend;
@@ -80,50 +83,36 @@ public class Itr {
     this.scope = scope;
   }
 
-  // common grasp (default zwidth)
-  public Itr(int x, int y, int w, int h,
-             int catchingact, int caughtact) {
-    this(x, y, w, h, ZWIDTH, Effect.GRASP_DOP,
+  // grasp (use complete constructor if you really want to grasp teammate)
+  public Itr(Box box, boolean forceGrasp, int catchingact, int caughtact) {
+    this(box, forceGrasp ? Effect.GRASP_BDY : Effect.GRASP_DOP,
          catchingact, caughtact, 0, 0, 0, 0, Type.HERO.enemyView());
   }
 
-  // general grasp (use complete constructor if you really want to grasp teammate)
-  public Itr(int x, int y, int w, int h, int zwidth, boolean forceGrasp,
-             int catchingact, int caughtact) {
-    this(x, y, w, h, zwidth, forceGrasp ? Effect.GRASP_BDY : Effect.GRASP_DOP,
-         catchingact, caughtact, 0, 0, 0, 0, Type.HERO.enemyView());
+  // effect only (PICK, BLOCK, ...)
+  public Itr(Box box, Effect effect, int scope) {
+    this(box, effect, 0, 0, 0, 0, 0, 0, scope);
   }
 
-  // only effect (e.g., picking weapon)
-  public Itr(int x, int y, int w, int h, Effect effect, int scope) {
-    this(x, y, w, h, ZWIDTH, effect, 0, 0, 0, 0, 0, 0, scope);
+  // weapon strength list (treated as hero's attack)
+  public Itr(Effect effect, int dvx, int dvy, int bdefend, int injury, int fall, int vrest) {
+    this(null, effect, dvx, dvy, bdefend, injury, fall, vrest, HERO_SCOPE);
   }
 
-  public Itr(int x, int y, int w, int h, int zwidth, Effect effect, int scope) {
-    this(x, y, w, h, zwidth, effect, 0, 0, 0, 0, 0, 0, scope);
+  public Itr smooth() {
+    lag = 0;
+    return this;
   }
 
-  // weapon strength list
-  public Itr(Effect effect, int dvx, int dvy,
-             int bdefend, int injury, int fall, int vrest) {
-    this(effect, nowhere, dvx, dvy,
-         bdefend, injury, fall, vrest, scope);
+  public Itr exp() {
+    explosion = true;
+    return this;
   }
 
-  /* weapon strength list to LFarea */
-  public Itr(LFitr itrField, LFitr strength) {
-    this(strength.effect, itrField.x, itrField.y, itrField.w, itrField.h, itrField.z,
-      strength.dvx, strength.dvy, strength.bdefend, strength.injury, strength.fall,
-      strength.vrest, strength.scope
-    );
-  }
-  /* explosion-effect negative dvx goes two directions */
-  public double calcDvx(LFbdyarea ba) {
-    if (itr.effect.explosionType) {
-      return (px < ba.px) ? (-itr.dvx) : itr.dvx;
-    } else {
-      return faceRight ? itr.dvx : (-itr.dvx);
-    }
+  /** explosion-effect negative dvx goes two directions */
+  public double calcDvx(boolean faceRight) {
+    return explosion ? (px < ba.px ? -dvx : dvx)
+                     : (faceRight ? dvx : -dvx);
   }
 
   /** The followings are the self implementation of several itr kinds

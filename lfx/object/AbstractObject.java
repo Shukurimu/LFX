@@ -14,19 +14,20 @@ import lfx.util.Area;
 import lfx.util.Pair;
 import lfx.util.Type;
 
-/** Reference webpages:
-    https://github.com/Project-F/F.LF/tree/master/LF
-    https://www.lf-empire.de/forum/showthread.php?tid=10733
-    https://lf-empire.de/lf2-empire/data-changing/types/167-effect-0-characters
-    https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1&limitstart=
-    http://lf2.wikia.com/wiki/Health_and_mana
-    http://gjp4860sev.myweb.hinet.net/lf2/page10.htm */
+// http://gjp4860sev.myweb.hinet.net/lf2/page10.htm
+// https://lf-empire.de/lf2-empire/data-changing/frame-elements/177-cpoint-catch-point?showall=1
 
 abstract class AbstractObject {
+  public static final AbstractObject dummy = new AbstractObject() {};
   public static final int ACT_DEF = 999;
   public static final int ACT_TBA = 1236987450;  // arbitrary
-
-  private static int teamIdCounter = 32;  // count for `independent`
+  public static final int GRASP_TIME = 305;  // test-value
+  public static final int GRASP_FLAG_WAITING = -1;
+  public static final int GRASP_FLAG_UPDATED = -2;
+  public static final int GRASP_FLAG_FREE = -3;
+  public static final int GRASP_FLAG_DROP = -4;
+  public static final int GRASP_FLAG_THROW = -5;
+  private static int teamIdCounter = 16;  // count for `independent`
 
   public final Type type;
   public final String identifier;
@@ -47,12 +48,14 @@ abstract class AbstractObject {
   protected double mp = 200.0;
   protected double hpMax = 500.0;
   protected double mpMax = 500.0;
-  protected int lagCountdown = 0;
+  protected int actLag = 0;
   protected int teamId = 0;
-  protected Grasp grasp = null;
-  protected AbstractObject weapon = null;
-  protected AbstractObject picker = null;
-  private double transition = 0.0;
+  protected int graspField = 0;
+  protected AbstractObject grasper = dummy;
+  protected AbstractObject graspee = dummy;
+  protected AbstractObject picker = dummy;
+  protected AbstractObject weapon = dummy;
+  private int transition = 0;
   private double anchorX = 0.0;
   private double anchorY = 0.0;
 
@@ -70,10 +73,6 @@ abstract class AbstractObject {
     anchorX = faceRight ? (px - currFrame.centerx) : (px + currFrame.centerx);
     anchorY = py - currFrame.centery;
     return;
-  }
-
-  public final Pair<Double, Double> getAnchor() {
-    return new Pair<>(anchorX, anchorY);
   }
 
   public final void transitFrame(int actNumber) {
@@ -124,8 +123,82 @@ abstract class AbstractObject {
     return;
   }
 
-  public final boolean assertRaceCondition(AbstractObject demander, AbstractObject supplier) {
+  public final boolean assertRaceCondition(AbstractObject consumer, AbstractObject producer) {
     return true;
+  }
+
+  public int updateGrasp() {
+    if (graspee.grasper != this) {
+      graspee = dummy;
+      return;
+    }
+    return updateGrasper();
+    return updateGraspee();
+  }
+
+  protected void updateGrasper() {
+    int graspeeFlag = GRASP_FLAG_WAITING;
+    graspField -= Math.abs(cpoint.decrease);
+    if (currFrame.cpoint == null) {
+      // grasper does a combo whose frame has no cpoint
+      graspeeFlag = GRASP_FLAG_FREE;
+    } else if (graspField < 0 && currFrame.cpoint.decrease < 0) {
+      // will not drop graspee in cpoint with positive decrease even if timeup
+      graspeeFlag = GRASP_FLAG_DROP;
+    } else if (transition == currFrame.wait) {
+      // these functions only take effect once
+        if (currFrame.cpoint.injury > 0) {
+          actLag = Math.max(actLag, Itr.LAG);
+        }
+        if (cpoint.throwing) {
+          graspeeFlag = GRASP_FLAG_THROW;
+        }
+        if (cpoint.transform) {
+          graspeeFlag = GRASP_FLAG_THROW;
+          status.put(Extension.Kind.TRANSFORM_TO, new Extension(1, graspee.identifier));
+        }
+      }
+    }
+    synchronized (graspee) {
+      graspee.graspField = graspeeFlag;
+      graspee.notify();
+    }
+    return;
+  }
+
+  protected synchronized int updateGraspee() {
+    while (graspField == GRASP_FLAG_WAITING) {
+      try {
+        this.wait(1000);
+      } catch (InterruptedException expected) {
+      }
+    }
+    if (graspField == GRASP_FLAG_FREE)
+      return ACT_JUMPAIR;
+    if (graspField == GRASP_FLAG_DROP)
+      return ACT_FORWARD_FALL2;
+    final Cpoint cpoint = grasper.currFrame.cpoint;
+    if (graspField == GRASP_FLAG_THROW) {
+      vx = grasper.faceRight ? cpoint.throwvx : -cpoint.throwvx;
+      vy = cpoint.throwvy;
+      vz = catcher.getControlZ() * cpoint.throwvz;
+      status.put(Extension.Kind.THROWINJURY, new Extension(-1, cpoint.throwinjury));
+      return cpoint.vaction;
+    }
+    if (cpoint.injury > 0) {
+      hpLost(cpoint.injury, false);
+      actLag = Math.max(actLag, Itr.LAG);
+    } else {
+      hpLost(-cpoint.injury, false);
+    }
+    faceRight = grasper.faceRight ^ cpoint.changedir;
+    px = grasper.faceRight ?
+         (grasper.anchorX + cpoint.x) + (currFrame.cpoint.x - currFrame.centerx):
+         (grasper.anchorX - cpoint.x) - (currFrame.cpoint.x - currFrame.centerx);
+    py = (grasper.anchorY + cpoint.y) - (currFrame.cpoint.y - currFrame.centery);
+    pz = grasper.pz;
+    graspField = GRASP_FLAG_WAITING;
+    return actLag == 0 ? cpoint.vaction : ACT_TBA;
   }
 
   /* these methods are invoked every TimeUnit */

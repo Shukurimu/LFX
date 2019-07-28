@@ -14,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.concurrent.Task;
 import javafx.scene.transform.Scale;
 // javac -sourcepath src -cp classes -d classes
+// https://github.com/Project-F/F.LF/tree/master/LF
 public final class LFX extends Application {
 	public static final String settingFileName = "setting.txt";
 	

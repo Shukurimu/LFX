@@ -5,9 +5,9 @@ import java.util.List;
 import lfx.component.Itr;
 import lfx.component.Itr.Effect;
 import lfx.component.Type;
+import lfx.util.Box;
 
-public class Bdy {
-  public static final int ZWIDTH = 12;
+public final class Bdy {
 
   public enum Attribute {
     // exclusive
@@ -26,26 +26,13 @@ public class Bdy {
 
   };
 
-  public final int x;
-  public final int y;
-  public final int w;
-  public final int h;
-  public final int zwidth;
+  public final Box box;
   public final EnumSet<Attribute> attributes;
 
   @SafeVarargs
-  public Bdy(int x, int y, int w, int h, int zwidth, Attribute... attributes) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.zwidth = zwidth;
+  public Bdy(Box box, Attribute... attributes) {
+    this.box = box;
     this.attributes = EnumSet.of(attributes);
-  }
-
-  @SafeVarargs
-  public Bdy(int x, int y, int w, int h, Attribute... attributes) {
-    this(x, y, w, h, ZWIDTH, attributes);
   }
 
   public boolean interactsWith(Itr itr, int scopeView) {
