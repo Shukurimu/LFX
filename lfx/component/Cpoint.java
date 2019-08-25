@@ -1,21 +1,15 @@
 package lfx.component;
 
 import java.util.ArrayList;
+import lfx.util.Point;
 
-public class Cpoint {
-  public static final double TIMEUP_DVX = +8.0;
-  public static final double TIMEUP_DVY = -3.0;
-  public static final double DROP_DVY = -2.0;
-  public static final int FRONTHURTACT = 221;
-  public static final int BACKHURTACT  = 223;
+public class Cpoint extends Point {
   public static final int DIRCONTROL = 0b10000;
   public static final int TRANSFORM  = 0b01000;
   public static final int CHANGEDIR  = 0b00100;
   public static final int HURTABLE   = 0b00010;
   public static final int COVER      = 0b00001;
 
-  public final int x;
-  public final int y;
   public final int injury;
   public final int vaction;
   public final int taction;
@@ -38,8 +32,7 @@ public class Cpoint {
                 int vaction, int taction, int aaction, int jaction,
                 int throwvx, int throwvy, int throwvz, int throwinjury,
                 int decrease, int meta) {
-    this.x = x;
-    this.y = y;
+    super(x, y);
     this.injury = injury;
     this.vaction = vaction;
     this.taction = taction;

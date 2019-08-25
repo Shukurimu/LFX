@@ -5,13 +5,13 @@
 
 import java.io.*;
 
-public final class RawConv {
+public final class RawDatConverter {
   static final byte[] encryptChar = "odBearBecauseHeIsVeryGoodSiuHungIsAGo".getBytes();
 
   public static void main(String[] args) throws IOException {
-    File folder = null;
-    if (args.length == 0 || !(folder = new File(args[0])).isDirectory()) {
-      System.err.println("Input: the folder containing *.dat files");
+    File folder = args.length == 0 ? null : new File(args[0]);
+    if (folder == null || !folder.isDirectory()) {
+      System.err.println("Input: the path of folder containing *.dat files.");
       return;
     }
     for (File file: folder.listFiles(

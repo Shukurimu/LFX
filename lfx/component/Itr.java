@@ -109,6 +109,10 @@ public final class Itr {
     return this;
   }
 
+  public int calcLag(int originalValue) {
+    return Math.max(originalValue, lag);
+  }
+
   /** explosion-effect negative dvx goes two directions */
   public double calcDvx(boolean faceRight) {
     return explosion ? (px < ba.px ? -dvx : dvx)

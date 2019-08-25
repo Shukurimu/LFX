@@ -1,27 +1,64 @@
 package lfx.component;
 
-public class Wpoint {
+import lfx.util.Point;
+
+public class Wpoint extends Point {
+  /** This small value is added to pz while being held,
+      so that the weapon image is rendered in front/back of the character. */
   public static final double Z_OFFSET = 1e-3;
 
-  public final int x;
-  public final int y;
+  public enum Usage {
+    DROP    (false),
+    HARMLESS(false),
+    STAND   (true),
+    JUMP    (true),
+    RUN     (true),
+    DASH    (true);
+
+    public final boolean attacking;
+
+    private Usage(boolean attacking) {
+      this.attacking = attacking;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+    }
+
+  }
+
   public final int weaponact;
-  public final int attacking;  // set a negative value to drop
   public final int dvx;
   public final int dvy;
   public final int dvz;
+  public final Usage usage;
   public final double zOffset;  // rendering z-offset
 
-  public Wpoint(int x, int y, int weaponact, int attacking,
-                int dvx, int dvy, int dvz, int cover) {
-    this.x = x;
-    this.y = y;
+  private Wpoint(int x, int y, int weaponact, int cover,
+                 int dvx, int dvy, int dvz, Usage usage) {
+    super(x, y);
     this.weaponact = weaponact;
-    this.attacking = attacking;
     this.dvx = dvx;
     this.dvy = dvy;
     this.dvz = dvz;
+    this.usage = usage;
     this.zOffset = cover == 0 ? Z_OFFSET : -Z_OFFSET;
+  }
+
+  /** Just being held */
+  public Wpoint(int x, int y, int weaponact, int cover) {
+    this(x, y, weaponact, cover, 0, 0, 0, Usage.HARMLESS);
+  }
+
+  /** Attack */
+  public Wpoint(int x, int y, int weaponact, int cover, Usage usage) {
+    this(x, y, weaponact, cover, 0, 0, 0, usage);
+  }
+
+  /** Thrown */
+  public Wpoint(int x, int y, int weaponact, int cover, int dvx, int dvy, int dvz) {
+    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.DROP);
   }
 
 }

@@ -5,139 +5,94 @@ import lfx.component.Type;
 import lfx.object.AbstractObject;
 
 abstract class Weapon extends AbstractObject {
-  /* this small value is added to pz while being held, so that the weapon image is rendered above the character */
-  public static final int NONHEAVY_HITGROUND = 7;
+  public static final double INITIAL_MP = 750.0;
+  public static final Map<String, Double> SPECIAL_MP = Map.of(
+      "Milk", 500.0 / 3.0
+  );
 
-  public String soundHit;
-  public String soundDrop;
-  public String soundBroken;
-  public double drophurt = 35.0;
-  public LFitr[] strength = null;
-  public LFhero picker = null;
+  public final double dropHurt;
+  public final String soundHit;
+  public final String soundDrop;
+  public final String soundBroken;
 
-  protected LFweapon(String id, LFtype t) {
-    super(id, t, 160);
-    strength = new LFitr[5];
-    mp = identifier.equals("Milk") ? 166 : 750;
+  protected AbstractWeapon(Type type, String identifier, List<Frame> frameList, double dropHurt,
+                           String soundHit, String soundDrop, String soundBroken) {
+    super(type, identifier, frameList);
+    assert type.isWeapon;
+    this.dropHurt = dropHurt;
+    this.soundHit = soundHit;
+    this.soundDrop = soundDrop;
+    this.soundBroken = soundBroken;
+    mp = INITIAL_MP.getOrDefault("Milk", INITIAL_MP);
   }
 
-  @Override
-  public int checkItrScope(LFobject o) {
-    return (o.teamID == teamID) ? 0b000100 : 0b001000;
+  protected AbstractWeapon(AbstractWeapon baseWeapon) {
+    super(this);
   }
 
   @Override
   public void revive() {
     hp = hpMax;
-    mp = identifier.equals("Milk") ? 166 : 750;
+    mp = INITIAL_MP.getOrDefault("Milk", INITIAL_MP);
     return;
   }
 
   @Override
-  public void damageCallback(LFitr i, LFobject o) {
-    if (picker == null) {
-      hitLag = HITLAG_SPAN;
-      if (o instanceof LFweapon)
-        immune.add(o);
-      int act = type.hittingAct();
-      if (act != DEFAULT_ACT)
-        setCurr(act);
-      if (type != LFtype.HEAVY) {
-        faceRight ^= true;
-        vx *= -type.vxLast;
-        vz *=  type.vxLast;
-      }
-    } else {
-      picker.damageCallback(i, o);
-    }
-    return;
-  }
-
-  @Override
-  public void damageReceived(LFitrarea ia, LFbdyarea ba) {
-    recvDmg.add(ia, ba);
-    teamID = ia.owner.teamID;
-    return;
-  }
-
-  @Override
-  public final void setCurr(int index) {
-    super.setCurr(index);
-    registerItr();
-    registerBdy();
-    return;
-  }
-
-  @Override
-  protected final int resolveAct(int index) {
-    if (index < 0)
-      index = -index;
-    return (index == Act_999) ? type.hittingAct() : index;
+  protected final CanonicalAct getCanonicalAct(int action) {
+    return new CanonicalAct(action, hittingAct());
   }
 
   public final void broken() {
     hp = 0.0;
-    System.out.printf("%s is broken.\n", this);
-    return;
-  }
-
-  public final void setState(int h, int d, String sh, String sd, String sb) {
-    hp = h;
-    drophurt = d;
-    soundHit = sh;
-    soundDrop = sd;
-    soundBroken = sb;
-    return;
-  }
-
-  public final void setStrength(int index, LFitr i) {
-    strength[index] = i;
+    // TODO: create fabrics
     return;
   }
 
   @Override
-  public boolean reactAndMove(LFmap map) {
-    if (picker != null && !recvItr.isEmpty()) {
-      for (LFitrarea r: recvItr) {
-        switch (r.itr.effect) {
-          case FENCE:
-            extra.put(LFextra.Kind.MOVEBLOCK, LFextra.oneTime());
-            break;
-          case VORTEX:
-          case REFLECT:
-          case SONATA:
-            System.out.printf("\nImplementing ItrKind: %d", r.itr.effect);
-            break;
-          default:
-            System.out.printf("\n%s got unexpected ItrKind: %d", this, r.itr.effect);
-        }
+  public boolean react() {
+    int bdefend = 0;
+    int injury = 0;
+    int fall = 0;
+    int dvx = 0;
+    int dvy = 0;
+    int lag = 0;
+
+    RESULT_LOOP:
+    for (Tuple<AbstractObject, Itr> tuple: resultItrList) {
+      final AbstractObject that = tuple.first;
+      final Itr itr = tuple.second;
+      switch (itr.effect) {
       }
-      recvItr.clear();
-
-      if (recvDmg.effect != LFeffect.NONE) {
-        hp -= recvDmg.injury;
-        if (recvDmg.lag)
-          hitLag = HITLAG_SPAN;
-        if (recvDmg.bdefend == 100)
-          broken();
-        else if (recvDmg.fall >= 0) {
-          int act = type.hitAct(recvDmg.fall, vx);
-          if (act != DEFAULT_ACT)
-            setCurr(act);
-        }
+      bdefend = Math.max(bdefend, itr.bdefend);
+      injury += itr.injury;
+      fall = Math.max(fall, itr.fall);
+      dvx += itr.calcDvx(vx);
+      dvy += itr.dvy;
+    }
+    hp -= injury;
+    if (bdefend == 100) {
+      broken;
+    } else if (fall >= 0) {
+      vx = dvx;
+      nextAct = type.hitAct(fall, vx);
+      if (nextAct != ACT_DEF)
+        setCurr(act);
+      if (type != Type.HEAVY) {
+        faceRight ^= true;
+        vx *= -type.vxLast;
+        vz *=  type.vxLast;
       }
-      recvDmg.reset();
     }
+    resultItrList.clear();
+    return;
+  }
 
-    if (currFrame.state == LFstate.BROKENWEAPON) {
-      broken();
-      return false;
-    }
-
+  @Override
+  public boolean update() {
     int nextAct = DEFAULT_ACT;
-    if (picker == null) {
-        /* It seems that if WeaponA has applied itr on WeaponB in State_throw, then
-           WeaponA will immune to WeaponB until WeaponA goes into a frame with state onground. */
+    if (wpunion == null) {
+        /** It seems that if WeaponA has applied itr on WeaponB in State_throw, then
+            WeaponA will immune to WeaponB until WeaponA goes into a frame with state onground. */
       if (currFrame.state == LFstate.ONGROUND)
         immune.clear();
       if (hitLag == 0) {
@@ -188,28 +143,28 @@ abstract class Weapon extends AbstractObject {
       }
 
     } else {
-      teamID = picker.teamID;
-      final LFwpoint wpoint = picker.currFrame.wpoint;
+      teamID = wpunion.teamID;
+      final LFwpoint wpoint = wpunion.currFrame.wpoint;
       if (wpoint != null) {// there is no wpoint in the first frame of picking weapon (Act_punch)
         setCurr(wpoint.waction);
-        if (picker.faceRight) {
+        if (wpunion.faceRight) {
           faceRight = true;
-          px = (picker.px - picker.currFrame.centerR + wpoint.x) - (currFrame.wpoint.x - currFrame.centerR);
-          py = (picker.py - picker.currFrame.centerY + wpoint.y) - (currFrame.wpoint.y - currFrame.centerY);
-          pz = picker.pz + PICKINGOFFSET;
+          px = (wpunion.px - wpunion.currFrame.centerR + wpoint.x) - (currFrame.wpoint.x - currFrame.centerR);
+          py = (wpunion.py - wpunion.currFrame.centerY + wpoint.y) - (currFrame.wpoint.y - currFrame.centerY);
+          pz = wpunion.pz + PICKINGOFFSET;
         } else {
           faceRight = false;
-          px = (picker.px + picker.currFrame.centerR - wpoint.x) + (currFrame.wpoint.x - currFrame.centerR);
-          py = (picker.py - picker.currFrame.centerY + wpoint.y) - (currFrame.wpoint.y - currFrame.centerY);
-          pz = picker.pz + PICKINGOFFSET;
+          px = (wpunion.px + wpunion.currFrame.centerR - wpoint.x) + (currFrame.wpoint.x - currFrame.centerR);
+          py = (wpunion.py - wpunion.currFrame.centerY + wpoint.y) - (currFrame.wpoint.y - currFrame.centerY);
+          pz = wpunion.pz + PICKINGOFFSET;
         }
         if (wpoint.dvx != 0 || wpoint.dvy != 0 || wpoint.attacking < 0) {
           vx = faceRight ? wpoint.dvx : (-wpoint.dvx);
           vy = wpoint.dvy;
-          vz = picker.getControlZ() * wpoint.dvz;
+          vz = wpunion.getControlZ() * wpoint.dvz;
           setCurr(wpoint.waction + type.throwOffset);
-          picker.weapon = dummy;
-          picker = null;
+          wpunion.weapon = dummy;
+          wpunion = null;
         }
       }
 
@@ -227,38 +182,36 @@ abstract class Weapon extends AbstractObject {
   }
 
   @Override
-  public void registerItr() {
-    currItr.clear();
-    if (picker == null) {
+  public List<Tuple<Itr, Area>> registerItrArea();
+    if (wpunion != dummy) {
       for (LFitr i: currFrame.itr) {
-        currItr.add(new LFitrarea(this, i));
+        if (i.effect == LFeffect.WPSTREN) {
+          if (wpunion.currFrame.wpoint.attacking > 0)
+          currItr.add(new LFitrarea(this, i, strength[wpunion.currFrame.wpoint.attacking]));
+        } else
+          currItr.add(new LFitrarea(this, i));
       }
     } else {
       for (LFitr i: currFrame.itr) {
-        if (i.effect == LFeffect.WPSTREN) {
-          if (picker.currFrame.wpoint.attacking > 0)
-          currItr.add(new LFitrarea(this, i, strength[picker.currFrame.wpoint.attacking]));
-        } else
-          currItr.add(new LFitrarea(this, i));
+        currItr.add(new LFitrarea(this, i));
       }
     }
     return;
   }
 
   @Override
-  public void registerBdy() {
-    currBdy.clear();
-    if (picker == null) {
-      for (LFbdy b: currFrame.bdy) {
-        currBdy.add(new LFbdyarea(this, b));
-      }
+  public List<Tuple<Bdy, Area>> registerBdyArea();
+    if (wpunion != dummy)
+      return List.of();
+    for (LFbdy b: currFrame.bdy) {
+      currBdy.add(new LFbdyarea(this, b));
     }
     return;
   }
 
   @Override
   protected boolean adjustBoundary(int[] xzBound) {
-    if ((currFrame.state != LFstate.ONGROUND) || (px > xzBound[0] && px < xzBound[1])) {
+    if ((currFrame.state != State.ONGROUND) || (px > xzBound[0] && px < xzBound[1])) {
       pz = Function.clamp(pz, xzBound[2], xzBound[3]);
       return true;
     } else {
@@ -267,41 +220,28 @@ abstract class Weapon extends AbstractObject {
   }
 
   @Override
-  public void statusOverwrite(final LFhero target) {
-    super.statusOverwrite(target);
-    target.hp2nd = hp;
-    return;
-  }
-
-  public double[] drink() {
-    double[] regen = null;
-    switch (identifier) {
-      case "Milk":
-        mp -= 1.67;
-        regen = new double[] { 1.67, 1.6, 0.8 };
-        break;
-      case "Beer":
-        mp -= 6.00;
-        regen = new double[] { 6.00, 0.0, 0.0 };
-        break;
-      default:
-        regen = new double[] { 0.00, 0.0, 0.0 };
-        System.out.printf("drinking unexpected weapon: %s", identifier);
-    }
-    if (mp < 0.0) {
-      picker.setCurr(Act_999);
-      picker.weapon = dummy;
-      picker = null;
-      hp = 0.0;
-      broken();
-    }
-    return regen;
+  public int landingAct() {
+    return type == Type.HEAVY ? 20 : 70;
   }
 
   @Override
-  protected final LFweapon clone() {
-    System.out.printf("%s.clone()\n", identifier);
-    return (LFweapon)super.clone();
+  public int bouncingAct() {
+    return type == Type.HEAVY ? ACT_TBA :
+           type == Type.LIGHT ? 7 : 0;
+  }
+
+  @Override
+  public int hittingAct() {
+    return type == Type.HEAVY ? ACT_TBA : Global.randomBounds(0, 16);
+  }
+
+  @Override
+  public int hitAct(int fall) {
+    if (type == Type.HEAVY)
+      return fall > 60 ? Global.randomBounds(0, 6) : ACT_TBA;
+    else
+      return type == Type.LIGHT ? Global.randomBounds(0, 16) :
+                                  vx >= 10.0 ? 40 : ACT_TBA;
   }
 
 }

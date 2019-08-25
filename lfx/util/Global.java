@@ -3,7 +3,9 @@ package lfx.util;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class Global {
-  public static boolean isUnlimitedMode = false;
+  public static final MAX_TEAMS = 5;
+  private static boolean isUnlimitedMode = false;
+  private static int timestamp = 0;
 
   public static double clamp(double value, double hi, double lo) {
     return value > hi ? hi : value < lo ? lo : value;

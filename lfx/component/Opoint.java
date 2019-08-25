@@ -1,9 +1,9 @@
 package lfx.component;
 
 import java.util.ArrayList;
-import java.util.concurrent.ThreadLocalRandom;
+import lfx.util.Point;
 
-public class LFopoint {
+public class LFopoint extends Point {
   /* guarantee the swawn object will be rendered above the creator (e.g., explosion) */
   public static final double Z_OFFSET = 1e-3;
   /* (self-test value) initial z-velocity for those quantity more than 1 */
@@ -13,8 +13,6 @@ public class LFopoint {
   public static final int HOLD = 2;
 
   public final int kind;
-  public final int x;
-  public final int y;
   public final int action;
   public final int dvx;
   public final int dvy;

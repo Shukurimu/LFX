@@ -9,9 +9,11 @@ import lfx.component.Effect;
 import lfx.component.Opoint;
 import lfx.component.State;
 import lfx.component.Wpoint;
-import lfx.util.Act;
+import lfx.util.Combo;
 
-public class Frame {
+public final class Frame {
+  /** Every field in this class is constant. */
+  // TODO: combo in AbstractBlast has enum act
   public final int pic;
   public final State state;
   public final int wait;
@@ -23,17 +25,17 @@ public class Frame {
   public final int centery;
   public final int cost;
   public final String sound;
-  public final Map<Act, Integer> combo;
+  public final Map<Combo, Integer> combo;
   public final Map<Effect.Kind, Effect> effect;
-  public final List<Bdy> bdy;
-  public final List<Itr> itr;
-  public final List<Opoint> opoint;
+  public final List<Bdy> bdyList;
+  public final List<Itr> itrList;
+  public final List<Opoint> opointList;
   public final Cpoint cpoint;
   public final Wpoint wpoint;
 
   public Frame(int pic, State state, int wait, int next,
                int dvx, int dvy, int dvz, int centerx, int centery, int cost, String sound,
-               Map<Act, Integer> combo, Map<Effect.Kind, Effect> effect,
+               Map<Combo, Integer> comboMap, Map<Effect.Kind, Effect> effect,
                List<Bdy> bdy, List<Itr> itr, List<Opoint> opoint, Cpoint cpoint, Wpoint wpoint) {
     this.pic = pic;
     this.state = state;
@@ -46,7 +48,7 @@ public class Frame {
     this.centery = centery;
     this.cost = cost;
     this.sound = sound;
-    this.combo = Map.copyOf(combo);
+    this.comboMap = Map.copyOf(comboMap);
     this.effect = Map.copyOf(effect);
     this.bdy = List.copyOf(bdy);
     this.itr = List.copyOf(itr);
@@ -94,7 +96,7 @@ public class Frame {
   }
 
 
-  static class Builder {
+  public static class Builder {
     public int pic;
     public State state;
     public int wait;
@@ -106,7 +108,7 @@ public class Frame {
     public int centery;
     public int cost = 0;
     public String sound = null;
-    public Map<Act, Integer> combo = new EnumMap<>();
+    public Map<Combo, Integer> comboMap = new EnumMap<>();
     public Map<Effect.Kind, Effect> effect = new EnumMap<>();
     public List<Bdy> bdy = new ArrayList<>();
     public List<Itr> itr = new ArrayList<>();
@@ -127,8 +129,8 @@ public class Frame {
       this.centery = centery;
     }
 
-    public Builder set(Act act, int actNumber) {
-      combo.put(act, actNumber);
+    public Builder set(Combo combo, int actNumber) {
+      comboMap.put(combo, actNumber);
       return this;
     }
 

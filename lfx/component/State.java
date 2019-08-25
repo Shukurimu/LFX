@@ -18,6 +18,7 @@ public enum State {
   DEFEND  (true),  // goes to act 111 if being hit
   FALL    (true),  // changes action accroding to vy
   FIRE    (true),  // changes action accroding to vy
+  ICED    (true),  // falldown if got hurt
   LYING   (true),  // loops in same act if no hp
   /** Weapon */
   INSKY        (true),

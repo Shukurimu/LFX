@@ -22,6 +22,7 @@ abstract class AbstractHero extends AbstractObject {
   public static final double CONTROL_VZ = 2.5;  // press U or D; test-value
   public static final double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test-value
 
+  /** dp and fp will not be recovered if hit in 2 TimeUnit. */
   private int lastHitTime = 0;
   /** Hidden action frame counter */
   private final Looper walkingIndexer = Looper.generator(new int[] {2, 3, 2, 1, 0, 1});
@@ -31,7 +32,6 @@ abstract class AbstractHero extends AbstractObject {
   protected int fp = 0;  // fall point
   protected int dpReg = 1;
   protected int fpReg = 1;
-  protected double hp2nd = 500.0;
   protected double hpReg = 1.0 / 12.0;
   protected double mpReg = 1.0 / 3.00;
   protected double Value_walking_speed  = 0.0;
@@ -56,8 +56,8 @@ abstract class AbstractHero extends AbstractObject {
   protected double Value_rowing_distance = 0.0;
   /** Hidden flying-velocity-related status.
       lsb indicates whether the velocity will be applied. */
-  private int flyState = NOTFLYING;
-  private static final int NOTFLYING = 0;
+  private int flyState = NO_FLYING;
+  private static final int NO_FLYING = 0;
   private static final int JUMP_V0_0 = 1 << 1;  // jump vertically
   private static final int JUMP_VP_0 = 2 << 1;  // jump with positive velocity
   private static final int JUMP_VN_0 = 3 << 1;  // jump with negative velocity
@@ -76,72 +76,14 @@ abstract class AbstractHero extends AbstractObject {
   private static final int DASH_LN_1 = DASH_LN_0 | 1;
   private static final int  ROW_VP_1 =  ROW_VP_0 | 1;
   private static final int  ROW_VN_1 =  ROW_VN_0 | 1;
-  /** Action number lookup */
-  public static final int ACT_TRANSFORM_INVALID = ACT_DEF;
-  public static final int ACT_TRANSFORM_BACK = 245;  // default
-  public static final int ACT_STANDING = 0;
-  public static final int ACT_WALKING = 5;
-  public static final int ACT_RUNNING = 9;
-  public static final int ACT_HEAVY_WALK = 12;
-  public static final int ACT_HEAVY_RUN = 16;
-  public static final int ACT_HEAVY_STOP_RUN = 19;
-  public static final int ACT_WEAPON_ATK1 = 20;
-  public static final int ACT_WEAPON_ATK2 = 25;
-  public static final int ACT_JUMP_WEAPON_ATK = 30;
-  public static final int ACT_RUN_WEAPON_ATK = 35;
-  public static final int ACT_DASH_WEAPON_ATK = 40;
-  public static final int ACT_LIGHT_WEAPON_THROW = 45;
-  public static final int ACT_HEAVY_WEAPON_THROW = 50;
-  public static final int ACT_SKY_WEAPON_THROW = 52;
-  public static final int ACT_DRINK = 55;
-  public static final int ACT_PUNCH1 = 60;
-  public static final int ACT_PUNCH2 = 65;
-  public static final int ACT_SUPER_PUNCH = 70;
-  public static final int ACT_JUMP_ATK = 80;
-  public static final int ACT_RUN_ATK = 85;
-  public static final int ACT_DASH_ATK = 90;
-  public static final int ACT_DASH_DEF = 95;
-  public static final int ACT_ROLLING = 102;
-  public static final int ACT_ROWING1 = 100;
-  public static final int ACT_ROWING2 = 108;
-  public static final int ACT_DEFEND = 110;
-  public static final int ACT_DEFEND_HIT = 111;
-  public static final int ACT_BROKEN_DEF = 112;
-  public static final int ACT_PICK_LIGHT = 115;
-  public static final int ACT_PICK_HEAVY = 116;
-  public static final int ACT_CATCH = 120;
-  public static final int ACT_CAUGHT = 130;
-  public static final int ACT_FORWARD_FALL1 = 180;
-  public static final int ACT_FORWARD_FALL2 = 181;
-  public static final int ACT_FORWARD_FALL3 = 182;
-  public static final int ACT_FORWARD_FALL4 = 183;
-  public static final int ACT_FORWARD_FALL5 = 184;
-  public static final int ACT_FORWARD_FALLR = 185;
-  public static final int ACT_BACKWARD_FALL1 = 186;
-  public static final int ACT_BACKWARD_FALL2 = 187;
-  public static final int ACT_BACKWARD_FALL3 = 188;
-  public static final int ACT_BACKWARD_FALL4 = 189;
-  public static final int ACT_BACKWARD_FALL5 = 190;
-  public static final int ACT_BACKWARD_FALLR = 191;
-  public static final int ACT_ICE = 200;
-  public static final int ACT_UPWARD_FIRE = 203;
-  public static final int ACT_DOWNWARD_FIRE = 205;
-  public static final int ACT_TIRED = 207;
-  public static final int ACT_JUMP = 210;
-  public static final int ACT_JUMPAIR = 212;
-  public static final int ACT_DASH1 = 213;
-  public static final int ACT_DASH2 = 214;
-  public static final int ACT_CROUCH1 = 215;
-  public static final int ACT_STOPRUN = 218;
-  public static final int ACT_CROUCH2 = 219;
-  public static final int ACT_INJURE1 = 220;
-  public static final int ACT_INJURE2 = 222;
-  public static final int ACT_INJURE3 = 224;
-  public static final int ACT_DOP = 226;
-  public static final int ACT_LYING1 = 230;
-  public static final int ACT_LYING2 = 231;
-  public static final int ACT_THROW_LYING_MAN = 232;
-  public static final int ACT_DUMMY = 399;
+
+  protected AbstractHero(String identifier, List<Frame> frameList) {
+    super(Type.HERO, identifier, frameList);
+  }
+
+  protected AbstractHero(AbstractHero baseHero) {
+    super(this);
+  }
 
   /** used in StatusBar */
   public final void fillStatus(double[] values) {
@@ -161,14 +103,12 @@ abstract class AbstractHero extends AbstractObject {
   }
 
   @Override
-  protected final Pair<Integer, Boolean> resolveAct(int index) {
-    if (index < 0)
-      index = -index;
-    return index != ACT_DEF ? index :
-           (weapon.type == Type.HEAVY ? ACT_HEAVY_WALK : (py >= 0 ? ACT_STANDING : ACT_JUMPAIR));
+  protected final CanonicalAct getCanonicalAct(int action) {
+    return new CanonicalAct(action, wpunion.type == Type.HEAVY ? ACT_HEAVY_WALK :
+                                    py >= 0.0 ? ACT_STANDING : ACT_JUMPAIR);
   }
 
-  public final boolean castCombo(Combo combo, Frame comboFrame) {
+  public final boolean checkComboCost(Combo combo, Frame comboFrame) {
     // TODO: Louis transform hp limit
     if (comboFrame.cost == 0 || GlobalVariable.isUnlimitedMode)
       return true;
@@ -178,7 +118,7 @@ abstract class AbstractHero extends AbstractObject {
   }
 
   /** Most of the time, potential HP is reduced by one-third of the received damage.
-      Use `sync=true` for the situations not following this rule (e.g., throwinjury).
+      Use `sync=true` to the situations not following this rule (e.g., throwinjury).
       Note that the lower bound is zero in LFX, which is different from LF2. */
   public final void hpLost(double injury, boolean sync) {
     hp -= injury;
@@ -190,175 +130,174 @@ abstract class AbstractHero extends AbstractObject {
     return;
   }
 
+  /** Return false if consumable goes empty. */
+  public final boolean consume() {
+    switch (wpunion.identifier) {
+      case "Milk":
+        hp2nd = Math.max(hpMax, hp2nd + 0.8);
+        hp = Math.max(hp2nd, hp + 1.60);
+        mp = Math.max(mpMax, mp + 1.67);
+        wpunion.mp -= 1.67;
+        break;
+      case "Beer":
+        mp = Math.max(mpMax, mp + 6.00);
+        wpunion.mp -= 6.00;
+        break;
+      default:
+        // You can drink anything in LF2.
+        System.err.printf("%s consumes %s.\n", this, wpunion);
+    }
+    if (wpunion.mp < 0.0) {
+      wpunoin.hp = 0.0;
+      return false;
+    }
+    return true;
+  }
+
   @Override
-  public boolean reactAndMove(LFmap map) {
+  public final void react() {
     int nextAct = ACT_TBA;
     int bdefend = 0;
     int injury = 0;
     int fall = 0;
     int dvx = 0;
     int dvy = 0;
-    for (Pair<AbstractObject, Itr> pair: resultItrList) {
-      final AbstractObject that = pair.first;
-      final Itr itr = pair.second;
+    int lag = 0;
+
+    RESULT_LOOP:
+    for (Tuple<AbstractObject, Itr> tuple: resultItrList) {
+      final AbstractObject that = tuple.first;
+      final Itr itr = tuple.second;
       switch (itr.effect) {
-        case LET_SPUNCH:
-          status.put(Extension.Kind.ATTACK_SPUNCH, Extension.oneshot());
-          break;
-        case PICK:
-          if (assertRaceCondition(this, that)) {
-            weapon = what;
-            nextAct = weapon.type == Type.HEAVY ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
-          }
-          break;
-        case ROLL_PICK:
-          if (assertRaceCondition(this, that))
-            weapon = what;
-          break;
-        case GRASP_DOP:
-        case GRASP_BDY:
-          if (assertRaceCondition(this, that)) {
-            // TODO: distinguish this & that
-          }
-          break;
-        case BLOCK:
-          status.put(Extension.Kind.MOVE_BLOCKING, Extension.oneshot());
-          break;
         case SONATA:
           vx = itr.sonataVxz(vx);
           vz = itr.sonataVxz(vz);
           vy = itr.sonataVy(py, vy);
-          hpLost(itr.injury, false);
           status.put(Extension.Kind.SONATA, new Extension(Integer.MAX_VALUE, 1.0));
           nextAct = vy < 0.0 ? ACT_FORWARD_FALL3 : ACT_FORWARD_FALL4;
           break;
+        case LET_SPUNCH:
+          status.put(Extension.Kind.ATTACK_SPUNCH, Extension.oneshot());
+          continue RESULT_LOOP;
+        case PICK:
+          nextAct = weapon.type == Type.HEAVY ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+          // fall-through
+        case ROLL_PICK:
+          // will not affect current action
+          continue RESULT_LOOP;
+        case GRASP_DOP:
+        case GRASP_BDY:
+          if (graspee == this)
+            fp = 0;
+          continue RESULT_LOOP;
+        case BLOCK:
+          status.put(Extension.Kind.MOVE_BLOCKING, Extension.oneshot());
+          continue RESULT_LOOP;
         case HEAL:
           status.put(Extension.Kind.HEALING, new Extension(itr.dvy, (double)(itr.injury / itr.dvy)));
-          break;
+          continue RESULT_LOOP;
         case VORTEX:
           vx += itr.vortexAx(px);
           vz += itr.vortexAz(pz);
           vy += itr.vortexAy(py, vy);
-          break;
+          continue RESULT_LOOP;
         default:
           System.out.printf("%s received unexpected Itr %s", this, itr);
       }
+      bdefend += itr.bdefend;
+      injury += itr.injury;
+      fall += itr.fall;
+      dvx += itr.calcDvx(vx);
+      dvy += itr.dvy;
+      lag = itr.calcLag(lag);
     }
     resultItrList.clear();
 
-    /* react to the damage */
-    if (recvDmg.effect != LFeffect.NONE) {
-      final boolean originalIced = (currFrame.state == LFstate.ICE);
-      if (recvDmg.fall < 0) {
-        hpLost(recvDmg.injury, false);
-      } else if (grasp == null || grasp.isNotCaught(this)) {
-        if (recvDmg.lag)
-          hitLag = HITLAG_SPAN;
-        lastHitTime = map.mapTime;
-        /* defend front damage */
-        if ((currFrame.state == LFstate.DEFEND) && ((recvDmg.center >= px) == faceRight)) {
-          hpLost(recvDmg.injury * DEFEND_DMG_REDUCTION, false);
-          vx = recvDmg.dvx * DEFEND_DVX_REDUCTION;
-          dp += recvDmg.bdefend;
-          if (hp == 0.0) {
-            fp = dp = 0;
-            setCurr(Act_fwfall1);
-          } else if (dp > 30) {
-            setCurr(Act_broken);
-          } else if (currFrame.curr == Act_defend) {
-            setCurr(Act_defendhit);
-          }
-        } else {
-          hpLost(recvDmg.injury, false);
-          vx = recvDmg.dvx;
-          fp = (fp + recvDmg.fall + 19) / 20 * 20;
-          dp = NODEF_DP;
-          if (originalIced || (fp > 60) || ((fp > 20) && (py < 0.0)) || (hp == 0.0)) {
-            fp = dp = 0;
-            vy = recvDmg.dvy;
-            setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-          } else if (fp > 40) {
-            setCurr(Act_dop);
-          } else if (fp > 20) {
-            setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_injure3 : Act_injure2);
-          } else if (fp >= 0) {
-            setCurr(Act_injure1);
-          } else {
-            /* negative fp causes NOP */
-          }
-        }
-        /* the caught hero is drop if the you get hurt */
-        if (grasp != null) {
-          grasp.state  = LFgrasp.State.DROP;
-          grasp  = null;
-        }
-      } else {/* get hurt while caught */
-        if (recvDmg.lag)
-          hitLag = HITLAG_SPAN;
-        if ((fp += recvDmg.fall) > 60) {
-          grasp.state = LFgrasp.State.DROP;
-          grasp = null;
-          fp = 0;
-          vx = recvDmg.dvx;
-          vy = recvDmg.dvy;
-          setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-        } else {
-          setCurr((faceRight == (recvDmg.dvx > 0)) ?
-            currFrame.cpoint.throwvx : currFrame.cpoint.throwvy);
-        }
+    lastHitTime = map.mapTime;
+    if (currFrame.state == State.ICED) {
+    }
+    // TODO: defend same direction
+    if (currFrame.state == State.DEFEND) {
+      hpLost(injury * DEFEND_INJURY_REDUCTION, false);
+      vx = dvx * DEFEND_DVX_REDUCTION;
+      if (hp == 0.0) {
+        fp = dp = 0;
+        nextAct = ACT_FORWARD_FALL1;
+      } else if (dp > 30) {
+        setCurr(Act_broken);
+      } else if (currFrame.curr == Act_defend) {
+        setCurr(Act_defendhit);
       }
-      if (currFrame.state != LFstate.DEFEND) {
-        switch (recvDmg.effect) {
-          case FIRE:
-          case FIRE2:
-          case EXFIRE:
-          case SPFIRE:
-            faceRight = recvDmg.dvx < 0.0;
-            setCurr((vy < 0.0) ? Act_fireU : Act_fireD);
-            break;
-          case ICE:
-          case ICE2:
-          case EXICE:
-            if (originalIced) {
-              setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-            } else {
-              faceRight = recvDmg.dvx < 0.0;
-              setCurr(Act_ice);
-            }
-            break;
-          case SPICE:
+    }
+    hpLost(injury, false);
+    vx = dvx;
+    dp = NODEF_DP;
+    fp = (fp + recvDmg.fall + 19) / 20 * 20;
+    if (originalIced || (fp > 60) || ((fp > 20) && (py < 0.0)) || (hp == 0.0)) {
+      fp = dp = 0;
+      vy = recvDmg.dvy;
+      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
+    } else if (fp > 40) {
+      setCurr(Act_dop);
+    } else if (fp > 20) {
+      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_injure3 : Act_injure2);
+    } else if (fp >= 0) {
+      setCurr(Act_injure1);
+    } else {
+      /* negative fp causes NOP */
+    }
+    if (grasp != null) {
+      grasp.state  = LFgrasp.State.DROP;
+      grasp  = null;
+    }
+
+    if ((fp += recvDmg.fall) > 60) {
+      grasp.state = LFgrasp.State.DROP;
+      grasp = null;
+      fp = 0;
+      vx = recvDmg.dvx;
+      vy = recvDmg.dvy;
+      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
+    } else {
+      setCurr((faceRight == (recvDmg.dvx > 0)) ?
+        currFrame.cpoint.throwvx : currFrame.cpoint.throwvy);
+    }
+    if (currFrame.state != LFstate.DEFEND) {
+      switch (recvDmg.effect) {
+        case FIRE:
+        case FIRE2:
+        case EXFIRE:
+        case SPFIRE:
+          faceRight = recvDmg.dvx < 0.0;
+          setCurr((vy < 0.0) ? Act_fireU : Act_fireD);
+          break;
+        case ICE:
+        case ICE2:
+        case EXICE:
+          if (originalIced) {
+            setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
+          } else {
             faceRight = recvDmg.dvx < 0.0;
             setCurr(Act_ice);
+          }
+          break;
+        case SPICE:
+          faceRight = recvDmg.dvx < 0.0;
+          setCurr(Act_ice);
             break;
           default:
             break;
-        }
       }
     }
-    recvDmg.reset();
+    return nextAct;
+  }
 
-    /* opoint is triggered only at the first timeunit */
-    if (waitTU == currFrame.wait && !currFrame.opoint.isEmpty()) {
-      for (LFopoint x: currFrame.opoint)
-        map.spawnObject(x.launch(this, getControlZ() * OPOINT_DVZ));
-    }
-
-    /* get user input */
-    if (ctrl.activated)
-      ctrl.updateInput();
-
-    currFrame.inputCombo(this, ctrl);
-
-
-    /* We do not set the `new' currFrame directly, since there might be
-       several reasons leading to other results. e.g., landing on ground. */
-    int nextAct = ACT.UNASSIGNED;
-
-    if (grasp != null)
-      grasp.update(this);
+  @Override
+  public boolean move2(int nextAct) {
+    int nextAct = ACT_TBA;
     switch (currFrame.state) {
       case STAND:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         if (ctrl.do_a) switch (weapon.type) {
           case NULL:
             nextAct = extra.containsKey(LFextra.Kind.LETSPUNCH) ?
@@ -398,7 +337,7 @@ abstract class AbstractHero extends AbstractObject {
         }
         break;
       case WALK:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         if (ctrl.do_a) switch (weapon.type) {
           case NULL:
             nextAct = extra.containsKey(LFextra.Kind.LETSPUNCH) ?
@@ -443,7 +382,7 @@ abstract class AbstractHero extends AbstractObject {
         }
         break;
       case HWALK:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         if (ctrl.do_a) {
           nextAct = Act_hvwpthw;
         } else if (ctrl.do_RR | ctrl.do_LL)  {
@@ -460,7 +399,7 @@ abstract class AbstractHero extends AbstractObject {
         }
         break;
       case RUN:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         vx = faceRight ? Value_running_speed : (-Value_running_speed);
         if (ctrl.do_U) vz = -Value_running_speedz;
         if (ctrl.do_D) vz =  Value_running_speedz;
@@ -489,7 +428,7 @@ abstract class AbstractHero extends AbstractObject {
         }
         break;
       case HRUN:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         vx = faceRight ? Value_heavy_running_speed : (-Value_heavy_running_speed);
         if (ctrl.do_U)  vz = -Value_heavy_running_speedz;
         if (ctrl.do_D)  vz =  Value_heavy_running_speedz;
@@ -607,7 +546,7 @@ abstract class AbstractHero extends AbstractObject {
       case LAND:
         if (ctrl.do_d) {
           nextAct = Act_rolling;
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
         } else if (ctrl.do_j) {
           if (ctrl.do_F) {
             nextAct = Act_dash1;
@@ -653,27 +592,27 @@ abstract class AbstractHero extends AbstractObject {
             flyState = JUMP_V0_1;
           }
         } else if (ctrl.do_Z) {
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
           vz = ctrl.do_U ? (-Value_walking_speedz) : Value_walking_speedz;
           if (waitTU < 2)
             nextAct = Act_walking + walkingCycle[walkingIndex = 0];
         } else if (ctrl.do_F) {
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
           if (waitTU < 2)
             nextAct = Act_walking + walkingCycle[walkingIndex = 0];
         } else {
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
         }
         break;
       case FIRE:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         if (vy < 0.0 && ((currFrame.curr == Act_fireD) || (currFrame.curr == Act_fireD + 1)))
           nextAct = Act_fireU;
         if (vy > 0.0 && ((currFrame.curr == Act_fireU) || (currFrame.curr == Act_fireU + 1)))
           nextAct = Act_fireD;
         break;
       case DRINK:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         /* in LFX drinking action will be cancalled if the weapon is not drink type */
         if (weapon.type == LFtype.DRINK) {
           double[] reg = weapon.drink();
@@ -784,20 +723,25 @@ abstract class AbstractHero extends AbstractObject {
       case LYING:
         if (0.0 >= hp)
           nextAct = currFrame.curr;
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
         break;
       case TRY_TRANSFORM:
         if (transf == null)
           nextAct = Act_notransform;
         break;
       default:
-        flyState = NOTFLYING;
+        flyState = NO_FLYING;
     }
 
-    /* you can change facing direction in `defend' frame */
-    if ((currFrame.curr == Act_defend) && ctrl.do_F)
-      faceRight = ctrl.do_R;
+    /** You can change facing in this frame. */
+    if (currFrame.curr == ACT_DEFEND && key.F)
+      faceRight = key.R;
 
+    return true;
+  }
+
+  @Override
+  public boolean updateMovement() {
     /* block all velocity and position changes if the chatacter in hitlag duration */
     if ((grasp == null || grasp.isNotCaught(this)) && hitLag == 0) {
       vx = currFrame.calcVX(vx, faceRight);
@@ -841,7 +785,7 @@ abstract class AbstractHero extends AbstractObject {
           vx = map.applyFriction(vx * LANDING_VELOCITY_REMAIN);
           vz = map.applyFriction(vz * LANDING_VELOCITY_REMAIN);
           vy = 0.0;
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
         } else if ((currFrame.state == LFstate.JUMP || currFrame.state == LFstate.ROW) && ((flyState & 1) == 0)) {
           nextAct = Act_crouch1;
           vx = map.applyFriction(vx * LANDING_VELOCITY_REMAIN);
@@ -852,7 +796,7 @@ abstract class AbstractHero extends AbstractObject {
           vx = map.applyFriction(vx * LANDING_VELOCITY_REMAIN);
           vz = map.applyFriction(vz * LANDING_VELOCITY_REMAIN);
           vy = 0.0;
-          flyState = NOTFLYING;
+          flyState = NO_FLYING;
         } else {
           vx = map.applyFriction(vx);
           vz = map.applyFriction(vz);
@@ -866,8 +810,11 @@ abstract class AbstractHero extends AbstractObject {
         vy += map.gravity;
       }
     }
+    return true;
+  }
 
-    /* recovery */
+  @Override
+  public boolean updateHealth() {
     if (hp > 0.0) {
       if (hp < hp2nd)
         hp = Math.min(hp2nd, hp + hpReg);
@@ -880,71 +827,14 @@ abstract class AbstractHero extends AbstractObject {
           fp = Math.max(fp - fpDec, 0);
       }
     }
+    return true;
+  }
 
-    boolean transformed = false;
-    applyExtra();
-    for (Iterator<Map.Entry<LFextra.Kind, LFextra>> eit = extra.entrySet().iterator(); eit.hasNext(); ) {
-      Map.Entry<LFextra.Kind, LFextra> me = (Map.Entry<LFextra.Kind, LFextra>)eit.next();
-      LFextra e = me.getValue();
-      switch (me.getKey()) {
-        case HEALING:
-          // TODO: healing effect
-          hp = Math.min(hp + e.doubleValue, hp2nd);
-          break;
-        case TELEPORT_ENEMY:
-          {
-            LFobject telTarget = map.chooseHero(this, false, true);
-            if (telTarget != null) {
-              px = telTarget.px + (faceRight ? -e.doubleValue : e.doubleValue);
-              pz = telTarget.pz;
-            }
-            py = 0.0;
-          }
-          break;
-        case TELEPORT_TEAM:
-          {
-            LFobject telTarget = map.chooseHero(this, true, false);
-            if (telTarget != null) {
-              px = telTarget.px + (faceRight ? -e.doubleValue : e.doubleValue);
-              pz = telTarget.pz;
-            }
-            py = 0.0;
-          }
-          break;
-        case TRANSFORM_TO:
-          {
-            transf = LFX.objPool.get(e.stringValue).makeCopy(faceRight, teamID);
-            transf.initialization(px, py, pz, e.intValue);
-            transf.origin = this;
-            transformed = true;
-            map.transform(this, transf);
-          }
-          break;
-        case TRANSFORM_BACK:
-          if (transf != null) {
-            // TODO: should not display 1st picture (comboed frame processed in same timeunit?)
-            // TODO: key consumed (rudolf should not goto punch action)
-            transf.initialization(px, py, pz, e.intValue);
-            transformed = true;
-            map.transform(this, transf);
-          }
-          break;
-        case ARMOUR:
-          map.spawnObject(LFopoint.createArmour(this));
-          break;
-      }
-      if (e.lapse())
-        eit.remove();
-    }
-    if (transformed)
-      return false;
-
-    /* process next frame */
-    if (hitLag > 0) {
-      --hitLag;
-    } else if (grasp != null && !grasp.isNotCaught(this)) {
-      /* NOP */
-    } else if (nextAct != DEFAULT_ACT) {
+  @Override
+  public boolean updateFrame() {
+    if (actLag > 0) {
+      --actLag;
+    } else if (nextAct != ACT_TBA) {
       setCurr(nextAct);
     } else if (--waitTU < 0) {
       LFframe nextFrame = getFrame(currFrame.next);
@@ -961,8 +851,6 @@ abstract class AbstractHero extends AbstractObject {
         setNext(nextFrame);
       }
     }
-    registerItr();
-    registerBdy();
     return true;
   }
 
@@ -974,12 +862,13 @@ abstract class AbstractHero extends AbstractObject {
   }
 
   @Override
-  public List<Pair<Itr, Area>> registerItrArea() {
-    List<Pair<Itr, Area>> result = new ArrayList<>();
+  public List<Tuple<Itr, Area>> registerItrArea() {
+    List<Tuple<Itr, Area>> result = new ArrayList<>();
     for (Itr itr: currFrame.itr) {
-      // weapon press a
       if (itr.effect != Effect.THROW_ATK || extra.containsKey(LFextra.Kind.THROWINJURY))
         currItr.add(new LFitrarea(this, i));
+    }
+    if (wpunion != dummy && currFrame.wpoint.attacking) {
     }
     return;
   }

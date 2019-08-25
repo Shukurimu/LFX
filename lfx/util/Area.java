@@ -11,7 +11,7 @@ public final class Area {
   public final double z2 = 0.0;
 
   public Area(double ax, double ay, double pz, boolean faceRight, Box box) {
-    x1 = faceRight ? (ax + box.x) : (ax - (box.x + box.w));
+    x1 = ax + faceRight ? box.x : -(box.x + box.w);
     x2 = x1 + box.w;
     y1 = ay + box.y;
     y2 = y1 + box.h;
