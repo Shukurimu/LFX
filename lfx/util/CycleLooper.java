@@ -1,6 +1,6 @@
 package lfx.util;
 
-public final class Looper {
+public final class CycleLooper {
   private int index = -1;
   private final int[] data;
 
@@ -9,11 +9,13 @@ public final class Looper {
   }
 
   public int next() {
-    return data.get(index = (index + 1) % data.length);
+    if (++index == data.length)
+      index = 0;
+    return data[index];
   }
 
   public int reset() {
-    return data.get(index = 0);
+    return data[index = 0];
   }
 
 }

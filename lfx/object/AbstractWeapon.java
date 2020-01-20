@@ -16,7 +16,7 @@ abstract class Weapon extends AbstractObject {
   public final String soundBroken;
 
   protected AbstractWeapon(Type type, String identifier, List<Frame> frameList, double dropHurt,
-                           String soundHit, String soundDrop, String soundBroken) {
+                       String soundHit, String soundDrop, String soundBroken) {
     super(type, identifier, frameList);
     assert type.isWeapon;
     this.dropHurt = dropHurt;

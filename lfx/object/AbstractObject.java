@@ -13,16 +13,18 @@ import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Grasp;
 import lfx.component.Itr;
+import lfx.map.Environment;
 import lfx.util.Area;
 import lfx.util.Global;
 import lfx.util.Point;
 import lfx.util.Tuple;
 import lfx.util.Type;
 
+// https://stackoverflow.com/questions/56867/interface-vs-base-class
 // http://gjp4860sev.myweb.hinet.net/lf2/page10.htm
 // https://lf-empire.de/lf2-empire/data-changing/frame-elements/177-cpoint-catch-point?showall=1
 
-abstract class AbstractObject {
+abstract class AbstractObject implements Observable {
   public static final AbstractObject dummy = new AbstractObject() {};
   public static final int ACT_DEF = 999;
   public static final int ACT_TBA = 1236987450;  // arbitrary
@@ -40,7 +42,8 @@ abstract class AbstractObject {
   public final Type type;
   public final String identifier;
   public final List<Frame> frameList;
-  protected final List<Tuple<AbstractObject, Itr>> resultItrList = new ArrayList<>();
+  protected final List<Tuple<AbstractObject, Itr>> resultItrList = new ArrayList<>(16);
+  protected final List<Tuple<Bdy, Area>> bdyAreaList = new ArrayList<>(8);
   protected final Map<Effect.Kind, Effect> status = new EnumMap<>();
   protected final Map<AbstractObject, Integer> vrest = new WeakHashMap<>();
   protected int arest = 0;
@@ -60,6 +63,7 @@ abstract class AbstractObject {
   protected int actLag = 0;
   protected int teamId = 0;
   protected int graspField = 0;
+  protected Environment env = null;
   protected AbstractObject grasper = dummy;
   protected AbstractObject graspee = dummy;
   protected AbstractObject wpunion = dummy;  // weapon or picker
@@ -109,6 +113,20 @@ abstract class AbstractObject {
     }
   }
 
+  public final void initialize(double px, double py, double pz, int actNumber) {
+    this.px = px;
+    this.py = py;
+    this.pz = pz;
+    transitFrame(getCanonicalAct(actNumber));
+    return;
+  }
+
+  /** Called by AbstractMap. */
+  public final void setEnvironment(Environment env) {
+    this.env = env;
+    return;
+  }
+
   public final void updateAnchor() {
     anchorX = faceRight ? (px - currFrame.centerx) : (px + currFrame.centerx);
     anchorY = py - currFrame.centery;
@@ -144,17 +162,15 @@ abstract class AbstractObject {
     return;
   }
 
-  /** Called when F7 is pressed. */
+  @Override
   public abstract void revive();
 
   /** Returns canonical action number.
       For example, hero's 999 can be ACT_STANDING or ACT_JUMPAIR based on py. */
   public abstract CanonicalAct getCanonicalAct(int action);
 
-  public abstract List<Tuple<Bdy, Area>> registerBdyArea();
-  public abstract List<Tuple<Itr, Area>> registerItrArea();
-
-  public final void spreadItrArea(Map<AbstractObject, List<Tuple<Bdy, Area>>> map, int mapTime) {
+  @Override
+  public final void spreadItrArea(int mapTime, List<Observable> observableList) {
     if (arest > mapTime)
       return;
     final List<Tuple<Itr, Area>> itrArea = registerItrArea();
@@ -303,10 +319,9 @@ abstract class AbstractObject {
           hp = Math.min(hp + value.doubleValue, hp2nd);
           break;
         case TELEPORT_ENEMY: {
-          AbstractObject target = objectList.stream()
-                                            .filter(object -> object.type == Type.HERO)
-                                            .mapToDouble(object -> Math.abs(this.px - object.px))
-                                            .min(Math::min).orElse(this);
+          Observable target = env.getHeroStream().filter(o -> o != this)
+                                 .mapToDouble(o -> this.getDistance(o))
+                                 .min(Math::min).orElse(this);
           if (target != this) {
             px = target.px + faceRight ? -value.doubleValue : value.doubleValue;
             pz = target.pz;
@@ -315,10 +330,9 @@ abstract class AbstractObject {
           break;
         }
         case TELEPORT_TEAM: {
-          AbstractObject target = objectList.stream()
-                                            .filter(object -> object.type == Type.HERO)
-                                            .mapToDouble(object -> Math.abs(this.px - object.px))
-                                            .max(Math::max).orElse(this);
+          Observable target = env.getHeroStream().filter(o -> o != this)
+                                 .mapToDouble(o -> this.getDistance(o))
+                                 .max(Math::max).orElse(this);
           if (target != this) {
             px = target.px + faceRight ? -value.doubleValue : value.doubleValue;
             pz = target.pz;
@@ -340,6 +354,10 @@ abstract class AbstractObject {
   }
 
   protected abstract boolean adjustBoundary(int[] xzBound);
+
+  public final double getDistance(Observable another) {
+    return Math.abs(this.px - another.px);
+  }
 
   @Override
   public String toString() {
