@@ -1,11 +1,10 @@
 package lfx.component;
 
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Set;
 import lfx.component.Itr;
-import lfx.component.Itr.Effect;
-import lfx.component.Type;
 import lfx.util.Box;
+import lfx.util.Const;
 
 public final class Bdy {
 
@@ -18,41 +17,54 @@ public final class Bdy {
     IMMUNE_WEAKFIRE,
     IMMUNE_WEAKICE,
     IMMUNE_FALL_40;
-
-    @Override
-    public String toString() {
-      return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
-    }
-
-  };
+  }
 
   public final Box box;
-  public final EnumSet<Attribute> attributes;
+  public final Set<Attribute> attr;
 
-  @SafeVarargs
-  public Bdy(Box box, Attribute... attributes) {
+  public Bdy(Box box) {
     this.box = box;
-    this.attributes = EnumSet.of(attributes);
+    this.attr = Set.of();
+  }
+
+  public Bdy(Box box, String attrString) {
+    this.box = box;
+    Set<Attribute> tempSet = EnumSet.noneOf(Attribute.class);
+    for (Attribute attr : Attribute.values()) {
+      if (attrString.contains(attr.toString())) {
+        tempSet.add(attr);
+      }
+    }
+    this.attr = Set.copyOf(tempSet);
   }
 
   public boolean interactsWith(Itr itr, int scopeView) {
-    if (attributes.containsKey(Attribute.FRIENDLY_FIRE))
-      scopeView = Type.grantTeamScope(scopeView);
-    if ((scopeView & itr.scope) == 0)
+    if (attr.contains(Attribute.FRIENDLY_FIRE)) {
+      scopeView = Const.getBothView(scopeView);
+    }
+    if ((scopeView & itr.scope) == 0) {
       return false;
-    if (!attributes.containsKey(Attribute.DANCE_OF_PAIN) && itr.effect == Effect.GRASP_DOP)
+    }
+    if (!attr.contains(Attribute.DANCE_OF_PAIN) && itr.kind == Itr.Kind.GRASP_DOP) {
       return false;
-    if (!attributes.containsKey(Attribute.ROLLING_PICKABLE) && itr.effect == Effect.ROLL_PICK)
+    }
+    if (!attr.contains(Attribute.ROLLING_PICKABLE) && itr.kind == Itr.Kind.ROLL_PICK) {
       return false;
-    if (attributes.containsKey(Attribute.IMMUNE_WEAKFIRE) && itr.effect == Effect.WEAKFIRE)
+    }
+    if (attr.contains(Attribute.IMMUNE_WEAKFIRE) && itr.kind == Itr.Kind.WEAKFIRE) {
       return false;
-    if (attributes.containsKey(Attribute.IMMUNE_WEAKICE) && itr.effect == Effect.WEAKICE)
+    }
+    if (attr.contains(Attribute.IMMUNE_WEAKICE) && itr.kind == Itr.Kind.WEAKICE) {
       return false;
-    if (attributes.containsKey(Attribute.IMMUNE_FALL_40) && itr.fall <= 40)
+    }
+    if (attr.contains(Attribute.IMMUNE_FALL_40) && itr.fall <= 40) {
       return false;
+    }
     return true;
   }
 
+}
+/*
   public static List<Attribute> parserBdy(int originalState, String identifier) {
     if (identifier.equals("Freezecolumn"))
       return List.of(Attribute.FRIENDLY_FIRE);
@@ -70,5 +82,4 @@ public final class Bdy {
         return List.of();
     }
   }
-
-}
+*/

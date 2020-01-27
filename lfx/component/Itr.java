@@ -1,32 +1,32 @@
 package lfx.component;
 
-import lfx.component.Type;
 import lfx.util.Box;
-
-// https://lf-empire.de/lf2-empire/data-changing/frame-elements/174-itr-interaction?showall=1
+import lfx.util.Const;
 
 public final class Itr {
-  public static final int LAG = 3;
   public static final int DVX = 0;
   public static final int DVY = -7;
   public static final int BDEFEND = 0;
   public static final int FALL = 20;
   public static final int INJURY = 0;
-  public static final int VREST = 9;  // weapon default
   public static final int AREST = -7;  // hero default
-  public static final int HERO_SCOPE =
-      Type.HERO.enemyView() | Type.BLAST.allView() | Type.WEAPON.allView();
+  public static final int VREST = +9;  // weapon default
+  public static final int HERO_SCOPE = Const.getSideView(Const.SCOPE_VIEW_HERO, false)
+                                     | Const.getBothView(Const.SCOPE_VIEW_WEAPON)
+                                     | Const.getBothView(Const.SCOPE_VIEW_ENERGY);
   public static final int WEAPON_SCOPE = HERO_SCOPE;
-  public static final int BLAST_SCOPE =
-      Type.HERO.enemyView() | Type.BLAST.enemyView() | Type.WEAPON.allView();
-  public static final int NON_HERO_SCOPE = Type.BLAST.allView() | Type.WEAPON.allView();
+  public static final int ENERGY_SCOPE = Const.getSideView(Const.SCOPE_VIEW_HERO, false)
+                                       | Const.getBothView(Const.SCOPE_VIEW_WEAPON)
+                                       | Const.getSideView(Const.SCOPE_VIEW_ENERGY, false);
+  public static final int NON_HERO_SCOPE = Const.getBothView(Const.SCOPE_VIEW_WEAPON)
+                                         | Const.getBothView(Const.SCOPE_VIEW_ENERGY);
 
-  public enum Effect {
+  public enum Kind {
     GRASP_DOP (""),  // kind1
     PICK      (""),  // kind2
     GRASP_BDY (""),  // kind3
     THROW_ATK (""),  // kind4
-    W_STRENGTH(""),  // kind5
+    STRENGTH  (""),  // kind5
     LET_SPUNCH(""),  // kind6
     ROLL_PICK (""),  // kind7
     HEAL      (""),  // kind8
@@ -47,7 +47,7 @@ public final class Itr {
 
     public final String sound;
 
-    private Effect(String sound) {
+    private Kind(String sound) {
       this.sound = sound;
     }
 
@@ -59,7 +59,7 @@ public final class Itr {
   }
 
   public final Box box;
-  public final Effect effect;
+  public final Kind kind;
   public final int dvx;  // also catchingact
   public final int dvy;  // also caughtact
   public final int bdefend;
@@ -67,61 +67,66 @@ public final class Itr {
   public final int fall;
   public final int vrest;  // negative value as arest
   public final int scope;
-  private int lag = LAG;
-  private boolean explosion = false;
+  public final boolean nolag;
+  public final boolean explosion;
 
-  public Itr(Box box, Effect effect, int dvx, int dvy,
-             int bdefend, int injury, int fall, int vrest, int scope) {
+  public Itr(Box box, Kind kind, int dvx, int dvy,
+             int fall, int bdefend, int injury, int vrest, int scope, String attr) {
     this.box = box;
-    this.effect = effect;
+    this.kind = kind;
     this.dvx = dvx;
     this.dvy = dvy;
+    this.fall = fall;
     this.bdefend = bdefend;
     this.injury = injury;
-    this.fall = fall;
     this.vrest = vrest;
     this.scope = scope;
+    nolag = attr.contains("nolag");
+    explosion = attr.contains("exp");
   }
 
-  // grasp (use complete constructor if you really want to grasp teammate)
-  public Itr(Box box, boolean forceGrasp, int catchingact, int caughtact) {
-    this(box, forceGrasp ? Effect.GRASP_BDY : Effect.GRASP_DOP,
-         catchingact, caughtact, 0, 0, 0, 0, Type.HERO.enemyView());
+  public Itr(Box box, Kind kind, int dvx, int dvy,
+             int fall, int bdefend, int injury, int vrest, int scope) {
+    this(box, kind, dvx, dvy, fall, bdefend, injury, vrest, scope, "");
   }
 
-  // effect only (PICK, BLOCK, ...)
-  public Itr(Box box, Effect effect, int scope) {
-    this(box, effect, 0, 0, 0, 0, 0, 0, scope);
+  // grasp (use constructor if you really want to grasp teammate)
+  public static Itr grasp(Box box, boolean forceGrasp, int catchingact, int caughtact) {
+    return new Itr(box, forceGrasp ? Kind.GRASP_BDY : Kind.GRASP_DOP,
+                   catchingact, caughtact, 0, 0, 0, VREST,
+                   Const.getSideView(Const.SCOPE_VIEW_HERO, false), "");
+  }
+
+  // kind only (PICK, BLOCK, ...)
+  public static Itr kind(Box box, Kind kind, int scope) {
+    return new Itr(box, kind, 0, 0, 0, 0, 0, 0, scope, "");
   }
 
   // weapon strength list (treated as hero's attack)
-  public Itr(Effect effect, int dvx, int dvy, int bdefend, int injury, int fall, int vrest) {
-    this(null, effect, dvx, dvy, bdefend, injury, fall, vrest, HERO_SCOPE);
-  }
-
-  public Itr smooth() {
-    lag = 0;
-    return this;
-  }
-
-  public Itr exp() {
-    explosion = true;
-    return this;
+  public static Itr strength(Kind kind, int dvx, int dvy,
+                             int fall, int bdefend, int injury, int vrest) {
+    return new Itr(null, kind, dvx, dvy, fall, bdefend, injury, vrest, HERO_SCOPE, "");
   }
 
   public int calcLag(int originalValue) {
-    return Math.max(originalValue, lag);
+    return nolag ? originalValue : Math.max(originalValue, Const.LAG);
   }
 
-  /** explosion-effect negative dvx goes two directions */
-  public double calcDvx(boolean faceRight) {
-    return explosion ? (px < ba.px ? -dvx : dvx)
+  // Explosion kind negative dvx goes two directions.
+  public double calcDvx(double px, boolean faceRight) {
+    return explosion ? (px < (box.x + box.w / 2) ? -dvx : dvx)
                      : (faceRight ? dvx : -dvx);
   }
 
-  /** The followings are the self implementation of several itr kinds
-      since no documentation discussing about this effect
-      the result is very likely different from LF2 */
+}
+
+/*
+
+// https://lf-empire.de/lf2-empire/data-changing/frame-elements/174-itr-interaction?showall=1
+
+  // The followings are the self implementation of several itr kinds
+  //  since no documentation discussing about this kind
+  //  the result is very likely different from LF2
   public static final double SONATA_VELOCITY_DEDUCTION = 0.7;
   public static final double SONATA_Y_RATIO = 0.7;
 
@@ -158,7 +163,6 @@ public final class Itr {
     newScope[7] = (newScope[6] == '1') ? '1' : newScope[7];
     return String.valueOf(newScope);
   }
-
   public static String[] parserKindMap(int originalKind, int originalEffect, int originalState) {
     boolean is18 = originalState == 18;
     switch (originalKind) {
@@ -167,7 +171,7 @@ public final class Itr {
                 case 1:
                     return new String[] { STAB.parserText(),   state18("0b101110", is18) };
                 case 2:
-                    return new String[] {/* State19 Effect2 works as same as Effect20 (IMO) */
+                    return new String[] {// State19 Effect2 works as same as Effect20 (IMO)
         ((originalState == 19) ? FIRE2 : FIRE).parserText(),   state18("0b101110", is18) };
                 case 20:
                     return new String[] { FIRE2.parserText(),  state18("0b001110", is18) };
@@ -217,6 +221,4 @@ public final class Itr {
               System.out.printf("\tUnknown kind %s\n", originalKind);
               return null;
       }
-    }
-
-}
+    }*/

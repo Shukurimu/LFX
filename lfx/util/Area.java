@@ -3,17 +3,18 @@ package lfx.util;
 import lfx.util.Box;
 
 public final class Area {
-  public final double x1 = 0.0;
-  public final double x2 = 0.0;
-  public final double y1 = 0.0;
-  public final double y2 = 0.0;
-  public final double z1 = 0.0;
-  public final double z2 = 0.0;
+  // Calculate the coordinate of Box.
+  public final double x1;
+  public final double x2;
+  public final double y1;
+  public final double y2;
+  public final double z1;
+  public final double z2;
 
-  public Area(double ax, double ay, double pz, boolean faceRight, Box box) {
-    x1 = ax + faceRight ? box.x : -(box.x + box.w);
+  public Area(double anchorX, double anchorY, double pz, boolean faceRight, Box box) {
+    x1 = anchorX + (faceRight ? box.x : (box.w - box.x));
     x2 = x1 + box.w;
-    y1 = ay + box.y;
+    y1 = anchorY + box.y;
     y2 = y1 + box.h;
     z1 = pz - box.zu;
     z2 = pz + box.zd;

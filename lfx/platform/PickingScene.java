@@ -1,41 +1,63 @@
 package lfx.platform;
 
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.function.Consumer;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
-import javafx.util.Duration;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-import lfx.platform.Controller;
-import lfx.platform.Graphical;
+import javafx.util.Duration;
+import lfx.object.AbstractObject;
+import lfx.object.Playable;
+import lfx.platform.Engine;
+import lfx.platform.KeyboardController;
+import lfx.util.Controller;
 import lfx.util.Global;
 
 public class PickingScene extends GridPane {
   public static final double ICON_SIZE = 180.0;
   public static final Font CARD_FONT = Font.font(24.0);
   public static final List<Color> COLOR_POOL = List.of(Color.BLACK, Color.BLUE);
-  private final List<Graphical> candidateList;
-  private final List<PickingCard> pickingList;
-  private final Timeline render = new Timeline(new KeyFrame(new Duration(1000.0 / 8.0), e -> {
-    ++animationTimestamp;
-    pickingList.forEach(card -> card.animate());
-  }));
+  public static final Image IDLING_IMAGE;
+  public static final Tuple<String, Image> RANDOM_CHOICE;
+  private static final List<Tuple<String, Image>> heroList = new ArrayList<>(32);
+  private final List<Card> cardList = new ArrayList<>();
+  private final EventHandler<KeyEvent> keyPressHandler;
+  private final Timeline render;
   private int animationTimestamp = 0;
+
+  static {
+    Canvas canvas = new Canvas(Engine.PORTRAIT_SIZE, Engine.PORTRAIT_SIZE);
+    GraphicsContext gc = canvas.getGraphicsContext2D();
+    IDLING_IMAGE = canvas.snapshot(null, null);
+
+    gc.setFill(Color.BLACK);
+    gc.fillRect(0.0, 0.0, Engine.PORTRAIT_SIZE, Engine.PORTRAIT_SIZE);
+    gc.setTextBaseline(VPos.CENTER);
+    gc.setTextAlign(TextAlignment.CENTER);
+    gc.setFill(Color.WHITE);
+    gc.setFont(Font.font(null, FontWeight.BOLD, Engine.PORTRAIT_SIZE - 2.0 * 15.0));
+    gc.fillText("?", Engine.PORTRAIT_SIZE / 2.0, Engine.PORTRAIT_SIZE / 2.0);
+    RANDOM_CHOICE = new Tuple<>("RANDOM", canvas.snapshot(null, null));
+  }
 
   private enum Phase {
     /** Condiction: all but not zero DONE. */
@@ -44,55 +66,57 @@ public class PickingScene extends GridPane {
     TEAM(0b01, true),
     DONE(0b10, false);
 
-    private static final int MAX_INDEX = Phase.values().length - 1;
+    private static final Phase[] valArray = values();
     public final int readyBits;
-    public final boolean choice;
+    public final boolean choosable;
 
-    private Phase(int readyBits, boolean choice) {
+    private Phase(int readyBits, boolean choosable) {
       this.readyBits = readyBits;
-      this.choice = choice;
+      this.choosable = choosable;
     }
 
     public Phase prev() {
-      return Phase.values()[Math.max(this.ordinal() - 1, 0)];
+      return valArray[Math.max(this.ordinal() - 1, 0)];
     }
 
     public Phase next() {
-      return Phase.values()[Math.min(this.ordinal() + 1, MAX_INDEX)];
-    }
-
-    public static Map<Phase, Integer> getInitialSetting() {
-      Map<Phase, Integer> setting = new EnumMap<>();
-      for (Phase phase: Phase.values()) {
-        if (phase.choice)
-          setting.put(phase, 0)
-      }
-      return setting;
+      return valArray[Math.min(this.ordinal() + 1, valArray.length + 1)];
     }
 
   }
 
-  private int getCurrentLength(Phase phase) {
+  private int getItemCount(Phase phase) {
     switch (phase) {
       case HERO:
-        return candidateList.size();
+        return heroList.size();
       case TEAM:
-        return Global.MAX_TEAMS;
+        return Global.TEAM_NUM;
       default:
         return 0;
     }
   }
 
-  class PickingCard extends VBox {
+  private void refreshPlayableList() {
+    heroList.clear();
+    heroList.add(RANDOM_CHOICE);
+    // TODO: hidden character
+    for (Map.Entry<String, Hero> entry : AbstractObject.getHeroEntry()) {
+      heroList.add(new Tuple<>(entry.first, entry.second.getPortrait()));
+    }
+    return;
+  }
+
+  private class Card extends VBox {
     private Phase phase = Phase.INIT;
     private final Controller controller;
-    private final Map<Phase, Integer> setting = Phase.getInitialSetting();
+    private final Input input = new Input();
+    private final Map<Phase, Integer> setting = new EnumMap<>(Phase.class);
     private final Label name = new Label();
     private final Label hero = new Label();
     private final Label team = new Label();
     private final ImageView icon = new ImageView();
 
-    public PickingCard(Controller controller) {
+    public Card(Controller controller) {
       this.controller = controller;
       this.setAlignment(Pos.CENTER);
       this.setMinHeight(300);
@@ -105,42 +129,44 @@ public class PickingScene extends GridPane {
       this.getChildren().addAll(name, icon, hero, team);
     }
 
-    public int keyInput(KeyCode c) {
-      if (c == controller.code_d) {
-        phase = Phase.INIT;
-      } else if (c == controller.code_a) {
+    public int getReadyBits() {
+      controller.updateSimpleInput(input);
+      if (input.do_a) {
         phase = phase.next();
-      } else if (c == controller.code_j) {
+      } else if (input.do_j) {
         phase = phase.prev();
-      } else if (c == controller.code_L) {
-        final int length = getCurrentLength(phase);
-        setting.computeIfPresent(phase, (l_phase, l_value) -> l_value == 0 ? length - 1 : l_value - 1);
-      } else if (c == controller.code_R) {
-        final int length = getCurrentLength(phase);
-        setting.computeIfPresent(phase, (l_phase, l_value) -> l_value == length - 1 ? 0 : l_value + 1);
-      } else if (c == controller.code_U) {  // default
-        setting.replace(phase, 0);
-      } else if (c == controller.code_D) {  // random
-        setting.replace(phase, Global.randomBounds(1, getCurrentLength(phase)));
+      } else if (phase.choosable && input.do_L) {
+        int length = getItemCount(phase);
+        int origin = setting.getOrDefault(phase, 0);
+        setting.put(phase, (origin - 1 + length) % length);
+      } else if (phase.choosable && input.do_R) {
+        int length = getItemCount(phase);
+        int origin = setting.getOrDefault(phase, 0);
+        setting.put(phase, (origin + 1 + length) % length);
+      } else if (phase.choosable && input.do_U) {  // default
+        setting.put(phase, 0);
+      } else if (phase.choosable && input.do_D) {  // random
+        setting.put(phase, Global.randomBounds(1, getItemCount(phase)));
       } else {
-        return;
+        return phase.readyBits;
       }
-      Graphical selection = candidateList.get(setting.get(Phase.HERO).intValue());
+      Tuple<String, Image> focus = heroList.get(setting.getOrDefault(Phase.HERO, 0));
       switch (phase) {
         case INIT:
-          icon.setImage(WAIT_FOR_JOIN);
+          icon.setImage(IDLING_IMAGE);
           hero.setText("");
+          team.setText("");
           break;
         case HERO:
-          icon.setImage(candidateList.get(setting.get(Phase.HERO)));
-          hero.setText(candidateList.get(setting.get(Phase.HERO)));
+          icon.setImage(focus.second);
+          hero.setText(focus.first);
           team.setText("");
           break;
         case TEAM:
-          team.setText(Global.TEAM_STRING.get(setting.get(Phase.TEAM)));
+          team.setText(Engine.TEAM_NAMES.get(setting.get(Phase.TEAM)));
           break;
       }
-      return readyBits();
+      return phase.readyBits;
     }
 
     public void animate() {
@@ -161,60 +187,89 @@ public class PickingScene extends GridPane {
       return;
     }
 
+    public Hero makeHero(int defaultTeamId) {
+      if (phase == Phase.INIT) {
+        return null;
+      }
+      int index = setting.get(Phase.HERO);
+      if (index == 0) {
+        index = Global.randomBounds(1, heroList.size());
+      }
+      String heroName = heroList.get(index).first;
+      int teamId = setting.get(Phase.TEAM);
+      teamId = teamId == 0 ? defaultTeamId : teamId;
+      for (Map.Entry<String, Hero> entry : AbstractObject.getHeroEntry()) {
+        if (heroName == entry.first) {
+          Hero clone = entry.second.makeClone(teamId, Global.randomBool());
+          return clone;
+        }
+      }
+      System.err.println("Hero not found: " + heroName);
+      return null;
+    }
+
   }
 
-  public PickingScene(List<Controller> controllerList, List<Graphical> candidateList) {
-    this.candidateList = candidateList;
-    pickingList = new ArrayList<>();
-    for (Controller controller: controllerList) {
-      PickingCard card = new PickingCard(controller);
-      pickingList.add(card);
+  public PickingScene(Consumer<Scene> sceneChanger,
+                      List<Controller> controllerList) {
+    Consumer<String> pickingSceneBridge =
+        (String info) -> sceneChanger.accept(new PickingScene(sceneChanger, controllerList));
+
+    render = new Timeline(new KeyFrame(new Duration(1000.0 / 8.0), e -> {
+      ++animationTimestamp;
+      cardList.forEach(card -> card.animate());
+    }));
+
+    keyPressHandler = (KeyEvent event) -> {
+      KeyCode keyCode = event.getCode();
+      if (keyCode == KeyCode.ESCAPE) {
+        Platform.exit();
+        return;
+      }
+      KeyboardController.press(keyCode);
+      int readyBits = Phase.INIT;
+      cardList.forEach(card -> readyBits &= card.getReadyBits(keyCode));
+      if (readyBits == Phase.DONE) {
+        render.stop();
+        List<Hero> result = new ArrayList<>(Engine.PLAYER_NUM);
+        for (int i = 0; i < cardList.size(); ++i) {
+          result.add(cardList.get(i).makeHero(-i-1));
+        }
+        Arena arena = new Arena(900, 200, 400, result, pickingSceneBridge);
+        arena.setPlayers(heroList);
+        sceneChanger.accept(arena.makeScene());
+      }
+    };
+
+    refreshPlayableList();
+    for (Controller controller : controllerList) {
+      Card card = new Card(controller);
+      cardList.add(card);
       this.addRow(1, card);
-      // this.setVgrow(c, javafx.scene.layout.Priority.ALWAYS);
-      // this.setHgrow(c, javafx.scene.layout.Priority.ALWAYS);
     }
+
     Label head = new Label("ALL PICK");
     head.setMinHeight(80.0);
     head.setFont(Font.font(null, FontWeight.BOLD, 52.0));
-    this.add(head, 0, 0, controllerList.size(), 1);
-    // this.setHgrow(head, javafx.scene.layout.Priority.ALWAYS);
     GridPane.setHalignment(head, HPos.CENTER);
-    Label tail = new Label("xxxxxxxx");
+    this.add(head, 0, 0, controllerList.size(), 1);
+
+    Label tail = new Label("<untitled>");
     tail.setMinHeight(60.0);
     tail.setFont(Font.font(null, FontWeight.MEDIUM, 20.0));
-    this.add(tail, 0, 2, controllerList.size(), 1);
-    // this.setHgrow(tail, javafx.scene.layout.Priority.ALWAYS);
     GridPane.setHalignment(tail, HPos.RIGHT);
+    this.add(tail, 0, 2, controllerList.size(), 1);
 
-    // this.setAlignment(Pos.CENTER);
     this.setHgap(9.0);
     this.setVgap(16.0);
-    // this.setPrefSize(LFmap.defaultWorldWidth, LFmap.SCENE_HEIGHT);
-
-    // this.setPrefSize(javafx.scene.layout.Region.USE_COMPUTED_SIZE, javafx.scene.layout.Region.USE_COMPUTED_SIZE);
-    // this.setMinSize(LFmap.defaultWorldWidth, LFmap.SCENE_HEIGHT);
-
-    render.setCycleCount(Animation.INDEFINITE);
-    render.play();
   }
 
   public Scene makeScene() {
-    Scene scene = LFX.sceneBuilder(this, this.computePrefWidth(0), this.computePrefHeight(0));
-    scene.setOnKeyPressed(e -> {
-      KeyCode keyCode = e.getCode();
-      if (keyCode == KeyCode.ESCAPE)
-        javafx.application.Platform.exit();
-      int ready = LFcard.NONE;
-      for (LFcard c: cardArray)
-        ready &= c.keyInput(keyCode);
-      if (ready == LFcard.DONE) {
-        render.stop();
-        ArrayList<LFhero> a = new ArrayList<>(4);
-        for (LFcard c: cardArray)
-          a.add(c.makeHero());
-        LFX.goToLFmap(a);
-      }
-    });
+    Scene scene = Scene(this, this.computePrefWidth(0), this.computePrefHeight(0));
+    scene.setOnKeyPressed(keyPressHandler);
+    scene.setOnKeyReleased(event -> KeyboardController.release(event.getCode()));
+    render.setCycleCount(Animation.INDEFINITE);
+    render.play();
     return scene;
   }
 

@@ -1,16 +1,19 @@
 package lfx.util;
 
-public final class CycleLooper {
+public final class Looper {
+  /** Used in Hero's hidden picture counter. */
   private int index = -1;
   private final int[] data;
 
-  public Looper(int[] data) {
+  @SafeVarargs
+  public Looper(int... data) {
     this.data = data;
   }
 
   public int next() {
-    if (++index == data.length)
+    if (++index == data.length) {
       index = 0;
+    }
     return data[index];
   }
 

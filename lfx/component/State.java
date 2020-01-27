@@ -1,8 +1,8 @@
 package lfx.component;
 
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
-// https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1
 public enum State {
   NORMAL(true),
   /** Hero */
@@ -14,28 +14,28 @@ public enum State {
   JUMP    (true),  // with hidden flying state; direction keys
   DASH    (true),  // with hidden flying state; direction keys
   ROW     (true),  // with hidden flying state
+  DRINK   (true),
   GRASP   (true),  // complicated cpoint
   DEFEND  (true),  // goes to act 111 if being hit
   FALL    (true),  // changes action accroding to vy
   FIRE    (true),  // changes action accroding to vy
   ICED    (true),  // falldown if got hurt
   LYING   (true),  // loops in same act if no hp
+  TRY_TRANSFORM(true),
   /** Weapon */
   INSKY        (true),
   ONHAND       (true),
   THROW        (true),
   ONGROUND     (true),
   JUST_ONGROUND(true),
-  /** Blast */
+  /** Energy */
   HITTING (true),
   HIT     (true),
   REBOUND (true),
   ENERGY  (true),
   PIERCE  (true),
-  UNIMPLEMENTED(true),
+  UNIMPLEMENTED(true);
 
-  /** There can be only one State of basicMove. */
-  public static final EnumSet<State> BASIC_MOVES = EnumSet.range(NORMAL, UNIMPLEMENTED);
   public final boolean basicMove;
 
   private State(boolean basicMove) {
@@ -45,6 +45,64 @@ public enum State {
   @Override
   public String toString() {
     return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+  }
+
+}
+/*
+// https://lf-empire.de/lf2-empire/data-changing/reference-pages/182-states?showall=1
+  @Override
+  public String toString() {
+    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+  }
+
+  public static Map<String, State> buildParseMap() {
+    Map<String, State> map = new HashMap<>();
+    map.put("0", STAND);
+    map.put("1", WALK);
+    map.put("2", RUN);
+    map.put("3", NORMAL);  // (attack) use State_noact
+    map.put("4", JUMP);
+    map.put("5", DASH);
+    map.put("6", ROW);
+    map.put("7", DEFEND);
+    map.put("8", NORMAL);  // (broken_defend) no use
+    map.put("9", GRASP);
+    map.put("10", GRASP);
+    map.put("11", NORMAL);
+    map.put("12", FALL);
+    map.put("13", NORMAL);
+    map.put("14", LYING);
+    map.put("15", NORMAL);
+    map.put("16", NORMAL);
+    map.put("17", DRINK);
+    map.put("18", FIRE);  // only used in hero on fire actions
+    map.put("19", NORMAL);  // (firerun) use State_noact with dvz and visual effect
+    map.put("100", NORMAL);  // (louis landing) use Effect
+    map.put("301", NORMAL);  // (Deep_Strafe) use State_noact with dvz
+    map.put("400", NORMAL);  // (teleport) use Effect
+    map.put("401", NORMAL);  // (teleport) use Effect
+    map.put("500", TRY_TRANSFORM);
+    map.put("501", NORMAL);  // (transformback) use Effect
+    map.put("1000", INSKY);
+    map.put("1001", ONHAND);
+    map.put("1002", THROW);
+    map.put("1003", JUST_ONGROUND);
+    map.put("1004", ONGROUND);
+    map.put("2000", INSKY);
+    map.put("2001", ONHAND);
+    map.put("2004", ONGROUND);  // unknown
+    map.put("3000", NORMAL);
+    map.put("3001", HITTING);
+    map.put("3002", HIT);
+    map.put("3003", REBOUND);
+    map.put("3004", HIT);  // unknown real effect
+    map.put("3005", ENERGY);
+    map.put("3006", PIERCE);
+    map.put("1700", NORMAL);  // (healing) use Effect
+    map.put("9995", UNIMPLEMENTED);
+    map.put("9996", NORMAL);  // use opoint kind==ARMOUR
+    map.put("9998", NORMAL);
+    return map;
   }
 
   public static String parserState(int originalState) {
@@ -70,54 +128,4 @@ public enum State {
       return String.format("LFextra.Kind.INVISIBLE, new LFextra(%d)", invisibility);
   }
 
-  public static HashMap<String, State> buildParserMap() {
-    HashMap<String, State> map = new HashMap<>();
-    map.put("0", STAND);
-    map.put("1", WALK);
-    map.put("2", RUN);
-    map.put("3", NORM);  // (attack) use State_noact
-    map.put("4", JUMP);
-    map.put("5", DASH);
-    map.put("6", ROW);
-    map.put("7", DEFEND);
-    map.put("8", NORM);  // (broken_defend) no use
-    map.put("9", CATCH);
-    map.put("10", CAUGHT);
-    map.put("11", INJURED);
-    map.put("12", FALL);
-    map.put("13", ICE);
-    map.put("14", LYING);
-    map.put("15", NORM);
-    map.put("16", DOP);
-    map.put("17", DRINK);
-    map.put("18", FIRE);  // only used in hero on fire actions
-    map.put("19", NORM);  // (firerun) use State_noact with dvz and visual effect
-    map.put("100", NORM);  // (louis landing) use Effect
-    map.put("301", NORM);  // (Deep_Strafe) use State_noact with dvz
-    map.put("400", NORM);  // (teleport) use Effect
-    map.put("401", NORM);  // (teleport) use Effect
-    map.put("500", TRY_TRANSFORM);
-    map.put("501", NORM);  // (transformback) use Effect
-    map.put("1000", INSKY);
-    map.put("1001", ONHAND);
-    map.put("1002", THROW);
-    map.put("1003", JUST_ONGROUND);
-    map.put("1004", ONGROUND);
-    map.put("2000", INSKY);
-    map.put("2001", ONHAND);
-    map.put("2004", ONGROUND);  // unknown
-    map.put("3000", NORMAL);
-    map.put("3001", HITSUCC);
-    map.put("3002", HITFAIL);
-    map.put("3003", REBOUND);
-    map.put("3004", HITFAIL);  // unknown real effect
-    map.put("3005", ENERGY);
-    map.put("3006", PIERCE);
-    map.put("1700", NORM);  // (healing) use Effect
-    map.put("9995", UNIMPLEMENTED);
-    map.put("9996", NORM);  // use opoint kind==ARMOUR
-    map.put("9998", BROKENWEAPON);
-    return map;
-  }
-
-}
+  }*/

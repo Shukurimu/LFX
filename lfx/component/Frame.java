@@ -1,67 +1,96 @@
 package lfx.component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import javafx.scene.image.Image;
+import lfx.component.Bdy;
 import lfx.component.Cpoint;
 import lfx.component.Effect;
+import lfx.component.Itr;
 import lfx.component.Opoint;
 import lfx.component.State;
 import lfx.component.Wpoint;
 import lfx.util.Combo;
+import lfx.util.Const;
+import lfx.util.Tuple;
 
 public final class Frame {
-  /** Every field in this class is constant. */
-  // TODO: combo in AbstractBlast has enum act
-  public final int pic;
+  public static final Frame dummy = new Frame();
+  public final Image pic1;
+  public final Image pic2;
+  public final int centerx;
+  public final int centery;
   public final State state;
+  public final int curr;
   public final int wait;
   public final int next;
   public final int dvx;
   public final int dvy;
   public final int dvz;
-  public final int centerx;
-  public final int centery;
   public final int cost;
-  public final String sound;
   public final Map<Combo, Integer> combo;
-  public final Map<Effect.Kind, Effect> effect;
+  public final Map<Effect, Effect.Value> effect;
   public final List<Bdy> bdyList;
   public final List<Itr> itrList;
   public final List<Opoint> opointList;
   public final Cpoint cpoint;
   public final Wpoint wpoint;
+  public final String sound;
 
-  public Frame(int pic, State state, int wait, int next,
-               int dvx, int dvy, int dvz, int centerx, int centery, int cost, String sound,
-               Map<Combo, Integer> comboMap, Map<Effect.Kind, Effect> effect,
-               List<Bdy> bdy, List<Itr> itr, List<Opoint> opoint, Cpoint cpoint, Wpoint wpoint) {
-    this.pic = pic;
+  public Frame(Image pic1, Image pic2, int centerx, int centery,
+               State state, int curr, int wait, int next,
+               int dvx, int dvy, int dvz, int cost,
+               Map<Combo, Integer> combo, Map<Effect, Effect.Value> effect,
+               List<Bdy> bdyList, List<Itr> itrList, List<Opoint> opointList,
+               Cpoint cpoint, Wpoint wpoint, String sound) {
+    this.pic1 = pic1;
+    this.pic2 = pic2;
+    this.centerx = centerx;
+    this.centery = centery;
     this.state = state;
+    this.curr = curr;
     this.wait = wait;
     this.next = next;
     this.dvx = dvx;
     this.dvy = dvy;
     this.dvz = dvz;
-    this.centerx = centerx;
-    this.centery = centery;
     this.cost = cost;
     this.sound = sound;
-    this.comboMap = Map.copyOf(comboMap);
+    this.combo = Map.copyOf(combo);
     this.effect = Map.copyOf(effect);
-    this.bdy = List.copyOf(bdy);
-    this.itr = List.copyOf(itr);
-    this.opoint = List.copyOf(opoint);
+    this.bdyList = List.copyOf(bdyList);
+    this.itrList = List.copyOf(itrList);
+    this.opointList = List.copyOf(opointList);
     this.cpoint = cpoint;
     this.wpoint = wpoint;
   }
 
+  private Frame() {  // dummy
+    pic1 = pic2 = null;
+    centerx = centery = cost = 0;
+    state = State.UNIMPLEMENTED;
+    curr = wait = next = 999999;
+    dvx = dvy = dvz = Const.DV_550;
+    sound = null;
+    combo = Map.of();
+    effect = Map.of();
+    bdyList = List.of();
+    itrList = List.of();
+    opointList = List.of();
+    cpoint = null;
+    wpoint = null;
+  }
+
   public double calcVX(double vx, boolean faceRight) {
-    if (dvx == Act.FIX_POS)
+    if (dvx == Const.DV_550) {
       return 0.0;
-    if (dvx == 0)
+    }
+    if (dvx == 0) {
       return vx;
+    }
     // same direction results in larger magnitude
     double absDvx = faceRight ? dvx : -dvx;
     return absDvx < 0 ? (vx < 0.0 ? Math.min(absDvx, vx) : absDvx)
@@ -69,115 +98,70 @@ public final class Frame {
   }
 
   public double calcVY(double vy) {
-      return (dvy == Act.FIX_POS) ? 0.0 : (vy + dvy);
+    return dvy == Const.DV_550 ? 0.0 : (vy + dvy);
   }
 
-  /** Check if the input triggers combo.
-      if yes, then calls LFhero.tryCombo()
-      return true if finally LFhero does the combo */
-  public boolean inputCombo(final LFhero hero, final LFcontrol ctrl) {
-    // TODO: Frizen defusion
-    /* Rudolf transform has higher priority */
-    if ((ctrl.combo == LFact.hit_ja) && (hero.origin != hero)) {
-        hero.origin.initialization(hero.px, hero.py, hero.pz, LFhero.Act_transformback);
-        LFX.currMap.transform(hero, hero.origin);
-        return true;
-    }
-    int comboFrameNo;
-    if (ctrl.combo != LFact.NOP && (comboFrameNo = comboList[ctrl.combo.index]) != NOP)
-        return hero.tryCombo( ctrl.combo, hero.getFrame(comboFrameNo), comboFrameNo < 0);
-    if (ctrl.do_d && (comboFrameNo = comboList[LFact.hit_d.index]) != NOP)
-        return hero.tryCombo(LFact.hit_d, hero.getFrame(comboFrameNo), comboFrameNo < 0);
-    if (ctrl.do_j && (comboFrameNo = comboList[LFact.hit_j.index]) != NOP)
-        return hero.tryCombo(LFact.hit_j, hero.getFrame(comboFrameNo), comboFrameNo < 0);
-    if (ctrl.do_a && (comboFrameNo = comboList[LFact.hit_a.index]) != NOP)
-        return hero.tryCombo(LFact.hit_a, hero.getFrame(comboFrameNo), comboFrameNo < 0);
-    return false;
-  }
+  public static final class Collector {
+    List<Frame> data;
+    List<Tuple<Image, Image>> picList;
 
-
-  public static class Builder {
-    public int pic;
-    public State state;
-    public int wait;
-    public int next;
-    public int dvx;
-    public int dvy;
-    public int dvz;
-    public int centerx;
-    public int centery;
-    public int cost = 0;
-    public String sound = null;
-    public Map<Combo, Integer> comboMap = new EnumMap<>();
-    public Map<Effect.Kind, Effect> effect = new EnumMap<>();
-    public List<Bdy> bdy = new ArrayList<>();
-    public List<Itr> itr = new ArrayList<>();
-    public List<Opoint> opoint = new ArrayList<>();
-    public Cpoint cpoint = null;
-    public Wpoint wpoint = null;
-
-    public Builder(int pic, State state, int wait, int next,
-                   int dvx, int dvy, int dvz, int centerx, int centery) {
-      this.pic = pic;
-      this.state = state;
-      this.wait = wait;
-      this.next = next;
-      this.dvx = dvx;
-      this.dvy = dvy;
-      this.dvz = dvz;
-      this.centerx = centerx;
-      this.centery = centery;
+    public Collector(int size, List<Tuple<Image, Image>> picList) {
+      data = new ArrayList<>(Collections.nCopies(size, dummy));
+      this.picList = picList;
     }
 
-    public Builder set(Combo combo, int actNumber) {
-      comboMap.put(combo, actNumber);
-      return this;
+    int nonNullValue(Integer originValue, int defaultValue) {
+      return originValue == null ? originValue.intValue() : defaultValue;
     }
 
-    public Builder set(Effect.Kind kind, Effect e) {
-      effect.put(kind, e);
-      return this;
+    public void add(int curr, int wait, int next, State state,
+                    int picIndex, int centerx, int centery,
+                    Map<String, Integer> optField, Object... elements) {
+      int dvx = nonNullValue(optField.remove("dvx"), 0);
+      int dvy = nonNullValue(optField.remove("dvy"), 0);
+      int dvz = nonNullValue(optField.remove("dvz"), 0);
+      int cost = nonNullValue(optField.remove("mp"), 0);
+
+      Map<Combo, Integer> combo = new EnumMap<>(Combo.class);
+      optField.forEach((string, act) -> combo.put(Combo.valueOf(string), act));
+
+      List<Bdy> bdyList = new ArrayList<>();
+      List<Itr> itrList = new ArrayList<>();
+      List<Opoint> opointList = new ArrayList<>();
+      Wpoint wpoint = null;
+      Cpoint cpoint = null;
+      String sound = null;
+      for (Object e : elements) {
+        if (e instanceof String) {
+          sound = (String) e;
+        } else if (e instanceof Bdy) {
+          bdyList.add((Bdy) e);
+        } else if (e instanceof Itr) {
+          itrList.add((Itr) e);
+        } else if (e instanceof Wpoint) {
+          wpoint = (Wpoint) e;
+        } else if (e instanceof Opoint) {
+          opointList.add((Opoint) e);
+        } else if (e instanceof Cpoint) {
+          cpoint = (Cpoint) e;
+        } else {
+          System.out.println("NotImplemented: " + e.toString());
+        }
+      }
+
+      Tuple<Image, Image> pics = picList.get(picIndex);
+      data.set(curr, new Frame(pics.first, pics.second, centerx, centery,
+                               state, curr, wait, next,
+                               dvx, dvy, dvz, cost,
+                               combo, Map.of(),
+                               bdyList, itrList, opointList,
+                               cpoint, wpoint, sound)
+      );
+      return;
     }
 
-    public Builder add(Bdy b) {
-      bdy.add(b);
-      return this;
-    }
-
-    public Builder add(Itr i) {
-      itr.add(i);
-      return this;
-    }
-
-    public Builder add(Opoint o) {
-      opoint.add(o);
-      return this;
-    }
-
-    public Builder set(Cpoint c) {
-      cpoint = c;
-      return this;
-    }
-
-    public Builder set(Wpoint w) {
-      wpoint = w;
-      return this;
-    }
-
-    public Builder set(String s) {
-      sound = s;
-      return this;
-    }
-
-    public Builder mp(int c) {
-      cost = c;
-      return this;
-    }
-
-    public Frame build() {
-      return new Frame(pic, state, wait, next,
-                       dvx, dvy, dvz, centerx, centery, cost, sound,
-                       combo, effect, bdy, itr, opoint, cpoint, wpoint);
+    public List<Frame> getFrameList() {
+      return Collections.unmodifiableList(data);
     }
 
   }

@@ -1,9 +1,6 @@
 package lfx.component;
 
-import java.util.EnumSet;
-
-public enum Extension {
-  DRINK,
+public enum Effect {
   MOVE_BLOCKING,
   ATTACK_SPUNCH,
   LANDING_ACT,     // Value(Integer.MAX_VALUE, actNumber, 0.0, null);
@@ -23,7 +20,7 @@ public enum Extension {
     return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
   }
 
-  public class Value {
+  public static class Value {
     private int effectiveTime;
     public final int intValue;
     public final double doubleValue;
@@ -52,6 +49,11 @@ public enum Extension {
       return --effectiveTime < 0;
     }
 
+  }
+
+  public static Value stack(Effect key, Value value) {
+    System.out.println("Effect stack NotImplemented.");
+    return null;
   }
 
 }

@@ -1,7 +1,7 @@
 package lfx.util;
 
 public class Point {
-  /** This is the base class of all Xpoint.  Fields are immutable. */
+  /** Base class of all Xpoint. */
   public final double x;
   public final double y;
 
