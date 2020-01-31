@@ -25,7 +25,8 @@ public final class KeyboardController implements Controller {
       } catch (Exception ex) {
         System.err.println("Invalid KeyCode: " + stringArray[i]);
       }
-      KeyMonitor monitor = mapping.putIfAbsent(code, new KeyMonitor());
+      mapping.putIfAbsent(code, new KeyMonitor());
+      KeyMonitor monitor = mapping.get(code);
       keyList.add(Tuple.of(monitor, Const.KEY_SYMBOLS.get(i)));
       monitorArray[i] = monitor;
     }

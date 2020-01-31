@@ -30,17 +30,22 @@ public final class Const {
   );
   public static final int PLAYER_NUM = DEFAULT_KEY_SETTING.size();
 
+  public static final double CONFIG_BUTTON_WIDTH = 120;
   /** Adjustment of pz while being held for rendering order. */
   public static final double Z_OFFSET = 1e-3;
   public static final double DEFAULT_FPS = 30.0;
   public static final double FIELD_WIDTH = 794;
   public static final double FIELD_HEIGHT = 550 - 128;
+  public static final double WIDTH_DIV2 = FIELD_WIDTH / 2.0;
+  public static final double WIDTH_DIV24 = FIELD_WIDTH / 24.0;
   public static final double CANVAS_WIDTH = FIELD_WIDTH / PLAYER_NUM;
   public static final double CANVAS_HEIGHT = 60;
   public static final double TEXTLABEL_HEIGHT = 20;
   public static final double WINDOW_WIDTH = FIELD_WIDTH;
   public static final double WINDOW_HEIGHT = FIELD_HEIGHT + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
   public static final double PORTRAIT_SIZE = 180;
+  public static final double CAMERA_SPEED_FACTOR = 1.0 / 18.0;
+  public static final double CAMERA_SPEED_THRESHOLD = 0.05;
 
   public static final int SCOPE_VIEW_HERO   = 0x100;
   public static final int SCOPE_VIEW_WEAPON = 0x010;

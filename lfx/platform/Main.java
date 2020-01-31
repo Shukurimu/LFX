@@ -20,7 +20,8 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.transform.Scale;
 import lfx.platform.ConfigScene;
-import lfx.platform.Engine;
+import lfx.platform.KeyboardController;
+import lfx.util.Const;
 import lfx.util.Controller;
 
 public final class Main extends Application {
@@ -31,7 +32,7 @@ public final class Main extends Application {
     sceneChanger = (Scene scene) -> primaryStage.setScene(scene);
     VBox vbox = new VBox(8.0);
     vbox.setAlignment(Pos.CENTER);
-    Scene startScene = new Scene(vbox, Engine.WINDOW_WIDTH, Engine.WINDOW_HEIGHT);
+    Scene startScene = new Scene(vbox, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
 
     Text banner = new Text("Little Fighter X");
     banner.setEffect(new InnerShadow(6.0, 3.0, 3.0, Color.DARKORCHID));
@@ -44,8 +45,8 @@ public final class Main extends Application {
     Text messageText = new Text("");
 
     Button playButton = new Button("Game Start");
-
     playButton.setFont(Font.font(null, FontWeight.BLACK, 32));
+
     Button configButton = new Button("Control Settings");
     configButton.setFont(Font.font(null, FontWeight.EXTRA_BOLD, 24));
 
@@ -66,7 +67,7 @@ public final class Main extends Application {
       primaryStage.setScene(scene.makeScene());
     });
 
-    vbox.getChildren().addAll(banner, author, play, messageText, sett);
+    vbox.getChildren().addAll(banner, author, playButton, messageText, configButton);
     // primaryStage.setResizable(false);
     primaryStage.setScene(startScene);
     primaryStage.setTitle("Little Fighter X");
@@ -93,7 +94,7 @@ public final class Main extends Application {
     public Void call() {
       System.out.println("isFxApplicationThread: " + Platform.isFxApplicationThread());
       for (String[] stringArray : ConfigScene.loadControlStringArrayList()) {
-        controllerList.add(new KeyboardControl(stringArray));
+        controllerList.add(new KeyboardController(stringArray));
       }
       return null;
     }
@@ -101,7 +102,8 @@ public final class Main extends Application {
     @Override
     protected void succeeded() {
       super.succeeded();
-      sceneChanger.accept(new PickingScene(sceneChanger, controllerList));
+      PickingScene scene = new PickingScene(sceneChanger, controllerList);
+      sceneChanger.accept(scene.makeScene());
       return;
     }
 

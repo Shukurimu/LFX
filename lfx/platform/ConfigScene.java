@@ -24,8 +24,6 @@ import javafx.scene.text.Text;
 import lfx.util.Const;
 
 class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
-  public static final int PLAYER_NUM = 4;
-  public static final double BUTTON_WIDTH = 120;
   public static final String IDLE_STRING = "Click on a button to set key.";
   public static final String WAITING_STRING = "Press ESC to cancel.";
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
@@ -68,7 +66,7 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
       int rowIndex = 0;
       for (String keyString: controlStringArray) {
         ToggleButton button = new ToggleButton(keyString);
-        button.setPrefSize(BUTTON_WIDTH, 30);
+        button.setPrefSize(Const.CONFIG_BUTTON_WIDTH, 30);
         button.setOnAction(clickAction);
         listeningList.add(button);
         this.add(button, colIndex, ++rowIndex);
@@ -90,7 +88,7 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
   private Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
     Button button = new Button(text);
     button.setOnAction(handler);
-    button.setPrefWidth(BUTTON_WIDTH);
+    button.setPrefWidth(Const.CONFIG_BUTTON_WIDTH);
     button.setFont(Font.font(null, FontWeight.BLACK, 16));
     return button;
   }
@@ -126,8 +124,9 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
     try (FileReader fileReader = new FileReader(Const.CONFIG_PATH, CHARSET);
          BufferedReader reader = new BufferedReader(fileReader)) {
       String line;
-      while ((line = reader.readLine()) != null)
+      while ((line = reader.readLine()) != null) {
         fileLines.add(line);
+      }
     } catch (Exception ex) {
       System.err.println("Exception happened while loading settings.");
     }

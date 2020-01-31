@@ -9,15 +9,15 @@ import javafx.scene.shape.Rectangle;
 
 public class Layer {
   public final Node pic;
-  public final int x;
-  public final int y;
-  public final int width;
+  public final double x;
+  public final double y;
+  public final double width;
 
-  public Layer(String path, int x, int y, int width) {
+  public Layer(String path, double x, double y, double width) {
     this.x = x;
     this.y = y;
     this.width = width;
-    if (path == "OriginalBack") {
+    if (path == "NativeBase") {
       pic = new Rectangle(
           width, 400, new LinearGradient(0f, 1f, 1f, 0f, true, CycleMethod.NO_CYCLE, new Stop[] {
               new Stop(0.00, Color.web("#f8bd55")),
@@ -30,7 +30,7 @@ public class Layer {
               new Stop(1.00, Color.web("#f2660f"))
           })
       );
-    } else {  // OriginalFront
+    } else {  // NativePath
       pic = new Rectangle(width, 200 + 12, new Color(0.0, 0.0, 0.0, 0.3));
       pic.setLayoutY(200 - 7);
     }

@@ -3,6 +3,7 @@ package lfx.object;
 import javafx.scene.image.Image;
 import lfx.object.Observable;
 import lfx.util.Controller;
+import lfx.util.Point;
 import lfx.util.Viewer;
 
 public interface Hero extends Observable {
@@ -16,12 +17,15 @@ public interface Hero extends Observable {
   double CONTROL_VZ = 2.5;  // press U or D; test-value
   double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test-value
 
+  @Override
+  Hero makeClone(int teamId, boolean faceRight);
   /** For balls with chasing ability. */
   boolean isAlive();
   Image getPortrait();
   String getName();
   void updateViewer(Viewer viewer);
   void setController(Controller controller);
+  Point getViewpoint();
 
   String Key_walking_speed  = "walking_speed";
   String Key_walking_speedz = "walking_speedz";

@@ -6,23 +6,19 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.List;
-import lfx.map.Environment;
+import javafx.scene.layout.Pane;
+import javafx.scene.Node;
+import lfx.map.Field;
+import lfx.object.Hero;
 import lfx.object.Observable;
 import lfx.util.Const;
+import lfx.util.Point;
 import lfx.util.Util;
 
-public class BaseMap implements Environment {
+public class BaseMap implements Field {
   public final double boundWidth;
   public final double boundTop;
   public final double boundBottom;
-  protected boolean unlimitedMode = false;
-  protected double friction = 1.0;
-  protected double gravity = 1.7;
-  protected int timestamp = 0;
-  protected List<Double> zBound;
-  protected List<Double> heroXBound;
-  protected List<Double> itemXBound;
-  private int independentTeamId = -Const.TEAM_NUM;  // reserve for manual selection
   private final List<Observable>    heroList = new ArrayList<>(64);
   private final List<Observable>  weaponList = new ArrayList<>(128);
   private final List<Observable>  energyList = new ArrayList<>(512);
@@ -32,14 +28,40 @@ public class BaseMap implements Environment {
   private final List<Observable>    heroView = Collections.unmodifiableList(heroList);
   private final List<Observable>  weaponView = Collections.unmodifiableList(weaponList);
   private final List<Observable>  energyView = Collections.unmodifiableList(energyList);
+  private int independentTeamId = -Const.TEAM_NUM;  // reserve for manual selection
+  protected boolean unlimitedMode = false;
+  protected double friction = 1.0;
+  protected double gravity = 1.7;
+  protected int timestamp = 0;
+  protected final List<Double> zBound;
+  protected final List<Double> heroXBound;
+  protected final List<Double> itemXBound;
+  protected final List<Node> fxNodeList;
+  protected final Pane screenPane = new Pane();
 
-  protected BaseMap(double boundWidth, double boundTop, double boundBottom) {
+  public BaseMap(double boundWidth, double boundTop, double boundBottom) {
     this.boundWidth = boundWidth;
     this.boundTop = boundTop;
     this.boundBottom = boundBottom;
     zBound = List.of(boundBottom, boundTop);
     heroXBound = List.of(boundWidth, 0.0);
     itemXBound = List.of(boundWidth + ITEM_ADDITIONAL_WIDTH, -ITEM_ADDITIONAL_WIDTH);
+
+    Pane fxNodeLayer = new Pane();
+    fxNodeList = fxNodeLayer.getChildren();
+    screenPane.setMaxSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
+    screenPane.setMinSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
+    screenPane.getChildren().add(fxNodeLayer);
+  }
+
+  @Override
+  public Pane getScreenPane() {
+    return screenPane;
+  }
+
+  @Override
+  public List<Node> getFxNodeList() {
+    return fxNodeList;
   }
 
   @Override
@@ -112,26 +134,31 @@ public class BaseMap implements Environment {
     return;
   }
 
-  protected boolean switchUnlimitedMode() {
+  @Override
+  public boolean switchUnlimitedMode() {
     return unlimitedMode ^= true;
   }
 
-  protected void reviveAll() {
+  @Override
+  public void reviveAll() {
     System.out.println("reviveAll()");
     return;
   }
 
-  protected void dropNeutralWeapons() {
+  @Override
+  public void dropNeutralWeapons() {
     System.out.println("dropNeutralWeapons()");
     return;
   }
 
-  protected void destroyWeapons() {
+  @Override
+  public void destroyWeapons() {
     System.out.println("destroyWeapons()");
     return;
   }
 
-  protected void disperseEnergies() {
+  @Override
+  public void disperseEnergies() {
     System.out.println("disperseEnergies()");
     return;
   }
@@ -146,7 +173,8 @@ public class BaseMap implements Environment {
     return;
   }
 
-  protected void stepTimeunit() {
+  @Override
+  public void stepOneFrame() {
     ++timestamp;
     if (Util.randomBounds(0.0, 1.0) >= DROP_PROBABILITY) {
       System.out.println("Drop a random weapon.");
@@ -166,6 +194,22 @@ public class BaseMap implements Environment {
     updateObservableList(energyList, energyQueue);
     fxNodeList.removeIf(o -> !o.isVisible());
     return;
+  }
+
+  @Override
+  public double calculateViewpoint(List<Hero> tracingList, double origin) {
+    // Camera movement policy is modified from F.LF.
+    double position = 0.0;
+    int weight = 0;
+    for (Hero hero : tracingList) {
+      Point point = hero.getViewpoint();
+      position += point.x;
+      weight += point.y;
+    }
+    position = weight * Const.WIDTH_DIV24 + position / tracingList.size() - Const.WIDTH_DIV2;
+    position = Util.clamp(position, boundWidth - Const.FIELD_WIDTH, 0.0);
+    double speed = (position - origin) * Const.CAMERA_SPEED_FACTOR;
+    return Math.abs(speed) < Const.CAMERA_SPEED_THRESHOLD ? position : (origin + speed);
   }
 
 }

@@ -1,4 +1,4 @@
-package lfx.platform;
+package lfx.map;
 
 import java.util.ArrayList;
 import java.util.function.BiFunction;
@@ -19,7 +19,7 @@ import lfx.util.Const;
 import lfx.util.Tuple;
 import lfx.util.Viewer;
 
-class StatusBoard extends Canvas {
+public class StatusBoard extends Canvas {
   private static final double PADDING = 5.0;
   private static final double ICON_SIZE = Const.CANVAS_HEIGHT - PADDING * 2.0;
   private static final double BAR_BEGIN = ICON_SIZE + PADDING * 2.0;
@@ -38,6 +38,7 @@ class StatusBoard extends Canvas {
   private static final LinearGradient MP_BAR_BASE;
   private static final LinearGradient MP_BAR_CURR;
   private static final LinearGradient BAR_3D_LOOK;
+  private final Viewer viewer = new Viewer();
   private final Hero hero;
   private final GraphicsContext gc;
 
@@ -98,7 +99,7 @@ class StatusBoard extends Canvas {
     gc.setTextAlign(TextAlignment.RIGHT);
   }
 
-  public void draw(Viewer viewer) {
+  public void draw() {
     hero.updateViewer(viewer);
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);

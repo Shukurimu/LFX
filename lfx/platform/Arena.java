@@ -1,36 +1,34 @@
-package lfx.map;
+package lfx.platform;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.function.Consumer;
 import java.util.List;
-import java.util.Map;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.util.Duration;
 import lfx.map.Environment;
+import lfx.map.Field;
 import lfx.map.Layer;
+import lfx.map.StatusBoard;
+import lfx.object.Hero;
 import lfx.platform.KeyboardController;
-import lfx.platform.StatusBoard;
 import lfx.util.Const;
-import lfx.util.Util;
 
-public final class Field extends GridPane {
-  private final Environment env;
+public final class Arena extends GridPane {
+  private final Field field;
   private final List<Node> fxNodeList;
+  private final List<Hero> tracingList = new ArrayList<>(4);
   private final List<StatusBoard> boardList = new ArrayList<>(4);
   private final Label middleText1 = new Label();
   private final Label middleText2 = new Label();
@@ -39,13 +37,15 @@ public final class Field extends GridPane {
   private final ScrollPane scrollPane = new ScrollPane();
   private final Consumer<String> pickingSceneBridge;
   private final Timeline render;
-  private double viewport = 0.0;
+  private double viewpoint = 0.0;
 
-  public Field(Environment env, Consumer<String> pickingSceneBridge) {
-    this.env = env;
+  public Arena(Field field, Consumer<String> pickingSceneBridge) {
+    this.field = field;
     this.pickingSceneBridge = pickingSceneBridge;
-    viewport = boundWidth / 2.0;
-    render = new Timeline(new KeyFrame(new Duration(1000.0 / Const.DEFAULT_FPS), this::step));
+    fxNodeList = field.getFxNodeList();
+    render = new Timeline(new KeyFrame(new Duration(1000.0 / Const.DEFAULT_FPS), this::keyFrameHandler));
+    double xwidth = field.getHeroXBound().get(0);
+    viewpoint = xwidth / 2.0;
 
     middleText1.setTextFill(Color.AQUA);
     middleText1.setMinHeight(Const.TEXTLABEL_HEIGHT);
@@ -57,25 +57,16 @@ public final class Field extends GridPane {
     GridPane.setHalignment(middleText2, HPos.RIGHT);
     this.add(middleText2, 2, 1, 2, 1);
 
-    List<Layer> layerElements = new ArrayList<>(10);
-    layerElements.add(new Element("OriginalBack", 0, 0, (int)xwidth));
-    layerElements.add(new Element("OriginalFront", 0, 0, (int)xwidth));
+    // Currently support native background only.
+    field.getScreenPane().getChildren().addAll(
+        (new Layer("NativeBase", 0, 0, xwidth)).pic,
+        (new Layer("NativePath", 0, 0, xwidth)).pic
+    );
 
-    Pane fxNodeLayer = new Pane();
-    fxNodeList = fxNodeLayer.getChildren();
-    Pane wrapper = new Pane();
-    wrapper.setMaxSize(WIDTH, HEIGHT);
-    wrapper.setMinSize(WIDTH, HEIGHT);
-    ObservableList<Node> wrapperChildren = wrapper.getChildren();
-    layerElements.forEach(e -> wrapperChildren.add(e.pic));
-    wrapperChildren.add(fxNodeLayer);
-
-    scrollPane.setContent​(wrapper);
-    scrollPane.setMaxSize(WIDTH, HEIGHT);
-    scrollPane.setMinSize(WIDTH, HEIGHT);
+    scrollPane.setContent(field.getScreenPane());
     scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-    scrollPane.setHmax(boundWidth - WIDTH);
+    scrollPane.setHmax(xwidth - Const.FIELD_WIDTH);
     scrollPane.setVmax(0.0);
     this.add(scrollPane, 0, 2, 4, 1);
 
@@ -91,13 +82,14 @@ public final class Field extends GridPane {
   }
 
   public void setPlayers(List<Hero> heroList) {
-    // hero.initialize(boundWidth * 0.3 + Global.randomBounds(0.0, boundWidth), 0, getRandomZ(), act);
     for (Hero hero : heroList) {
       StatusBoard board = new StatusBoard(hero, hero.getPortrait());
-      this.addRow(0, board.getFxNode());
+      this.addRow(0, board);
       if (hero != null) {
+        // TODO: initialization
+        tracingList.add(hero);
         boardList.add(board);
-        spawnHeros(List.of(hero));
+        field.spawnHero(List.of(hero));
       }
     }
     return;
@@ -112,31 +104,14 @@ public final class Field extends GridPane {
     return scene;
   }
 
-  @Override
-  protected void updateObservableList(List<Graphical> targetList, List<Graphical> targetQueue) {
-    return;
-  }
+  private void keyFrameHandler(ActionEvent event) {
+    field.stepOneFrame();
 
-  private void step​(ActionEvent event) {
-    step();
+    boardList.forEach(board -> board.draw());
+    viewpoint = field.calculateViewpoint(tracingList, viewpoint);
+    scrollPane.setHvalue(viewpoint);
 
-    // Camera movement policy is modified from F.LF.
-    double position = 0.0;
-    int weight = 0;
-    for (StatusBoard board : boardList) {
-      hero.updateViewport(board);
-      board.draw();
-      position += board.px;
-      weight += board.faceRight ? 1 : -1;
-    }
-    position = weight * WIDTH_DIV24 + position / boardList.size() - WIDTH_DIV2;
-    position = Util.clamp(position, boundWidth - WIDTH, 0.0);
-    double speed = (position - viewport) * CAMERA_SPEED_FACTOR;
-    viewport = Math.abs(speed) < CAMERA_SPEED_THRESHOLD ? position : (viewport + speed);
-    scrollPane.setHvalue(viewport);
-
-    middleText1.setText("MapTime: " + mapTime);
-    middleText2.setText(unlimitedMode ? "[F6] Unlimited Mode" : "");
+    middleText1.setText("MapTime: " + field.getTimestamp());
     bottomText1.setText("FxNode: " + fxNodeList.size());
     bottomText2.setText(String.format("ThreadName: %s   FxThread: %s",
                                       Thread.currentThread().getName(),
@@ -152,18 +127,21 @@ public final class Field extends GridPane {
     }
     switch (code) {
       case F1:
-        if (render.getCurrentRate() == 0.0)
+        if (render.getCurrentRate() == 0.0) {
           render.play();
-        else
+        } else {
           render.stop();
+        }
         break;
       case F2:
-        if (render.getCurrentRate() == 0.0)
-          this.handle(null);
-        else
+        if (render.getCurrentRate() == 0.0) {
+          keyFrameHandler(null);
+        } else {
           render.stop();
+        }
         break;
       case F3:
+        System.out.println("Pressed no functionality key F3.");
         break;
       case F4:
         render.stop();
@@ -175,19 +153,19 @@ public final class Field extends GridPane {
         }
         break;
       case F6:
-        switchUnlimitedMode();
+        middleText2.setText(field.switchUnlimitedMode() ? "[F6] Unlimited Mode" : "");
         break;
       case F7:
-        reviveAll();
+        field.reviveAll();
         break;
       case F8:
-        dropNeutralWeapons();
+        field.dropNeutralWeapons();
         break;
       case F9:
-        destroyWeapons();
+        field.destroyWeapons();
         break;
       case F10:
-        disperseBlasts();
+        field.disperseEnergies();
         break;
       case ESCAPE:
         render.stop();

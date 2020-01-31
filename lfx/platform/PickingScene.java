@@ -1,7 +1,10 @@
 package lfx.platform;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.function.Consumer;
+import java.util.List;
+import java.util.Map;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -25,17 +28,20 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import lfx.map.BaseMap;
 import lfx.object.AbstractObject;
-import lfx.object.Playable;
-import lfx.platform.Engine;
+import lfx.object.Hero;
 import lfx.platform.KeyboardController;
+import lfx.util.Const;
 import lfx.util.Controller;
-import lfx.util.Global;
+import lfx.util.Input;
+import lfx.util.Tuple;
+import lfx.util.Util;
 
 public class PickingScene extends GridPane {
   public static final double ICON_SIZE = 180.0;
   public static final Font CARD_FONT = Font.font(24.0);
-  public static final List<Color> COLOR_POOL = List.of(Color.BLACK, Color.BLUE);
+  public static final List<Color> ANIMATION_COLOR_POOL = List.of(Color.BLACK, Color.BLUE);
   public static final Image IDLING_IMAGE;
   public static final Tuple<String, Image> RANDOM_CHOICE;
   private static final List<Tuple<String, Image>> heroList = new ArrayList<>(32);
@@ -45,34 +51,34 @@ public class PickingScene extends GridPane {
   private int animationTimestamp = 0;
 
   static {
-    Canvas canvas = new Canvas(Engine.PORTRAIT_SIZE, Engine.PORTRAIT_SIZE);
+    Canvas canvas = new Canvas(Const.PORTRAIT_SIZE, Const.PORTRAIT_SIZE);
     GraphicsContext gc = canvas.getGraphicsContext2D();
     IDLING_IMAGE = canvas.snapshot(null, null);
 
     gc.setFill(Color.BLACK);
-    gc.fillRect(0.0, 0.0, Engine.PORTRAIT_SIZE, Engine.PORTRAIT_SIZE);
+    gc.fillRect(0.0, 0.0, Const.PORTRAIT_SIZE, Const.PORTRAIT_SIZE);
     gc.setTextBaseline(VPos.CENTER);
     gc.setTextAlign(TextAlignment.CENTER);
     gc.setFill(Color.WHITE);
-    gc.setFont(Font.font(null, FontWeight.BOLD, Engine.PORTRAIT_SIZE - 2.0 * 15.0));
-    gc.fillText("?", Engine.PORTRAIT_SIZE / 2.0, Engine.PORTRAIT_SIZE / 2.0);
+    gc.setFont(Font.font(null, FontWeight.BOLD, Const.PORTRAIT_SIZE - 2.0 * 15.0));
+    gc.fillText("?", Const.PORTRAIT_SIZE / 2.0, Const.PORTRAIT_SIZE / 2.0);
     RANDOM_CHOICE = new Tuple<>("RANDOM", canvas.snapshot(null, null));
   }
 
   private enum Phase {
     /** Condiction: all but not zero DONE. */
-    INIT(0b11, false),
-    HERO(0b01, true),
-    TEAM(0b01, true),
-    DONE(0b10, false);
+    INIT(0b11, null),
+    HERO(0b01, Integer.valueOf(0)),
+    TEAM(0b01, Integer.valueOf(0)),
+    DONE(0b10, null);
 
     private static final Phase[] valArray = values();
     public final int readyBits;
-    public final boolean choosable;
+    public final Integer defaultValue;
 
-    private Phase(int readyBits, boolean choosable) {
+    private Phase(int readyBits, Integer defaultValue) {
       this.readyBits = readyBits;
-      this.choosable = choosable;
+      this.defaultValue = defaultValue;
     }
 
     public Phase prev() {
@@ -83,6 +89,16 @@ public class PickingScene extends GridPane {
       return valArray[Math.min(this.ordinal() + 1, valArray.length + 1)];
     }
 
+    public static Map<Phase, Integer> buildSetting() {
+      Map<Phase, Integer> setting = new EnumMap<>(Phase.class);
+      for (Phase phase : Phase.values()) {
+        if (phase.defaultValue != null) {
+          setting.put(phase, phase.defaultValue);
+        }
+      }
+      return setting;
+    }
+
   }
 
   private int getItemCount(Phase phase) {
@@ -90,7 +106,7 @@ public class PickingScene extends GridPane {
       case HERO:
         return heroList.size();
       case TEAM:
-        return Global.TEAM_NUM;
+        return Const.TEAM_NUM;
       default:
         return 0;
     }
@@ -101,7 +117,7 @@ public class PickingScene extends GridPane {
     heroList.add(RANDOM_CHOICE);
     // TODO: hidden character
     for (Map.Entry<String, Hero> entry : AbstractObject.getHeroEntry()) {
-      heroList.add(new Tuple<>(entry.first, entry.second.getPortrait()));
+      heroList.add(new Tuple<>(entry.getKey(), entry.getValue().getPortrait()));
     }
     return;
   }
@@ -110,7 +126,7 @@ public class PickingScene extends GridPane {
     private Phase phase = Phase.INIT;
     private final Controller controller;
     private final Input input = new Input();
-    private final Map<Phase, Integer> setting = new EnumMap<>(Phase.class);
+    private final Map<Phase, Integer> setting = Phase.buildSetting();
     private final Label name = new Label();
     private final Label hero = new Label();
     private final Label team = new Label();
@@ -135,22 +151,22 @@ public class PickingScene extends GridPane {
         phase = phase.next();
       } else if (input.do_j) {
         phase = phase.prev();
-      } else if (phase.choosable && input.do_L) {
+      } else if (phase.defaultValue != null && input.do_L) {
         int length = getItemCount(phase);
-        int origin = setting.getOrDefault(phase, 0);
+        int origin = setting.get(phase);
         setting.put(phase, (origin - 1 + length) % length);
-      } else if (phase.choosable && input.do_R) {
+      } else if (phase.defaultValue != null && input.do_R) {
         int length = getItemCount(phase);
-        int origin = setting.getOrDefault(phase, 0);
+        int origin = setting.get(phase);
         setting.put(phase, (origin + 1 + length) % length);
-      } else if (phase.choosable && input.do_U) {  // default
+      } else if (phase.defaultValue != null && input.do_U) {  // default
         setting.put(phase, 0);
-      } else if (phase.choosable && input.do_D) {  // random
-        setting.put(phase, Global.randomBounds(1, getItemCount(phase)));
+      } else if (phase.defaultValue != null && input.do_D) {  // random
+        setting.put(phase, Util.randomBounds(1, getItemCount(phase)));
       } else {
         return phase.readyBits;
       }
-      Tuple<String, Image> focus = heroList.get(setting.getOrDefault(Phase.HERO, 0));
+      Tuple<String, Image> focus = heroList.get(setting.get(Phase.HERO));
       switch (phase) {
         case INIT:
           icon.setImage(IDLING_IMAGE);
@@ -163,7 +179,7 @@ public class PickingScene extends GridPane {
           team.setText("");
           break;
         case TEAM:
-          team.setText(Engine.TEAM_NAMES.get(setting.get(Phase.TEAM)));
+          team.setText(Const.TEAM_NAMES.get(setting.get(Phase.TEAM)));
           break;
       }
       return phase.readyBits;
@@ -174,14 +190,14 @@ public class PickingScene extends GridPane {
         case INIT:
           break;
         case HERO:
-          hero.setTextFill(COLOR_POOL.get(animationTimestamp & 1));
+          hero.setTextFill(ANIMATION_COLOR_POOL.get(animationTimestamp & 1));
           break;
         case TEAM:
-          hero.setTextFill(COLOR_POOL.get(0));
-          team.setTextFill(COLOR_POOL.get(animationTimestamp & 1));
+          hero.setTextFill(ANIMATION_COLOR_POOL.get(0));
+          team.setTextFill(ANIMATION_COLOR_POOL.get(animationTimestamp & 1));
           break;
         case DONE:
-          team.setTextFill(COLOR_POOL.get(0));
+          team.setTextFill(ANIMATION_COLOR_POOL.get(0));
           break;
       }
       return;
@@ -193,14 +209,14 @@ public class PickingScene extends GridPane {
       }
       int index = setting.get(Phase.HERO);
       if (index == 0) {
-        index = Global.randomBounds(1, heroList.size());
+        index = Util.randomBounds(1, heroList.size());
       }
       String heroName = heroList.get(index).first;
       int teamId = setting.get(Phase.TEAM);
       teamId = teamId == 0 ? defaultTeamId : teamId;
       for (Map.Entry<String, Hero> entry : AbstractObject.getHeroEntry()) {
-        if (heroName == entry.first) {
-          Hero clone = entry.second.makeClone(teamId, Global.randomBool());
+        if (heroName == entry.getKey()) {
+          Hero clone = entry.getValue().makeClone(teamId, Util.randomBool());
           return clone;
         }
       }
@@ -212,8 +228,10 @@ public class PickingScene extends GridPane {
 
   public PickingScene(Consumer<Scene> sceneChanger,
                       List<Controller> controllerList) {
-    Consumer<String> pickingSceneBridge =
-        (String info) -> sceneChanger.accept(new PickingScene(sceneChanger, controllerList));
+    Consumer<String> pickingSceneBridge = (String info) -> {
+      PickingScene scene = new PickingScene(sceneChanger, controllerList);
+      sceneChanger.accept(scene.makeScene());
+    };
 
     render = new Timeline(new KeyFrame(new Duration(1000.0 / 8.0), e -> {
       ++animationTimestamp;
@@ -227,16 +245,18 @@ public class PickingScene extends GridPane {
         return;
       }
       KeyboardController.press(keyCode);
-      int readyBits = Phase.INIT;
-      cardList.forEach(card -> readyBits &= card.getReadyBits(keyCode));
-      if (readyBits == Phase.DONE) {
+      int readyBits = Phase.INIT.readyBits;
+      for (Card card : cardList) {
+        readyBits &= card.getReadyBits();
+      }
+      if (readyBits == Phase.DONE.readyBits) {
         render.stop();
-        List<Hero> result = new ArrayList<>(Engine.PLAYER_NUM);
+        List<Hero> playerList = new ArrayList<>(Const.PLAYER_NUM);
         for (int i = 0; i < cardList.size(); ++i) {
-          result.add(cardList.get(i).makeHero(-i-1));
+          playerList.add(cardList.get(i).makeHero(-i-1));
         }
-        Arena arena = new Arena(900, 200, 400, result, pickingSceneBridge);
-        arena.setPlayers(heroList);
+        Arena arena = new Arena(new BaseMap(990, 200, 400), pickingSceneBridge);
+        arena.setPlayers(playerList);
         sceneChanger.accept(arena.makeScene());
       }
     };
@@ -265,7 +285,7 @@ public class PickingScene extends GridPane {
   }
 
   public Scene makeScene() {
-    Scene scene = Scene(this, this.computePrefWidth(0), this.computePrefHeight(0));
+    Scene scene = new Scene(this, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
     scene.setOnKeyPressed(keyPressHandler);
     scene.setOnKeyReleased(event -> KeyboardController.release(event.getCode()));
     render.setCycleCount(Animation.INDEFINITE);
