@@ -1,32 +1,38 @@
 package lfx.object;
 
 import java.util.List;
+import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.object.AbstractObject;
-import lfx.object.BaseEnergy;
 import lfx.object.Hero;
 import lfx.object.Observable;
-import lfx.util.Global;
+import lfx.util.Combo;
+import lfx.util.Const;
+import lfx.util.Point;
+import lfx.util.Util;
 
 class BaseEnergy extends AbstractObject implements Energy {
-  public final String soundHit;
+  private final String soundHit;
   private int lifetime = DESTROY_TIME;
   private Hero focus = null;
   private Observable creator = null;
 
   protected BaseEnergy(String identifier, List<Frame> frameList, String soundHit) {
-    super(identifier, frameArray);
+    super(identifier, frameList);
     this.soundHit = soundHit;
   }
 
   protected BaseEnergy(BaseEnergy base) {
-    super(this);
+    super(base);
     soundHit = base.soundHit;
   }
 
   @Override
-  public Energy makeClone() {
-    return new BaseEnergy(energyMapping.get(identifier));
+  public BaseEnergy makeClone(int teamId, boolean faceRight) {
+    BaseEnergy clone = new BaseEnergy((BaseEnergy) energyMapping.get(identifier));
+    clone.teamId = teamId;
+    clone.faceRight = faceRight;
+    return clone;
   }
 
   @Override
@@ -53,8 +59,8 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected int getScopeView(int targetTeamId) {
-    return Global.getSideView(Global.SCOPE_VIEW_ENERGY, targetTeamId == this.teamId);
+  public int getScopeView(int targetTeamId) {
+    return Const.getSideView(Const.SCOPE_VIEW_ENERGY, targetTeamId == this.teamId);
   }
 
   @Override
@@ -71,15 +77,15 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected int updateAction(int nextAct) {
-    switch (frame.combo.get(Combo.hit_Fa, 0)) {
+    switch (frame.combo.getOrDefault(Combo.hit_Ra, 0)) {
       case FA_DENNIS_CHASE:
-        nextAct = moveDennisChase();
+        nextAct = moveDennisChase(nextAct);
         break;
       case FA_JOHN_DISK_CHASE:
-        nextAct = moveJohnChase();
+        nextAct = moveJohnChase(nextAct);
         break;
       case FA_JOHN_DISK_FAST:
-        nextAct = moveJohn2();
+        nextAct = moveJohn2(nextAct);
         break;
     }
     return nextAct;
@@ -92,9 +98,9 @@ class BaseEnergy extends AbstractObject implements Energy {
     return null;
   }
 
-  private int moveDennisChase() {
+  private int moveDennisChase(int nextAct) {
     if (hp > 0.0) {
-      return moveJohnChase();
+      return moveJohnChase(nextAct);
     }
 
     if (frame.curr != 5 && frame.curr != 6) {
@@ -106,8 +112,9 @@ class BaseEnergy extends AbstractObject implements Energy {
     return nextAct;
   }
 
-  private int moveJohnChase() {
-    if (((focus.px - px) >= 0.0) == (vx >= 0.0)) {
+  private int moveJohnChase(int nextAct) {
+    Point point = focus.getChasingPoint();
+    if (((point.x - px) >= 0.0) == (vx >= 0.0)) {
       // straight
       if (frame.curr != 3 && frame.curr != 4) {
         nextAct = 3;
@@ -118,32 +125,32 @@ class BaseEnergy extends AbstractObject implements Energy {
         nextAct = 1;
       }
     }
-    py += Math.copySign(CHASE_VY, focus.py - focus.frame.centerY / 2.0 - py);
-    vx = focus.px >= px ? Math.min( CHASE_VXMAX, vx + CHASE_AX)
-                        : Math.max(-CHASE_VXMAX, vx - CHASE_AX);
-    vz = focus.pz >= pz ? Math.min( CHASE_VZMAX, vz + CHASE_AZ)
-                        : Math.max(-CHASE_VZMAX, vz - CHASE_AZ);
+    py += Math.copySign(CHASE_VY, point.y - py);
+    vx = point.x >= px ? Math.min( CHASE_VXMAX, vx + CHASE_AX)
+                       : Math.max(-CHASE_VXMAX, vx - CHASE_AX);
+    vz = point.x >= pz ? Math.min( CHASE_VZMAX, vz + CHASE_AZ)
+                       : Math.max(-CHASE_VZMAX, vz - CHASE_AZ);
     faceRight = vx >= 0.0;
 
     return nextAct;
   }
 
-  private int moveJohn2() {
+  private int moveJohn2(int nextAct) {
     vx = vx >= 0.0 ? CHASE_VXOUT : -CHASE_VXOUT;
     vz = 0.0;
-    return;
+    return nextAct;
   }
 
   @Override
   protected int updateKinetic(int nextAct) {
-    if (hitLag == 0) {
+    if (actLag == 0) {
       vx = frame.calcVX(vx, faceRight);
-      px = buff.containsKey(Effect.MOVEBLOCK) ? px : (px + vx);
+      px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
       vy = frame.calcVY(vy);
-      if (buff.containsKey(Effect.MOVEBLOCK) || frame.dvz == Frame.DV_550) {
+      if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
         vz = 0.0;
       } else {
-        pz += vz + frame.combo.get(Combo.hit_j, 0);
+        pz += vz + frame.combo.getOrDefault(Combo.hit_j, 0);
       }
     }
     return nextAct;
@@ -151,7 +158,7 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected int updateHealth(int nextAct) {
-    hp -= frame.combo.get(Combo.hit_a, 0);
+    hp -= frame.combo.getOrDefault(Combo.hit_a, 0);
     return nextAct;
   }
 
@@ -163,16 +170,17 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected boolean adjustBoundary() {
-    double[] xzBound = env.getNonHeroXzBound();
-    if (xzBound[0] >= px && px >= xzBound[1]) {
+    List<Double> xBound = env.getItemXBound();
+    if (xBound.get(0) >= px && px >= xBound.get(1)) {
       /** Refresh countdown timer if in bound. */
       lifetime = DESTROY_TIME;
-    } else if ((!frame.combo.containsKey(Combo.hit_Fa) || hp < 0.0) && (--lifetime < 0)) {
+    } else if ((!frame.combo.containsKey(Combo.hit_Ra) || hp < 0.0) && (--lifetime < 0)) {
       /** Even the blast flies out of bound and is not in a functional frame (hit_Fa == NONE),
           it still can live a short time. (e.g., dennis_chase first 4 frames) */
       return false;
     }
-    pz = Global.clamp(pz, xzBound[2], xzBound[3]);
+    List<Double> zBound = env.getZBound();
+    pz = Util.clamp(pz, zBound.get(0), zBound.get(1));
     return true;
   }
 

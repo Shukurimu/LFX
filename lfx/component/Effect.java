@@ -12,8 +12,7 @@ public enum Effect {
   REGENERATION,    // Value(time, 0, rate, null);
   INVISIBILITY,    // Value(time, 0, 0.0, null);
   SONATA,          // Value(0, injury, 0.0, null);
-  LANDING_INJURY,  // Value(Integer.MAX_VALUE, injury, 0.0, null);
-  CREATE_ARMOUR;
+  LANDING_INJURY;  // Value(Integer.MAX_VALUE, injury, 0.0, null);
 
   @Override
   public String toString() {
@@ -33,22 +32,22 @@ public enum Effect {
       this.stringValue = stringValue;
     }
 
-    public static Value id(String stringValue) {
-      return new Value(0, 0, 0.0, stringValue);
-    }
-
-    public static Value condition(int intValue) {
-      return new Value(Integer.MAX_VALUE, intValue, 0.0, null);
-    }
-
-    public static Value oneshot() {
-      return new Value(0, 0, 0.0, null);
-    }
-
     public boolean lapse() {
       return --effectiveTime < 0;
     }
 
+  }
+
+  public static Value id(String stringValue) {
+    return new Value(0, 0, 0.0, stringValue);
+  }
+
+  public static Value condition(int intValue) {
+    return new Value(Integer.MAX_VALUE, intValue, 0.0, null);
+  }
+
+  public static Value oneshot() {
+    return new Value(0, 0, 0.0, null);
   }
 
   public static Value stack(Effect key, Value value) {

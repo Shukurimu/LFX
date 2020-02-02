@@ -1,6 +1,7 @@
 package lfx.object;
 
 import javafx.scene.image.Image;
+import lfx.component.Wpoint;
 import lfx.object.Observable;
 import lfx.util.Controller;
 import lfx.util.Point;
@@ -8,7 +9,7 @@ import lfx.util.Viewer;
 
 public interface Hero extends Observable {
 
-  /** The defend point is set to NODEF_DP if got hit not in defend state. */
+  // The defend point is set to NODEF_DP if got hit not in defend state.
   int NODEF_DP = 45;
   double DEFEND_INJURY_REDUCTION = 0.10;
   double DEFEND_DVX_REDUCTION = 0.10;
@@ -16,16 +17,20 @@ public interface Hero extends Observable {
   double LANDING_VELOCITY_REMAIN = 0.5;  // guess-value
   double CONTROL_VZ = 2.5;  // press U or D; test-value
   double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test-value
+  double ICED_FALLDOWN_DAMAGE = 10.0;
+  double SONATA_FALLDOWN_DAMAGE = 10.0;
 
-  @Override
-  Hero makeClone(int teamId, boolean faceRight);
-  /** For balls with chasing ability. */
+
+  @Override Hero makeClone(int teamId, boolean faceRight);
+  Wpoint getWpoint();
+  // For balls with chasing ability.
   boolean isAlive();
+  Point getChasingPoint();
   Image getPortrait();
   String getName();
+  Point getViewpoint();
   void updateViewer(Viewer viewer);
   void setController(Controller controller);
-  Point getViewpoint();
 
   String Key_walking_speed  = "walking_speed";
   String Key_walking_speedz = "walking_speedz";
@@ -45,6 +50,27 @@ public interface Hero extends Observable {
   String Key_rowing_distance = "rowing_distance";
   String Key_hp_reg = "hp_reg";
   String Key_mp_reg = "mp_reg";
+
+  // Hidden flying-velocity status
+  int NO_FLYING = 0;
+  int JUMP_V0_0 = 1 << 1;  // jump vertically
+  int JUMP_VP_0 = 2 << 1;  // jump with positive velocity
+  int JUMP_VN_0 = 3 << 1;  // jump with negative velocity
+  int DASH_RP_0 = 4 << 1;  // dash with positive velocity and facing right
+  int DASH_RN_0 = 5 << 1;  // dash with negative velocity and facing right
+  int DASH_LP_0 = 6 << 1;  // dash with positive velocity and facing left
+  int DASH_LN_0 = 7 << 1;  // dash with negative velocity and facing left
+  int  ROW_VP_0 = 8 << 1;  //  row with positive velocity
+  int  ROW_VN_0 = 9 << 1;  //  row with negative velocity
+  int JUMP_V0_1 = JUMP_V0_0 | 1;
+  int JUMP_VP_1 = JUMP_VP_0 | 1;
+  int JUMP_VN_1 = JUMP_VN_0 | 1;
+  int DASH_RP_1 = DASH_RP_0 | 1;
+  int DASH_RN_1 = DASH_RN_0 | 1;
+  int DASH_LP_1 = DASH_LP_0 | 1;
+  int DASH_LN_1 = DASH_LN_0 | 1;
+  int  ROW_VP_1 =  ROW_VP_0 | 1;
+  int  ROW_VN_1 =  ROW_VN_0 | 1;
 
   int ACT_TRANSFORM_INVALID = ACT_DEF;
   int ACT_TRANSFORM_BACK = 245;  // default
@@ -97,9 +123,9 @@ public interface Hero extends Observable {
   int ACT_DOWNWARD_FIRE = 205;
   int ACT_TIRED = 207;
   int ACT_JUMP = 210;
-  int ACT_JUMPAIR = 212;
+  int ACT_JUMPAIR = 212;  // gain jumping force
   int ACT_DASH1 = 213;
-  int ACT_DASH2 = 214;
+  int ACT_DASH2 = 214;  // reverse
   int ACT_CROUCH1 = 215;
   int ACT_STOPRUN = 218;
   int ACT_CROUCH2 = 219;

@@ -6,28 +6,29 @@ import java.util.Map;
 public enum State {
   NORMAL(true),
   /** Hero */
-  STAND (true),  // direction keys
-  WALK  (true),  // direction keys
-  RUN   (true),  // direction keys
-  HEAVY_WALK(true),  // direction keys
-  HEAVY_RUN (true),  // direction keys
-  JUMP    (true),  // with hidden flying state; direction keys
-  DASH    (true),  // with hidden flying state; direction keys
-  ROW     (true),  // with hidden flying state
-  DRINK   (true),
+  STAND (true),  // UDLFajd
+  WALK  (true),  // UDLFajd
+  RUN   (true),  // UDLFajd
+  HEAVY_WALK(true),  // UDLFa
+  HEAVY_RUN (true),  // UDLFa
+  JUMP    (true),  // flyingFlag UDLF 
+  DASH    (true),  // flyingFlag UDLF
+  LAND    (true),  // flyingFlag ajd (crouch2)
+  ROW     (true),  // flyingFlag UDLFj
+  DRINK   (true),  // connected with weapon
   GRASP   (true),  // complicated cpoint
-  DEFEND  (true),  // goes to act 111 if being hit
+  DEFEND  (true),  // goes to act 111 if hit
   FALL    (true),  // changes action accroding to vy
   FIRE    (true),  // changes action accroding to vy
-  ICED    (true),  // falldown if got hurt
-  LYING   (true),  // loops in same act if no hp
-  TRY_TRANSFORM(true),
+  ICE     (true),  // breaking or not depends on vxvy
+  LYING   (true),  // loops in same frame if no hp
+  TRY_TRANSFORM(true),  // goes to default action if failed
   /** Weapon */
-  INSKY        (true),
-  ONHAND       (true),
-  THROW        (true),
-  ONGROUND     (true),
-  JUST_ONGROUND(true),
+  IN_THE_SKY    (true),
+  ON_HAND       (true),
+  THROWING      (true),
+  ON_GROUND     (true),
+  JUST_ON_GROUND(true),
   /** Energy */
   HITTING (true),
   HIT     (true),

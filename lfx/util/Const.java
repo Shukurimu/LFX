@@ -28,7 +28,10 @@ public final class Const {
       "UP DOWN LEFT RIGHT ENTER SHIFT CONTROL",
       "I COMMA J L K SPACE PERIOD"
   );
-  public static final int PLAYER_NUM = DEFAULT_KEY_SETTING.size();
+  public static final List<String> DEFAULT_PLAYER_NAME = List.of(
+      "Player1", "Player2", "Player3", "Player4"
+  );
+  public static final int PLAYER_NUM = DEFAULT_PLAYER_NAME.size();
 
   public static final double CONFIG_BUTTON_WIDTH = 120;
   /** Adjustment of pz while being held for rendering order. */
@@ -46,11 +49,11 @@ public final class Const {
   public static final double PORTRAIT_SIZE = 180;
   public static final double CAMERA_SPEED_FACTOR = 1.0 / 18.0;
   public static final double CAMERA_SPEED_THRESHOLD = 0.05;
+  public static final long VALID_KEY_INTERVAL = 200L;
 
   public static final int SCOPE_VIEW_HERO   = 0x100;
   public static final int SCOPE_VIEW_WEAPON = 0x010;
   public static final int SCOPE_VIEW_ENERGY = 0x001;
-  public static final long VALID_KEY_INTERVAL = 200L;
 
   public static int getSideView(int baseScope, boolean teammate) {
     return teammate ? (baseScope << 1) : baseScope;

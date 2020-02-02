@@ -66,7 +66,7 @@ public class PickingScene extends GridPane {
   }
 
   private enum Phase {
-    /** Condiction: all but not zero DONE. */
+    // Condition: all and at least one DONE.
     INIT(0b11, null),
     HERO(0b01, Integer.valueOf(0)),
     TEAM(0b01, Integer.valueOf(0)),
@@ -91,7 +91,7 @@ public class PickingScene extends GridPane {
 
     public static Map<Phase, Integer> buildSetting() {
       Map<Phase, Integer> setting = new EnumMap<>(Phase.class);
-      for (Phase phase : Phase.values()) {
+      for (Phase phase : valArray) {
         if (phase.defaultValue != null) {
           setting.put(phase, phase.defaultValue);
         }
@@ -226,8 +226,7 @@ public class PickingScene extends GridPane {
 
   }
 
-  public PickingScene(Consumer<Scene> sceneChanger,
-                      List<Controller> controllerList) {
+  public PickingScene(Consumer<Scene> sceneChanger, List<Controller> controllerList) {
     Consumer<String> pickingSceneBridge = (String info) -> {
       PickingScene scene = new PickingScene(sceneChanger, controllerList);
       sceneChanger.accept(scene.makeScene());

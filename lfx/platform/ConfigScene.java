@@ -23,36 +23,19 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import lfx.util.Const;
 
-class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
+class ConfigScene extends GridPane {
   public static final String IDLE_STRING = "Click on a button to set key.";
   public static final String WAITING_STRING = "Press ESC to cancel.";
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
   public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
   public static final Charset CHARSET = Charset.forName("utf-8");
-
-  private Text tooltipsText = new Text(IDLE_STRING);
+  private final Text tooltipsText = new Text(IDLE_STRING);
+  private final List<ToggleButton> listeningList = new ArrayList<>(28);
   private ToggleButton focusing = null;
-  private ArrayList<ToggleButton> listeningList = new ArrayList<>();
-  private EventHandler<ActionEvent> clickAction = (ActionEvent event) -> {
-    tooltipsText.setText(WAITING_STRING);
-    /** Allow keys with the ability of clicking (SPACE) or traversing (arrows) can be bound. */
-    this.requestFocus();
-    focusing = (ToggleButton) event.getSource();
-    for (ToggleButton button : listeningList) {
-      if (button == focusing) {
-        button.setTextFill(FOCUSED_TEXT_FILL);
-        button.setSelected(true);
-      } else {
-        button.setTextFill(UNFOCUSED_TEXT_FILL);
-        button.setSelected(false);
-      }
-    }
-    return;
-  };
 
   public ConfigScene(Consumer<String> mainSceneBridge) {
     for (int i = 0, index = 1; i < Const.PLAYER_NUM; ++i, ++index) {
-      this.add(new Text("Player" + index), index, 0);
+      this.add(new Text(Const.DEFAULT_PLAYER_NAME.get(i)), index, 0);
     }
     for (int i = 0, index = 1; i < Const.KEY_NUM; ++i, ++index) {
       this.add(new Text(Const.KEY_NAMES.get(i)), 0, index);
@@ -67,7 +50,7 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
       for (String keyString: controlStringArray) {
         ToggleButton button = new ToggleButton(keyString);
         button.setPrefSize(Const.CONFIG_BUTTON_WIDTH, 30);
-        button.setOnAction(clickAction);
+        button.setOnAction(this::clickBindingHandler);
         listeningList.add(button);
         this.add(button, colIndex, ++rowIndex);
       }
@@ -93,8 +76,7 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
     return button;
   }
 
-  @Override
-  public void handle(KeyEvent event) {
+  private void keyPressHandler(KeyEvent event) {
     event.consume();
     if (focusing != null && focusing.isSelected()) {
       KeyCode code = event.getCode();
@@ -114,9 +96,26 @@ class ConfigScene extends GridPane implements EventHandler<KeyEvent> {
 
   public Scene makeScene() {
     Scene scene = new Scene(this, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
-    scene.setOnKeyPressed(this);
+    scene.setOnKeyPressed(this::keyPressHandler);
     this.requestFocus();
     return scene;
+  }
+
+  private void clickBindingHandler(ActionEvent event) {
+    tooltipsText.setText(WAITING_STRING);
+    /** Allow keys with the ability of clicking (SPACE) or traversing (arrows) can be bound. */
+    this.requestFocus();
+    focusing = (ToggleButton) event.getSource();
+    for (ToggleButton button : listeningList) {
+      if (button == focusing) {
+        button.setTextFill(FOCUSED_TEXT_FILL);
+        button.setSelected(true);
+      } else {
+        button.setTextFill(UNFOCUSED_TEXT_FILL);
+        button.setSelected(false);
+      }
+    }
+    return;
   }
 
   private static List<String> load() {

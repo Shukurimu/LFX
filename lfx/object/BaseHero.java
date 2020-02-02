@@ -1,39 +1,29 @@
 package lfx.object;
 
-import java.util.EnumSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import javafx.scene.image.Image;
+import lfx.component.Effect;
+import lfx.component.Frame;
+import lfx.component.Itr;
+import lfx.component.State;
+import lfx.component.Wpoint;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
-import lfx.util.Act;
+import lfx.util.Combo;
+import lfx.util.Const;
+import lfx.util.Controller;
+import lfx.util.Input;
 import lfx.util.Looper;
+import lfx.util.Point;
+import lfx.util.Util;
+import lfx.util.Tuple;
+import lfx.util.Viewer;
 
-public class BaseHero extends AbstractObject implements Hero {
-  /** Hidden flying-velocity status */
-  private static final int NO_FLYING = 0;
-  private static final int JUMP_V0_0 = 1 << 1;  // jump vertically
-  private static final int JUMP_VP_0 = 2 << 1;  // jump with positive velocity
-  private static final int JUMP_VN_0 = 3 << 1;  // jump with negative velocity
-  private static final int DASH_RP_0 = 4 << 1;  // dash with positive velocity and facing right
-  private static final int DASH_RN_0 = 5 << 1;  // dash with negative velocity and facing right
-  private static final int DASH_LP_0 = 6 << 1;  // dash with positive velocity and facing left
-  private static final int DASH_LN_0 = 7 << 1;  // dash with negative velocity and facing left
-  private static final int  ROW_VP_0 = 8 << 1;  //  row with positive velocity
-  private static final int  ROW_VN_0 = 9 << 1;  //  row with negative velocity
-  private static final int JUMP_V0_1 = JUMP_V0_0 | 1;
-  private static final int JUMP_VP_1 = JUMP_VP_0 | 1;
-  private static final int JUMP_VN_1 = JUMP_VN_0 | 1;
-  private static final int DASH_RP_1 = DASH_RP_0 | 1;
-  private static final int DASH_RN_1 = DASH_RN_0 | 1;
-  private static final int DASH_LP_1 = DASH_LP_0 | 1;
-  private static final int DASH_LN_1 = DASH_LN_0 | 1;
-  private static final int  ROW_VP_1 =  ROW_VP_0 | 1;
-  private static final int  ROW_VN_1 =  ROW_VN_0 | 1;
-
-  /** Hidden action frame counters */
-  private final Looper walkingIndexer = new Looper(new int[] {2, 3, 2, 1, 0, 1});
-  private final Looper runningIndexer = new Looper(new int[] {0, 1, 2, 1});
+class BaseHero extends AbstractObject implements Hero {
+  // Hidden action frame counters.
+  private final Looper walkingIndexer = new Looper(2, 3, 2, 1, 0, 1);
+  private final Looper runningIndexer = new Looper(0, 1, 2, 1);
 
   private final Image portrait;
   private final double Value_walking_speed;
@@ -56,11 +46,11 @@ public class BaseHero extends AbstractObject implements Hero {
   private final double Value_dash_distancez;
   private final double Value_rowing_height;
   private final double Value_rowing_distance;
-  /** Generation rates */
+  // Regeneration rates
   private double hpReg = 1.0 / 12.0;
   private double mpReg = 1.0 / 3.00;
-  private int flyingState = NO_FLYING;
-  /** dp & fp will not be recovered if hit in 2 timeunit. */
+  private int flyingFlag = NO_FLYING;
+  // dp & fp will not recovere if hit in 2 timeunit.
   private int hitSpan = 0;
   private int dp = 0;  // defend point
   private int fp = 0;  // fall point
@@ -68,10 +58,10 @@ public class BaseHero extends AbstractObject implements Hero {
   private Controller controller = null;
   private Weapon weapon = null;
 
-  protected BaseHero(String identifier, Frame[] frameArray, String portraitPath,
-                         Map<String, Double> stamina) {
-    super(identifier, frameArray);
-    portrait = loadImage(portraitPath);
+  protected BaseHero(String identifier, List<Frame> frameList,
+                     Map<String, Double> stamina, Image portrait) {
+    super(identifier, frameList);
+    this.portrait = portrait;
     Value_walking_speed  = stamina.get(Key_walking_speed);
     Value_walking_speedz = stamina.get(Key_walking_speedz);
     Value_walking_speedx = Value_walking_speed * DIAGONAL_VX_RATIO;
@@ -97,7 +87,7 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   protected BaseHero(BaseHero base) {
-    super(this);
+    super(base);
     portrait = base.portrait;
     Value_walking_speed  = base.Value_walking_speed;
     Value_walking_speedz = base.Value_walking_speedz;
@@ -124,8 +114,11 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public Hero makeClone() {
-    return new BaseHero(heroMapping.get(identifier));
+  public BaseHero makeClone(int teamId, boolean faceRight) {
+    BaseHero clone = new BaseHero((BaseHero) heroMapping.get(identifier));
+    clone.teamId = teamId;
+    clone.faceRight = faceRight;
+    return clone;
   }
 
   @Override
@@ -140,15 +133,19 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
+  public Wpoint getWpoint() {
+    return frame.wpoint;
+  }
+
+  @Override
   protected int getDefaultActNumber() {
     return py < 0.0 ? ACT_JUMPAIR :
            (weapon != null && weapon.isHeavy() ? ACT_HEAVY_WALK : ACT_STANDING);
   }
 
-  /** Most of the time, potential HP is reduced by one-third of the received damage.
-      Use `sync=true` to the situations not following this rule (e.g., throwinjury).
-      Note that the lower bound is zero in LFX, which is different from LF2.
-  */
+  // Most of the time, potential HP is reduced by one-third of the received damage.
+  // Use `sync=true` to the situations not following this rule (e.g., throwinjury).
+  // Note that the lower bound is zero in LFX, which is different from LF2.
   @Override
   protected void hpLost(double injury, boolean sync) {
     hp -= injury;
@@ -161,13 +158,18 @@ public class BaseHero extends AbstractObject implements Hero {
     return hp > 0.0;
   }
 
-  /** Return remaining hp and mp, or null if no cost. */
+  @Override
+  public Point getChasingPoint() {
+    return new Point(px, py - frame.centery / 2.0);
+  }
+
+  // Return remaining hp and mp, or null if no cost.
   protected double[] pseudoCast(Frame target, boolean passive) {
-    // TODO: Louis transform hp limit
+    // TODO: Louis transformation has hp limitation.
     if (target == null || target.cost == 0 || env.isUnlimitedMode()) {
       return null;
     }
-    if (passive) {  // Connected by next-tag.
+    if (passive) {  // Followed by next-tag.
       return new double[] {hp, mp + target.cost};
     } else {
       int hpCost = target.cost / 1000 * 10;
@@ -177,8 +179,8 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  protected int getScopeView(int targetTeamId) {
-    return Global.getSideView(Global.SCOPE_VIEW_HERO, targetTeamId == this.teamId);
+  public int getScopeView(int targetTeamId) {
+    return Const.getSideView(Const.SCOPE_VIEW_HERO, targetTeamId == this.teamId);
   }
 
   @Override
@@ -190,429 +192,388 @@ public class BaseHero extends AbstractObject implements Hero {
   @Override
   public void react() {
     int nextAct = ACT_TBA;
-    int bdefend = 0;
-    int injury = 0;
-    int fall = 0;
-    int dvx = 0;
-    int dvy = 0;
-    int lag = 0;
 
     RESULT_LOOP:
-    for (Tuple<Observable, Itr> tuple: resultItrList) {
+    for (Tuple<Observable, Itr> tuple: recvItrList) {
       final Observable that = tuple.first;
       final Itr itr = tuple.second;
-      switch (itr.effect) {
-        case SONATA:
-          vx = itr.sonataVxz(vx);
-          vz = itr.sonataVxz(vz);
-          vy = itr.sonataVy(py, vy);
-          status.put(Extension.Kind.SONATA, new Extension(Integer.MAX_VALUE, 1.0));
-          nextAct = vy < 0.0 ? ACT_FORWARD_FALL3 : ACT_FORWARD_FALL4;
-          break;
+      switch (itr.kind) {
         case LET_SPUNCH:
-          status.put(Extension.Kind.ATTACK_SPUNCH, Extension.oneshot());
+          buff.put(Effect.ATTACK_SPUNCH, Effect.oneshot());
           continue RESULT_LOOP;
         case PICK:
-          nextAct = weapon.type == Type.HEAVY ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+          nextAct = weapon.isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
           // fall-through
         case ROLL_PICK:
           // will not affect current action
           continue RESULT_LOOP;
-        case GRASP_DOP:
-        case GRASP_BDY:
-          if (graspee == this)
-            fp = 0;
-          continue RESULT_LOOP;
         case BLOCK:
-          status.put(Extension.Kind.MOVE_BLOCKING, Extension.oneshot());
+          buff.put(Effect.MOVE_BLOCKING, Effect.oneshot());
           continue RESULT_LOOP;
         case HEAL:
-          status.put(Extension.Kind.HEALING, new Extension(itr.dvy, (double)(itr.injury / itr.dvy)));
-          continue RESULT_LOOP;
-        case VORTEX:
-          vx += itr.vortexAx(px);
-          vz += itr.vortexAz(pz);
-          vy += itr.vortexAy(py, vy);
+          // buff.put(Effect.HEALING, new Effect.Value(itr.dvy, (double)(itr.injury / itr.dvy)));
           continue RESULT_LOOP;
         default:
-          System.out.printf("%s received unexpected Itr %s", this, itr);
+          System.out.println("NotImplemented Effect: " + itr.kind);
       }
-      bdefend += itr.bdefend;
-      injury += itr.injury;
-      fall += itr.fall;
-      dvx += itr.calcDvx(vx);
-      dvy += itr.dvy;
-      lag = itr.calcLag(lag);
+      hpLost(itr.injury, false);
+      dp += itr.bdefend;
+      fp += itr.fall;
+      vx += itr.calcDvx(vx, faceRight);
+      vy += itr.dvy;
+      actLag = itr.calcLag(actLag);
     }
-    resultItrList.clear();
+    recvItrList.clear();
 
     hitSpan = 2;
-    if (frame.state == State.ICED) {
+    if (frame.state == State.ICE) {
     }
     // TODO: defend same direction
-    if (frame.state == State.DEFEND) {
-      hpLost(injury * DEFEND_INJURY_REDUCTION, false);
-      vx = dvx * DEFEND_DVX_REDUCTION;
-      if (hp == 0.0) {
-        fp = dp = 0;
-        nextAct = ACT_FORWARD_FALL1;
-      } else if (dp > 30) {
-        setCurr(Act_broken);
-      } else if (frame.curr == Act_defend) {
-        setCurr(Act_defendhit);
-      }
-    }
-    hpLost(injury, false);
-    vx = dvx;
-    dp = NODEF_DP;
-    fp = (fp + recvDmg.fall + 19) / 20 * 20;
-    if (originalIced || (fp > 60) || ((fp > 20) && (py < 0.0)) || (hp == 0.0)) {
-      fp = dp = 0;
-      vy = recvDmg.dvy;
-      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-    } else if (fp > 40) {
-      setCurr(Act_dop);
-    } else if (fp > 20) {
-      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_injure3 : Act_injure2);
-    } else if (fp >= 0) {
-      setCurr(Act_injure1);
-    } else {
-      /* negative fp causes NOP */
-    }
-    if (grasp != null) {
-      grasp.state  = LFgrasp.State.DROP;
-      grasp  = null;
-    }
-
-    if ((fp += recvDmg.fall) > 60) {
-      grasp.state = LFgrasp.State.DROP;
-      grasp = null;
-      fp = 0;
-      vx = recvDmg.dvx;
-      vy = recvDmg.dvy;
-      setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-    } else {
-      setCurr((faceRight == (recvDmg.dvx > 0)) ?
-        frame.cpoint.throwvx : frame.cpoint.throwvy);
-    }
-    if (frame.state != LFstate.DEFEND) {
-      switch (recvDmg.effect) {
-        case FIRE:
-        case FIRE2:
-        case EXFIRE:
-        case SPFIRE:
-          faceRight = recvDmg.dvx < 0.0;
-          setCurr((vy < 0.0) ? Act_fireU : Act_fireD);
-          break;
-        case ICE:
-        case ICE2:
-        case EXICE:
-          if (originalIced) {
-            setCurr(((recvDmg.dvx > 0.0) == faceRight) ? Act_bwfall1 : Act_fwfall1);
-          } else {
-            faceRight = recvDmg.dvx < 0.0;
-            setCurr(Act_ice);
-          }
-          break;
-        case SPICE:
-          faceRight = recvDmg.dvx < 0.0;
-          setCurr(Act_ice);
-            break;
-          default:
-            break;
-      }
-    }
-    return nextAct;
+    // if (frame.state == State.DEFEND) {
+      // hpLost(injury * DEFEND_INJURY_REDUCTION, false);
+      // vx = dvx * DEFEND_DVX_REDUCTION;
+      // if (hp == 0.0) {
+        // fp = dp = 0;
+        // nextAct = ACT_FORWARD_FALL1;
+      // } else if (dp > 30) {
+        // transitFrame(ACT_BROKEN);
+      // } else if (frame.curr == ACT_DEFEND) {
+        // transitFrame(ACT_DEFENDHIT);
+      // }
+    // }
+    // dp = NODEF_DP;
+    // fp = (fp + fall + 19) / 20 * 20;
+    // if (originalIced || (fp > 60) || ((fp > 20) && (py < 0.0)) || (hp == 0.0)) {
+      // fp = dp = 0;
+      // vy = dvy;
+      // setCurr(((dvx > 0.0) == faceRight) ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1);
+    // } else if (fp > 40) {
+      // setCurr(ACT_dop);
+    // } else if (fp > 20) {
+      // setCurr(((dvx > 0.0) == faceRight) ? ACT_injure3 : ACT_injure2);
+    // } else if (fp >= 0) {
+      // setCurr(ACT_injure1);
+    // } else {
+      // negative fp causes NOP
+    // }
+    return;
   }
 
   @Override
   protected int updateAction(int nextAct) {
     switch (frame.state) {
-      case STAND:  nextAct = moveStand();      break;
-      case WALK:   nextAct = moveWalk();       break;
-      case HWALK:  nextAct = moveHeavyWalk();  break;
-      case RUN:    nextAct = moveRun();        break;
-      case HRUN:   nextAct = moveHeavyRun();   break;
-      case JUMP:   nextAct = moveJump();       break;
-      case DASH:   nextAct = moveDash();       break;
-      case LAND:   nextAct = moveLand();       break;
-      case FIRE:   nextAct = moveFire();       break;
-      case DRINK:  nextAct = moveDrink();      break;
-      case ROW:    nextAct = moveRow();        break;
-      case FALL:   nextAct = moveFall();       break;
-      case LYING:  nextAct = moveLying();      break;
+      case STAND:       nextAct = moveStand(nextAct);      break;
+      case WALK:        nextAct = moveWalk(nextAct);       break;
+      case HEAVY_WALK:  nextAct = moveHeavyWalk(nextAct);  break;
+      case RUN:         nextAct = moveRun(nextAct);        break;
+      case HEAVY_RUN:   nextAct = moveHeavyRun(nextAct);   break;
+      case JUMP:        nextAct = moveJump(nextAct);       break;
+      case DASH:        nextAct = moveDash(nextAct);       break;
+      case LAND:        nextAct = moveLand(nextAct);       break;
+      case FIRE:        nextAct = moveFire(nextAct);       break;
+      case DRINK:       nextAct = moveDrink(nextAct);      break;
+      case ROW:         nextAct = moveRow(nextAct);        break;
+      case FALL:        nextAct = moveFall(nextAct);       break;
+      case LYING:       nextAct = moveLying(nextAct);      break;
+      case NORMAL:
+        if (py >= 0.0) {
+          flyingFlag = NO_FLYING;
+        }
+        break;
       default:
         flyingFlag = NO_FLYING;
+        System.err.println("Unexpected state: " + frame);
     }
-    /** You can change facing in this frame. */
+    // You can change facing in this action number.
     if (frame.curr == ACT_DEFEND && input.do_F) {
       faceRight = input.do_R;
     }
     return nextAct;
   }
 
-  private int moveStand() {
+  private int moveStand(int nextAct) {
     flyingFlag = NO_FLYING;
-    if (ctrl.do_a) switch (weapon.type) {
-      case NULL:
-        nextAct = extra.containsKey(LFextra.Kind.LETSPUNCH) ?
-              Act_spunch : ((Math.random() >= 0.5) ? Act_punch1 : Act_punch2);
-        break;
-      case LIGHT:
-        nextAct = (Math.random() >= 0.5) ? Act_nrmwpatk1 : Act_nrmwpatk2;
-        break;
-      case SMALL:
-        nextAct = Act_lgwpthw;
-        break;
-      case DRINK:
-        nextAct = Act_drink;
-        break;
-      default:
-        System.err.printf("%s hold %s in %s\n", identifier, weapon.type, frame.state);
-        weapon = LFweapon.dummy;
-    } else if (ctrl.do_j) {
-      nextAct = Act_jump;
-      if (ctrl.do_R) {
+    if (input.do_a) {
+      if (weapon == null) {
+        nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ?
+                  ACT_SUPER_PUNCH : (Util.randomBool() ? ACT_PUNCH1 : ACT_PUNCH2);
+      } else if (weapon.isLight()) {
+        nextAct = Util.randomBool() ? ACT_WEAPON_ATK1 : ACT_WEAPON_ATK2;
+      } else if (weapon.isSmall()) {
+        nextAct = ACT_LIGHT_WEAPON_THROW;
+      } else if (weapon.isDrink()) {
+        nextAct = ACT_DRINK;
+      } else {
+        System.err.printf("%s hold %s at %d%n", this, weapon, frame.curr);
+        weapon = null;
+      }
+    } else if (input.do_j) {
+      nextAct = ACT_JUMP;
+      if (input.do_R) {
         flyingFlag = JUMP_VP_1;
         faceRight = true;
-      } else if (ctrl.do_L) {
+      } else if (input.do_L) {
         flyingFlag = JUMP_VN_1;
         faceRight = false;
       } else {
         flyingFlag = JUMP_V0_1;
       }
-    } else if (ctrl.do_d) {
-      nextAct = Act_defend;
-    } else if (ctrl.do_RR | ctrl.do_LL)  {
-      nextAct = Act_running + runningIndexer.restart();
-      faceRight = ctrl.do_RR;
-    } else if (ctrl.do_F | ctrl.do_Z) {
-      nextAct = Act_walking + walkingIndexer.restart();
-      faceRight = ctrl.do_R || (ctrl.do_L ? false : faceRight);
+    } else if (input.do_d) {
+      nextAct = ACT_DEFEND;
+    } else if (input.do_RR | input.do_LL)  {
+      nextAct = ACT_RUNNING + runningIndexer.reset();
+      faceRight = input.do_RR;
+    } else if (input.do_F | input.do_Z) {
+      nextAct = ACT_WALKING + walkingIndexer.reset();
+      faceRight = input.do_R || (input.do_L ? false : faceRight);
     }
-    return;
+    return nextAct;
   }
-  private int moveWalk() {
+
+  private int moveWalk(int nextAct) {
     flyingFlag = NO_FLYING;
-    if (ctrl.do_a) switch (weapon.type) {
-      case NULL:
-        nextAct = extra.containsKey(LFextra.Kind.LETSPUNCH) ?
-              Act_spunch : ((Math.random() >= 0.5) ? Act_punch1 : Act_punch2);
-        break;
-      case LIGHT:
-        nextAct = (Math.random() >= 0.5) ? Act_nrmwpatk1 : Act_nrmwpatk2;
-        break;
-      case SMALL:
-        nextAct = Act_lgwpthw;
-        break;
-      case DRINK:
-        nextAct = Act_drink;
-        break;
-      default:
-        System.err.printf("%s hold %s in %s\n", identifier, weapon.type, frame.state);
-        weapon = LFweapon.dummy;
-    } else if (ctrl.do_j) {
-      nextAct = Act_jump;
-      if (ctrl.do_R) {
+    if (input.do_a) {
+      if (weapon == null) {
+        nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ?
+                  ACT_SUPER_PUNCH : (Util.randomBool() ? ACT_PUNCH1 : ACT_PUNCH2);
+      } else if (weapon.isLight()) {
+        nextAct = Util.randomBool() ? ACT_WEAPON_ATK1 : ACT_WEAPON_ATK2;
+      } else if (weapon.isSmall()) {
+        nextAct = ACT_LIGHT_WEAPON_THROW;
+      } else if (weapon.isDrink()) {
+        nextAct = ACT_DRINK;
+      } else {
+        System.err.printf("%s hold %s at %d%n", this, weapon, frame.curr);
+        weapon = null;
+      }
+    } else if (input.do_j) {
+      nextAct = ACT_JUMP;
+      if (input.do_R) {
         flyingFlag = JUMP_VP_1;
         faceRight = true;
-      } else if (ctrl.do_L) {
+      } else if (input.do_L) {
         flyingFlag = JUMP_VN_1;
         faceRight = false;
       } else {
         flyingFlag = JUMP_V0_1;
       }
-    } else if (ctrl.do_d) {
-      nextAct = Act_defend;
-    } else if (ctrl.do_RR | ctrl.do_LL)  {
-      nextAct = Act_running + runningIndexer.restart();
-      faceRight = ctrl.do_RR;
-    } else if (ctrl.do_F | ctrl.do_Z) {
-      if    (ctrl.do_R) { vx =  Value_walking_speed; faceRight = true;  }
-      else if (ctrl.do_L) { vx = -Value_walking_speed; faceRight = false; }
-      if    (ctrl.do_U)   vz = -Value_walking_speedz;
-      else if (ctrl.do_D)   vz =  Value_walking_speedz;
-      if (waitTU < 1) {
-        nextAct = Act_walking + walkingIndexer.next();
+    } else if (input.do_d) {
+      nextAct = ACT_DEFEND;
+    } else if (input.do_RR | input.do_LL)  {
+      nextAct = ACT_RUNNING + runningIndexer.reset();
+      faceRight = input.do_RR;
+    } else if (input.do_F | input.do_Z) {
+      if (input.do_R) {
+        vx = Value_walking_speed;
+        faceRight = true;
+      } else if (input.do_L) {
+        vx = -Value_walking_speed;
+        faceRight = false;
+      }
+      if (input.do_D) {
+        vz = Value_walking_speedz;
+      } else if (input.do_U) {
+        vz = -Value_walking_speedz;
+      }
+      if (transition == 0) {
+        nextAct = ACT_WALKING + walkingIndexer.next();
       }
     }
-    return;
+    return nextAct;
   }
-  private int moveHeavyWalk() {
+
+  private int moveHeavyWalk(int nextAct) {
     flyingFlag = NO_FLYING;
-    if (ctrl.do_a) {
-      nextAct = Act_hvwpthw;
-    } else if (ctrl.do_RR | ctrl.do_LL)  {
-      nextAct = Act_hvrunning + runningCycle[runningIndex = 0];
-      faceRight = ctrl.do_RR;
-    } else if (ctrl.do_F | ctrl.do_Z) {
-      if    (ctrl.do_R) { vx =  Value_heavy_walking_speed; faceRight = true;  }
-      else if (ctrl.do_L) { vx = -Value_heavy_walking_speed; faceRight = false; }
-      if    (ctrl.do_U)   vz = -Value_heavy_walking_speedz;
-      else if (ctrl.do_D)   vz =  Value_heavy_walking_speedz;
-      if (waitTU < 1) {
-        nextAct = Act_hvwalking + walkingIndexer.next();
+    if (input.do_a) {
+      nextAct = ACT_HEAVY_WEAPON_THROW;
+    } else if (input.do_RR | input.do_LL)  {
+      nextAct = ACT_HEAVY_RUN + runningIndexer.reset();
+      faceRight = input.do_RR;
+    } else if (input.do_F | input.do_Z) {
+      if (input.do_R) {
+        vx = Value_heavy_walking_speed;
+        faceRight = true;
+      } else if (input.do_L) {
+        vx = -Value_heavy_walking_speed;
+        faceRight = false;
+      }
+      if (input.do_D) {
+        vz = Value_heavy_walking_speedz;
+      } else if (input.do_U) {
+        vz = -Value_heavy_walking_speedz;
+      }
+      if (transition == 0) {
+        nextAct = ACT_HEAVY_WALK + walkingIndexer.next();
       }
     }
-    return;
+    return nextAct;
   }
-  private int moveRun() {
+
+  private int moveRun(int nextAct) {
     flyingFlag = NO_FLYING;
-    vx = faceRight ? Value_running_speed : (-Value_running_speed);
-    if (ctrl.do_U) vz = -Value_running_speedz;
-    if (ctrl.do_D) vz =  Value_running_speedz;
-    if (ctrl.do_a) switch (weapon.type) {
-      case NULL:
-        nextAct = Act_runatk;
-        break;
-      case LIGHT:
-        nextAct = ctrl.do_F ? Act_lgwpthw : Act_runwpatk;
-        break;
-      case SMALL:
-        nextAct = Act_lgwpthw;
-        break;
-      case DRINK:
-        nextAct = ctrl.do_F ? Act_lgwpthw : Act_drink;
-        break;
-    } else if (ctrl.do_j) {
-      nextAct = Act_dash1;
+    vx = faceRight ? Value_running_speed : -Value_running_speed;
+    if (input.do_Z) {
+      vz = input.do_D ? Value_running_speedz : -Value_running_speedz;
+    }
+    if (input.do_a) {
+      if (weapon == null) {
+        nextAct = ACT_RUN_ATK;
+      } else if (weapon.isLight()) {
+        nextAct = input.do_F ? ACT_LIGHT_WEAPON_THROW : ACT_RUN_WEAPON_ATK;
+      } else if (weapon.isSmall()) {
+        nextAct = ACT_LIGHT_WEAPON_THROW;
+      } else if (weapon.isDrink()) {
+        nextAct = input.do_F ? ACT_LIGHT_WEAPON_THROW : ACT_DRINK;
+      } else {
+        System.err.printf("%s hold %s at %d%n", this, weapon, frame.curr);
+        weapon = null;
+      }
+    } else if (input.do_j) {
+      nextAct = ACT_DASH1;
       flyingFlag = faceRight ? DASH_RP_1 : DASH_LN_1;
-    } else if (ctrl.do_d) {
-      nextAct = Act_rolling;
-    } else if ((faceRight && ctrl.do_L) || (!faceRight && ctrl.do_R)) {
-      nextAct = Act_stoprun;
-    } else if (waitTU < 1) {
-      nextAct = Act_running + runningIndexer.next();
+    } else if (input.do_d) {
+      nextAct = ACT_ROLLING;
+    } else if ((faceRight && input.do_L) || (!faceRight && input.do_R)) {
+      nextAct = ACT_STOPRUN;
+    } else if (transition == 0) {
+      nextAct = ACT_RUNNING + runningIndexer.next();
     }
-    return;
+    return nextAct;
   }
-  private int moveHeavyRun() {
+
+  private int moveHeavyRun(int nextAct) {
     flyingFlag = NO_FLYING;
-    vx = faceRight ? Value_heavy_running_speed : (-Value_heavy_running_speed);
-    if (ctrl.do_U)  vz = -Value_heavy_running_speedz;
-    if (ctrl.do_D)  vz =  Value_heavy_running_speedz;
-    if (ctrl.do_a) {
-      nextAct = Act_hvwpthw;
-    } else if ((faceRight && ctrl.do_L) || (!faceRight && ctrl.do_R)) {
-      nextAct = Act_hvstoprun;
-    } else if (waitTU < 1) {
-      nextAct = Act_hvrunning + runningIndexer.next();
+    vx = faceRight ? Value_heavy_running_speed : -Value_heavy_running_speed;
+    if (input.do_Z) {
+      vz = input.do_D ? Value_heavy_running_speedz : -Value_heavy_running_speedz;
     }
-    return;
+    if (input.do_a) {
+      nextAct = ACT_HEAVY_WEAPON_THROW;
+    } else if ((faceRight && input.do_L) || (!faceRight && input.do_R)) {
+      nextAct = ACT_HEAVY_STOP_RUN;
+    } else if (transition == 0) {
+      nextAct = ACT_HEAVY_RUN + runningIndexer.next();
+    }
+    return nextAct;
   }
-  private int moveJump() {
-    if (((flyingFlag & 1) == 1) && (frame.curr == Act_jumpair)) {
+
+  private int moveJump(int nextAct) {
+    if (((flyingFlag & 1) == 1) && frame.curr == ACT_JUMPAIR) {
       --flyingFlag;
-      /* dvx is applied after friction reduction */
+      // dvx is applied after friction reduction.
       switch (flyingFlag) {
         case JUMP_V0_0:
-          vx = map.applyFriction(vx);
+          vx = env.applyFriction(vx);
           break;
         case JUMP_VP_0:
-          vx = map.applyFriction(vx + Value_jump_distance);
+          vx = env.applyFriction(vx + Value_jump_distance);
           break;
         case JUMP_VN_0:
-          vx = map.applyFriction(vx - Value_jump_distance);
+          vx = env.applyFriction(vx - Value_jump_distance);
           break;
         default:
           System.err.println("State_jump: `flyingFlag' default");
       }
       vy += Value_jump_height;
-      if (ctrl.do_U)  vz = -Value_jump_distancez;
-      if (ctrl.do_D)  vz =  Value_jump_distancez;
+      if (input.do_Z) {
+        vz = input.do_D ? Value_jump_distancez : -Value_jump_distancez;
+      }
     } else if ((flyingFlag & 1) == 0) {
-      if (ctrl.do_F)
-        faceRight = ctrl.do_R;
-      if (ctrl.do_a) switch (weapon.type) {
-        case NULL:
-          nextAct = Act_jumpatk;
-          break;
-        case LIGHT:
-          nextAct = ctrl.do_F ? Act_skywpthw : Act_jumpwpatk;
-          break;
-        case SMALL:
-        case DRINK:
-          nextAct = Act_skywpthw;
-          break;
+      if (input.do_F) {
+        faceRight = input.do_R;
+      }
+      if (input.do_a) {
+        if (weapon == null) {
+          nextAct = ACT_JUMP_ATK;
+        } else if (weapon.isLight()) {
+          nextAct = input.do_F ? ACT_SKY_WEAPON_THROW : ACT_JUMP_WEAPON_ATK;
+        } else if (weapon.isSmall() || weapon.isDrink()) {
+          nextAct = ACT_SKY_WEAPON_THROW;
+        } else {
+          System.err.printf("%s hold %s at %d%n", this, weapon, frame.curr);
+          weapon = null;
+        }
       }
     }
-    return;
+    return nextAct;
   }
-  private int moveDash() {
+
+  private int moveDash(int nextAct) {
     if ((flyingFlag & 1) == 1) {
       --flyingFlag;
       switch (flyingFlag) {
         case DASH_RP_0:
         case DASH_LP_0:
-          vx = map.applyFriction( Value_dash_distance);
+          vx = env.applyFriction(+Value_dash_distance);
           break;
         case DASH_LN_0:
         case DASH_RN_0:
-          vx = map.applyFriction(-Value_dash_distance);
+          vx = env.applyFriction(-Value_dash_distance);
           break;
         default:
           System.err.println("State_dash: `flyingFlag' default");
       }
       vy += Value_dash_height;
-      if (ctrl.do_U) vz = -Value_dash_distancez;
-      if (ctrl.do_D) vz =  Value_dash_distancez;
-    } else if (ctrl.do_a && ((flyingFlag & 1) == 0)) {
-      if ((flyingFlag == DASH_RP_0) || (flyingFlag == DASH_LN_0)) switch (weapon.type) {
-        case NULL:
-          nextAct = Act_dashatk;
-          break;
-        case LIGHT:
-          nextAct = Act_dashwpatk;
-          break;
-        case SMALL:
-        case DRINK:
-          nextAct = Act_skywpthw;
-          break;
+      if (input.do_Z) {
+        vz = input.do_D ? Value_dash_distancez : -Value_dash_distancez;
       }
     } else if ((flyingFlag & 1) == 0) {
       switch (flyingFlag) {
         case DASH_RP_0:
-          if (ctrl.do_L) {
+          if (input.do_L) {
             faceRight = false;
-            nextAct = Act_dash2;
+            nextAct = ACT_DASH2;
             flyingFlag = DASH_LP_0;
           }
           break;
         case DASH_LN_0:
-          if (ctrl.do_R) {
+          if (input.do_R) {
             faceRight = true;
-            nextAct = Act_dash2;
+            nextAct = ACT_DASH2;
             flyingFlag = DASH_RN_0;
           }
           break;
         case DASH_LP_0:
-          if (ctrl.do_R) {
+          if (input.do_R) {
             faceRight = true;
-            nextAct = Act_dash1;
+            nextAct = ACT_DASH1;
             flyingFlag = DASH_RP_0;
           }
           break;
         case DASH_RN_0:
-          if (ctrl.do_L) {
+          if (input.do_L) {
             faceRight = false;
-            nextAct = Act_dash1;
+            nextAct = ACT_DASH1;
             flyingFlag = DASH_LN_0;
           }
           break;
         default:
           System.err.println("State_dash: `flyingFlag' default");
       }
+      if (input.do_a && (flyingFlag == DASH_RP_0 || flyingFlag == DASH_LN_0)) {
+        if (weapon == null) {
+          nextAct = ACT_DASH_ATK;
+        } else if (weapon.isLight()) {
+          nextAct = ACT_DASH_WEAPON_ATK;
+        } else if (weapon.isSmall() || weapon.isDrink()) {
+          nextAct = ACT_SKY_WEAPON_THROW;
+        } else {
+          System.err.printf("%s hold %s at %d%n", this, weapon, frame.curr);
+          weapon = null;
+        }
+      }
     }
-    return;
+    return nextAct;
   }
-  private int moveLand() {
-    if (ctrl.do_d) {
-      nextAct = Act_rolling;
+
+  private int moveLand(int nextAct) {
+    if (input.do_d) {
       flyingFlag = NO_FLYING;
-    } else if (ctrl.do_j) {
-      if (ctrl.do_F) {
-        nextAct = Act_dash1;
-        if (ctrl.do_R) {
+      nextAct = ACT_ROLLING;
+    } else if (input.do_j) {
+      if (input.do_F) {
+        nextAct = ACT_DASH1;
+        if (input.do_R) {
           faceRight = true;
           flyingFlag = DASH_RP_1;
         } else {
@@ -624,174 +585,190 @@ public class BaseHero extends AbstractObject implements Hero {
           case JUMP_VP_0:
           case ROW_VP_0:
             if (faceRight) {
-              nextAct = Act_dash1;
+              nextAct = ACT_DASH1;
               flyingFlag = DASH_RP_1;
             } else {
-              nextAct = Act_dash2;
+              nextAct = ACT_DASH2;
               flyingFlag = DASH_LP_1;
             }
             break;
           case JUMP_VN_0:
           case ROW_VN_0:
             if (faceRight) {
-              nextAct = Act_dash2;
+              nextAct = ACT_DASH2;
               flyingFlag = DASH_RN_1;
             } else {
-              nextAct = Act_dash1;
+              nextAct = ACT_DASH1;
               flyingFlag = DASH_LN_1;
             }
             break;
           case JUMP_V0_0:
             /* this situation may happen because of the friction */
-            nextAct = Act_jump;
+            nextAct = ACT_JUMP;
             flyingFlag = JUMP_V0_1;
             break;
           default:
             System.err.printf("State_land: `flyingFlag' %d\n", flyingFlag);
         }
-      } else if (waitTU < 2) {
-        nextAct = Act_jump;
+      } else if (transition < 2) {  // TODO: Why 2?
+        nextAct = ACT_JUMP;
         flyingFlag = JUMP_V0_1;
       }
-    } else if (ctrl.do_Z) {
+    } else if (input.do_F | input.do_Z) {
       flyingFlag = NO_FLYING;
-      vz = ctrl.do_U ? (-Value_walking_speedz) : Value_walking_speedz;
-      if (waitTU < 2)
-        nextAct = Act_walking + walkingCycle[walkingIndex = 0];
-    } else if (ctrl.do_F) {
-      flyingFlag = NO_FLYING;
-      if (waitTU < 2)
-        nextAct = Act_walking + walkingCycle[walkingIndex = 0];
+      if (input.do_Z) {
+        vz = input.do_D ? Value_walking_speedz : -Value_walking_speedz;
+      }
+      if (transition < 2) {
+        nextAct = ACT_WALKING + walkingIndexer.reset();
+      }
     } else {
       flyingFlag = NO_FLYING;
     }
-    return;
+    return nextAct;
   }
-  private int moveFall() {
-    if (hitLag > 0 || extra.containsKey(LFextra.Kind.SONATA)) {
-      /* NOP */
-    } else if ((Act_bwfallR >= frame.curr && frame.curr >= Act_bwfall1)) {
-      if (frame.curr == Act_bwfallR) {
-        /* NOP */
+
+  private int moveFall(int nextAct) {
+    flyingFlag = NO_FLYING;
+    if (ACT_BACKWARD_FALLR >= frame.curr && frame.curr >= ACT_BACKWARD_FALL1) {
+      if (frame.curr == ACT_BACKWARD_FALLR) {
+        // Can do nothing
       } else if (vy < -10.0) {
-        if (frame.curr != Act_bwfall1)
-          nextAct = Act_bwfall1;
+        if (frame.curr != ACT_BACKWARD_FALL1) {
+          nextAct = ACT_BACKWARD_FALL1;
+        }
       } else if (vy < 0.0) {
-        if (frame.curr != Act_bwfall2)
-          nextAct = Act_bwfall2;
+        if (frame.curr != ACT_BACKWARD_FALL2) {
+          nextAct = ACT_BACKWARD_FALL2;
+        }
       } else if (vy < 6.0) {
-        if (ctrl.do_j) {
-          nextAct = Act_rowing2;
+        // TODO: Check buff.containsKey(Effect.SONATA)
+        if (input.do_j) {
+          nextAct = ACT_ROWING2;
           flyingFlag = faceRight ? ROW_VP_1 : ROW_VN_1;
         } else
-        if (frame.curr != Act_bwfall3)
-          nextAct = Act_bwfall3;
+        if (frame.curr != ACT_BACKWARD_FALL3) {
+          nextAct = ACT_BACKWARD_FALL3;
+        }
       } else {
-        if (frame.curr != Act_bwfall4)
-          nextAct = Act_bwfall4;
+        if (frame.curr != ACT_BACKWARD_FALL4) {
+          nextAct = ACT_BACKWARD_FALL4;
+        }
       }
     } else {
-      if (frame.curr == Act_fwfallR) {
-        /* NOP */
+      if (frame.curr == ACT_FORWARD_FALLR) {
+        // Can do nothing
       } else if (vy < -10.0) {
-        if (frame.curr != Act_fwfall1)
-          nextAct = Act_fwfall1;
+        if (frame.curr != ACT_FORWARD_FALL1) {
+          nextAct = ACT_FORWARD_FALL1;
+        }
       } else if (vy < 0.0) {
-        if (frame.curr != Act_fwfall2)
-          nextAct = Act_fwfall2;
+        if (frame.curr != ACT_FORWARD_FALL2) {
+          nextAct = ACT_FORWARD_FALL2;
+        }
       } else if (vy < 6.0) {
-        if (ctrl.do_j) {
-          nextAct = Act_rowing1;
+        if (input.do_j) {
+          nextAct = ACT_ROWING1;
           flyingFlag = faceRight ? ROW_VN_1 : ROW_VP_1;
         } else
-        if (frame.curr != Act_fwfall3)
-          nextAct = Act_fwfall3;
+        if (frame.curr != ACT_FORWARD_FALL3) {
+          nextAct = ACT_FORWARD_FALL3;
+        }
       } else {
-        if (frame.curr != Act_fwfall4)
-          nextAct = Act_fwfall4;
+        if (frame.curr != ACT_FORWARD_FALL4) {
+          nextAct = ACT_FORWARD_FALL4;
+        }
       }
     }
-    return;
+    return nextAct;
   }
-  private int moveDrink() {
+
+  private int moveDrink(int nextAct) {
     flyingFlag = NO_FLYING;
-    /* in LFX drinking action will be cancalled if the weapon is not drink type */
-    if (weapon.type == LFtype.DRINK) {
-      double[] reg = weapon.drink();
-      mp += reg[0];
-      hp += reg[1];
-      hp2nd += reg[2];
-      if (hp2nd < hp)
-        hp2nd = hp;
-    } else
-      nextAct = Act_standing;
-    return;
+    List<Double> regen = weapon == null ? null : weapon.consume();
+    if (regen != null) {
+      mp += regen.get(0);
+      hp += regen.get(1);
+      hp2nd = Math.max(hp, hp2nd + regen.get(2));
+    } else {
+      nextAct = ACT_STANDING;
+    }
+    return nextAct;
   }
-  private int moveFire() {
+
+  private int moveFire(int nextAct) {
     flyingFlag = NO_FLYING;
-    if (vy < 0.0 && ((frame.curr == Act_fireD) || (frame.curr == Act_fireD + 1)))
-      nextAct = Act_fireU;
-    if (vy > 0.0 && ((frame.curr == Act_fireU) || (frame.curr == Act_fireU + 1)))
-      nextAct = Act_fireD;
-    return;
+    if (vy < 0.0) {
+      if (frame.curr == ACT_DOWNWARD_FIRE || frame.curr == ACT_DOWNWARD_FIRE + 1) {
+        nextAct = ACT_UPWARD_FIRE;
+      }
+    } else {
+      if (frame.curr == ACT_UPWARD_FIRE || frame.curr == ACT_UPWARD_FIRE + 1) {
+        nextAct = ACT_DOWNWARD_FIRE;
+      }
+    }
+    return nextAct;
   }
-  private int moveRow() {
-    extra.remove(LFextra.Kind.THROWINJURY);
+
+  private int moveRow(int nextAct) {
     if ((flyingFlag & 1) == 1) {
       --flyingFlag;
       vy = Value_rowing_height;
-      vx = (flyingFlag == ROW_VP_0) ? Value_rowing_distance : (-Value_rowing_distance);
+      vx = flyingFlag == ROW_VP_0 ? Value_rowing_distance : -Value_rowing_distance;
     }
-    return;
+    buff.remove(Effect.LANDING_INJURY);
+    return nextAct;
   }
-  private int moveLying() {
-    if (0.0 >= hp)
-      nextAct = frame.curr;
+
+  private int moveLying(int nextAct) {
     flyingFlag = NO_FLYING;
-    return;
+    if (0.0 >= hp) {
+      nextAct = frame.curr;
+    }
+    return nextAct;
   }
 
   private int landing(boolean reboundable, boolean forward, double damage) {
+    int nextAct = Const.TBA;
     if (reboundable && py < 0.0 && (vx > 10.0 || vx < -10.0 || vy > 1.0)) {
       vy = FALLING_BOUNCE_VY;
-      nextAct = forward ? Act_fwfallR : Act_bwfallR;
+      nextAct = forward ? ACT_FORWARD_FALLR : ACT_BACKWARD_FALLR;
       hpLost(damage, false);
     } else {
       vy = 0.0;
-      nextAct = forward ? Act_lying1 : Act_lying2;
+      nextAct = forward ? ACT_LYING1 : ACT_LYING2;
     }
-    if (extra.containsKey(LFextra.Kind.THROWINJURY))
-      hpLost(extra.remove(LFextra.Kind.THROWINJURY).intValue, true);
+    if (buff.containsKey(Effect.LANDING_INJURY)) {
+      hpLost(buff.remove(Effect.LANDING_INJURY).intValue, true);
+    }
     return nextAct;
   }
 
   @Override
   protected int updateKinetic(int nextAct) {
-    if (hitLag != 0)
+    if (actLag != 0)
       return ACT_TBA;
 
     vx = frame.calcVX(vx, faceRight);
-    /** In LF2 you can step a small distance even if blocked by stone.
-        Besides, you will not walk faster while keeping pressing key.
-        Therefore, the effect of keys is a force move, nothing to do with velocity. */
-    px = extra.containsKey(LFextra.Kind.MOVEBLOCK) ? px : (px + vx);
-    /** In LF2 even the frame with dvy = -1 causes the character flying for a while,
-        so dvy takes effect before the calculation of gravity. */
+    px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
+    // In LF2 even the frame with dvy = -1 causes the character flying for a while,
+    // so dvy takes effect before the calculation of gravity.
     vy = frame.calcVY(vy);
-    /** dvz is not directly added to vz */
-    if (extra.containsKey(LFextra.Kind.MOVEBLOCK) || (frame.dvz == LFframe.DV_550))
+    // dvz is not directly added to vz.
+    if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
       vz = 0.0;
-    else
-      pz += vz + (ctrl.do_Z ? (ctrl.do_U ? (-frame.dvz) : frame.dvz) : 0.0);
+    } else {
+      pz += vz + (input.do_Z ? (input.do_D ? frame.dvz : -frame.dvz) : 0.0);
+    }
 
     if (py + vy < 0.0) {
       py += vy;
-      vy += map.gravity;
+      vy = env.applyGravity(vy);
       return ACT_TBA;
     }
 
-    vx = map.applyFriction(vx * LANDING_VELOCITY_REMAIN);
-    vz = map.applyFriction(vz * LANDING_VELOCITY_REMAIN);
+    vx = env.applyFriction(vx * LANDING_VELOCITY_REMAIN);
+    vz = env.applyFriction(vz * LANDING_VELOCITY_REMAIN);
     if (frame.state == State.FALL) {
       boolean reboundable = frame.curr != ACT_FORWARD_FALLR &&
                             frame.curr != ACT_FORWARD_FALL1;
@@ -799,24 +776,25 @@ public class BaseHero extends AbstractObject implements Hero {
       nextAct = landing(reboundable, forward, 0.0);
     } else if (frame.state == State.FIRE) {
       nextAct = landing(true, false, 0.0);
-    } else if (frame.state == LFstate.ICE) {
+    } else if (frame.state == State.ICE) {
       nextAct = landing(true, false, ICED_FALLDOWN_DAMAGE);
-    } else if (extra.containsKey(LFextra.Kind.LANDING)) {
-      nextAct = extra.remove(LFextra.Kind.LANDING).intValue;
+    } else if (buff.containsKey(Effect.LANDING_ACT)) {
+      nextAct = buff.remove(Effect.LANDING_ACT).intValue;
       vy = 0.0;
       flyingFlag = NO_FLYING;
-    } else if ((frame.state == LFstate.JUMP || frame.state == LFstate.ROW) && (flyingFlag & 1) == 0) {
-      nextAct = Act_crouch1;
+    } else if ((frame.state == State.JUMP || frame.state == State.ROW) && (flyingFlag & 1) == 0) {
+      nextAct = ACT_CROUCH1;
       vy = 0.0;
-    } else if ((py < 0.0) || ((frame.state == LFstate.DASH) && ((flyingFlag & 1) == 0))) {
-      nextAct = Act_crouch2;
+    } else if ((py < 0.0) || ((frame.state == State.DASH) && ((flyingFlag & 1) == 0))) {
+      nextAct = ACT_CROUCH2;
       vy = 0.0;
       flyingFlag = NO_FLYING;
     } else {
       vy = 0.0;
     }
-    if (extra.remove(LFextra.Kind.SONATA) != null)
+    if (buff.remove(Effect.SONATA) != null) {
       hpLost(SONATA_FALLDOWN_DAMAGE, false);
+    }
     py = 0.0;
     return nextAct;
   }
@@ -835,10 +813,8 @@ public class BaseHero extends AbstractObject implements Hero {
       mp = Math.min(mpMax, mp + mpReg + Math.max(0.0, (hpMax - hp) / 300.0));
     }
     if (--hitSpan < 0) {
-      if (dp > 0)
-        --dp;
-      if (fp > 0)
-        --fp;
+      if (dp > 0)  --dp;
+      if (fp > 0)  --fp;
     }
     return ACT_TBA;
   }
@@ -850,7 +826,7 @@ public class BaseHero extends AbstractObject implements Hero {
     if (hpmp == null) {  // no cost
       return frame.next;
     }
-    Integer spare = frame.combo.get(hit_d);
+    Integer spare = frame.combo.get(Combo.hit_d);
     if (hpmp[1] >= 0.0 || spare == null) {
       hp = hpmp[0];
       mp = hpmp[1];
@@ -862,17 +838,18 @@ public class BaseHero extends AbstractObject implements Hero {
 
   @Override
   protected boolean adjustBoundary() {
-    double[] xzBound = env.getXzBound();
-    px = Global.clamp(px, xzBound[0], xzBound[1]);
-    pz = Global.clamp(pz, xzBound[2], xzBound[3]);
+    List<Double> xBound = env.getHeroXBound();
+    List<Double> zBound = env.getZBound();
+    px = Util.clamp(px, xBound.get(0), xBound.get(1));
+    pz = Util.clamp(pz, zBound.get(0), zBound.get(1));
     return true;
   }
 
   @Override
   protected void updateItrs() {
-    super().updateItrs();
+    super.updateItrs();
     if (weapon != null) {
-      itrList.addAll(weapon.getStrengthItrs(frame.wpoint.strength));
+      itrList.addAll(weapon.getStrengthItrs(frame.wpoint.usage));
     }
     return;
   }
@@ -888,17 +865,12 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public void setController(Controller controller) {
-    this.controller = controller;
-    return;
+  public Point getViewpoint() {
+    return new Point(px, faceRight ? 1.0 : -1.0);
   }
 
   @Override
-  public void updateViewer(Viewport viewer) {
-    viewer.faceRight = faceRight;
-    viewer.px = px;
-    viewer.py = py;
-    viewer.pz = pz;
+  public void updateViewer(Viewer viewer) {
     if (hp > 0.0) {
       viewer.mpRatio = mp / mpMax;
       viewer.hpRatio = hp / hpMax;
@@ -911,51 +883,10 @@ public class BaseHero extends AbstractObject implements Hero {
     return;
   }
 
+  @Override
+  public void setController(Controller controller) {
+    this.controller = controller;
+    return;
+  }
+
 }
-/*
-
-      case CATCH:
-        if (grasp != null) switch (grasp.state) {
-          case CATCHING:
-            if ((ctrl.do_F & ctrl.do_a) && (frame.cpoint.taction != NOP)) {
-              nextAct = frame.cpoint.taction;
-            } else if (ctrl.do_a && (frame.cpoint.aaction != NOP)) {
-              nextAct = frame.cpoint.aaction;
-            } else if (ctrl.do_j && (frame.cpoint.jaction != NOP)) {
-              nextAct = frame.cpoint.jaction;
-            }
-            if (frame.cpoint.dircontrol != 0) {
-              if (ctrl.do_R)  faceRight = (frame.cpoint.dircontrol > 0);
-              if (ctrl.do_L)  faceRight = (frame.cpoint.dircontrol < 0);
-            }
-            break;
-          case TIMEUP:
-          case DROP:
-            nextAct = Act_999;
-          case THROW_START:
-          case THROW_END:
-            grasp = null;
-            break;
-        }
-        break;
-      case CAUGHT:
-        if (grasp != null) switch (grasp.state) {
-          case CATCHING:
-          case THROW_END:
-            break;
-          case TIMEUP:
-            grasp = null;
-            nextAct = Act_fwfall2;
-            vx = faceRight ? -CAUGHT_TIMEUP_DVX : CAUGHT_TIMEUP_DVX;
-            vy = CAUGHT_TIMEUP_DVY;
-            break;
-          case DROP:
-            grasp = null;
-            nextAct = Act_jumpair;
-            vx = 0.0;
-            vy = CAUGHT_DROP_DVY;
-            break;
-        }
-        break;
-
-*/

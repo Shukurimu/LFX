@@ -40,7 +40,8 @@ public abstract class AbstractObject implements Observable {
 
   public final String identifier;
   protected final List<Frame> frameList;  // shared between same objects
-  protected final List<Tuple<Observable, Itr>> receivedItrs = new ArrayList<>(16);
+  protected final List<Tuple<Observable, Itr>> sendItrList = new ArrayList<>(16);
+  protected final List<Tuple<Observable, Itr>> recvItrList = new ArrayList<>(16);
   protected final List<Tuple<Bdy, Area>> bdyList = new ArrayList<>(8);
   protected final List<Tuple<Itr, Area>> itrList = new ArrayList<>(8);
   protected final Map<Effect, Effect.Value> buff = new EnumMap<>(Effect.class);
@@ -62,7 +63,7 @@ public abstract class AbstractObject implements Observable {
   protected double hpMax = 500.0;
   protected double hp2nd = 500.0;
   protected double mpMax = 500.0;
-  private int transition = 0;
+  protected int transition = 0;
   private double anchorX = 0.0;  // picture x-coordinate (left if faceRight else right)
   private double anchorY = 0.0;  // picture y-coordinate (top)
   private boolean existence = true;
@@ -211,8 +212,12 @@ public abstract class AbstractObject implements Observable {
   protected abstract void itrCallback();
 
   @Override
-  public void receiveItr(Observable source, Itr itr) {
-    receivedItrs.add(new Tuple<>(source, itr));
+  public void interact(Observable source, Observable target, Itr itr) {
+    if (source == this) {
+      sendItrList.add(new Tuple<>(target, itr));
+    } else {
+      recvItrList.add(new Tuple<>(source, itr));
+    }
     return;
   }
 
@@ -244,8 +249,8 @@ public abstract class AbstractObject implements Observable {
           }
           // TODO: grasp & weapon-pick
           // TODO: distinguish active or passive
-          this.receiveItr(that, itr);
-          that.receiveItr(this, itr);
+          this.interact(this, that, itr);
+          that.interact(this, that, itr);
           if (itr.vrest < 0) {
             arest = timestamp - itr.vrest;
           } else {
@@ -303,9 +308,6 @@ public abstract class AbstractObject implements Observable {
         case TELEPORT_ENEMY:
         case TELEPORT_TEAM:
           System.out.println("Teleport");
-          break;
-        case CREATE_ARMOUR:
-          opointCreateArmour();
           break;
         case TRANSFORM_TO:
         case TRANSFORM_BACK:
