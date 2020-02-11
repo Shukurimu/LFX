@@ -27,6 +27,10 @@ public final class Bdy {
     this.attr = Set.of();
   }
 
+  public Bdy(int x, int y, int w, int h) {
+    this(new Box(x, y, w, h));
+  }
+
   public Bdy(Box box, String attrString) {
     this.box = box;
     Set<Attribute> tempSet = EnumSet.noneOf(Attribute.class);
@@ -36,6 +40,10 @@ public final class Bdy {
       }
     }
     this.attr = Set.copyOf(tempSet);
+  }
+
+  public Bdy(int x, int y, int w, int h, String attrString) {
+    this(new Box(x, y, w, h), attrString);
   }
 
   public boolean interactsWith(Itr itr, int scopeView) {

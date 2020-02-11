@@ -4,37 +4,15 @@ import lfx.util.Const;
 import lfx.util.Point;
 
 public final class Wpoint extends Point {
-
-  public enum Usage {
-    DROP    (false),
-    HARMLESS(false),
-    NORMAL  (true),
-    JUMP    (true),
-    RUN     (true),
-    DASH    (true);
-
-    public final boolean itrable;
-
-    private Usage(boolean itrable) {
-      this.itrable = itrable;
-    }
-
-    @Override
-    public String toString() {
-      return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
-    }
-
-  }
-
   public final int weaponact;
   public final int dvx;
   public final int dvy;
   public final int dvz;
-  public final Usage usage;
+  public final int usage;
   public final double zOffset;
 
   private Wpoint(int x, int y, int weaponact, int cover,
-                 int dvx, int dvy, int dvz, Usage usage) {
+                 int dvx, int dvy, int dvz, int usage) {
     super(x, y);
     this.weaponact = weaponact;
     this.dvx = dvx;
@@ -46,17 +24,17 @@ public final class Wpoint extends Point {
 
   // Holding
   public Wpoint(int x, int y, int weaponact, int cover) {
-    this(x, y, weaponact, cover, 0, 0, 0, Usage.HARMLESS);
+    this(x, y, weaponact, cover, 0, 0, 0, 0);
   }
 
-  // Attacking
-  public Wpoint(int x, int y, int weaponact, int cover, Usage usage) {
+  // Attacking.Drop
+  public Wpoint(int x, int y, int weaponact, int cover, int usage) {
     this(x, y, weaponact, cover, 0, 0, 0, usage);
   }
 
   // Throw
   public Wpoint(int x, int y, int weaponact, int cover, int dvx, int dvy, int dvz) {
-    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.DROP);
+    this(x, y, weaponact, cover, dvx, dvy, dvz, -1);
   }
 
 }

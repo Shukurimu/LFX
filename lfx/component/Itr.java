@@ -6,8 +6,8 @@ import lfx.util.Const;
 public final class Itr {
   public static final int DVX = 0;
   public static final int DVY = -7;
-  public static final int BDEFEND = 0;
   public static final int FALL = 20;
+  public static final int BDEFEND = 0;
   public static final int INJURY = 0;
   public static final int AREST = -7;  // hero default
   public static final int VREST = +9;  // weapon default
@@ -51,61 +51,72 @@ public final class Itr {
       this.sound = sound;
     }
 
-    @Override
-    public String toString() {
-      return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
-    }
-
   }
 
   public final Box box;
   public final Kind kind;
   public final int dvx;  // also catchingact
   public final int dvy;  // also caughtact
+  public final int fall;
   public final int bdefend;
   public final int injury;
-  public final int fall;
   public final int vrest;  // negative value as arest
   public final int scope;
   public final boolean nolag;
   public final boolean explosion;
 
-  public Itr(Box box, Kind kind, int dvx, int dvy,
-             int fall, int bdefend, int injury, int vrest, int scope, String attr) {
+  public Itr(Box box, Kind kind, Integer dvx, Integer dvy,
+             Integer fall, Integer bdefend, Integer injury, int vrest, int scope, String attr) {
     this.box = box;
     this.kind = kind;
-    this.dvx = dvx;
-    this.dvy = dvy;
-    this.fall = fall;
-    this.bdefend = bdefend;
-    this.injury = injury;
+    this.dvx = dvx == null ? DVX : dvx.intValue();
+    this.dvy = dvy == null ? DVY : dvy.intValue();
+    this.fall = fall == null ? FALL : fall.intValue();
+    this.bdefend = bdefend == null ? BDEFEND : bdefend.intValue();
+    this.injury = injury == null ? INJURY : injury.intValue();
     this.vrest = vrest;
     this.scope = scope;
     nolag = attr.contains("nolag");
     explosion = attr.contains("exp");
   }
 
-  public Itr(Box box, Kind kind, int dvx, int dvy,
-             int fall, int bdefend, int injury, int vrest, int scope) {
+  public Itr(Box box, String kind, Integer dvx, Integer dvy,
+             Integer fall, Integer bdefend, Integer injury, int vrest, int scope, String attr) {
+    this(box, Kind.valueOf(kind), dvx, dvy, fall, bdefend, injury, vrest, scope, attr);
+  }
+
+  public Itr(Box box, Kind kind, Integer dvx, Integer dvy,
+             Integer fall, Integer bdefend, Integer injury, int vrest, int scope) {
     this(box, kind, dvx, dvy, fall, bdefend, injury, vrest, scope, "");
   }
 
-  // grasp (use constructor if you really want to grasp teammate)
-  public static Itr grasp(Box box, boolean forceGrasp, int catchingact, int caughtact) {
+  public Itr(Box box, String kind, Integer dvx, Integer dvy,
+             Integer fall, Integer bdefend, Integer injury, int vrest, int scope) {
+    this(box, Kind.valueOf(kind), dvx, dvy, fall, bdefend, injury, vrest, scope, "");
+  }
+
+  // grab (use constructor if you really want to grab teammate)
+  public static Itr grab(Box box, boolean forceGrasp, int catchingact, int caughtact) {
     return new Itr(box, forceGrasp ? Kind.GRASP_BDY : Kind.GRASP_DOP,
-                   catchingact, caughtact, 0, 0, 0, VREST,
+                   catchingact, caughtact, 0, 0, 0, 0,
                    Const.getSideView(Const.SCOPE_VIEW_HERO, false), "");
   }
 
   // kind only (PICK, BLOCK, ...)
-  public static Itr kind(Box box, Kind kind, int scope) {
-    return new Itr(box, kind, 0, 0, 0, 0, 0, 0, scope, "");
+  public static Itr kind(Box box, String kind, int scope) {
+    return new Itr(box, Kind.valueOf(kind), 0, 0, 0, 0, 0, 0, scope, "");
+  }
+
+  // weapon on hand
+  public static Itr hand(Box box) {
+    return new Itr(box, Kind.NONE, 0, 0, 0, 0, 0, 0, 0, "");
   }
 
   // weapon strength list (treated as hero's attack)
-  public static Itr strength(Kind kind, int dvx, int dvy,
+  public static Itr strength(String kind, int dvx, int dvy,
                              int fall, int bdefend, int injury, int vrest) {
-    return new Itr(null, kind, dvx, dvy, fall, bdefend, injury, vrest, HERO_SCOPE, "");
+    return new Itr(null, Kind.valueOf(kind), dvx, dvy,
+                   fall, bdefend, injury, vrest, HERO_SCOPE, "");
   }
 
   public int calcLag(int originalValue) {

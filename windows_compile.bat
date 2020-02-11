@@ -21,6 +21,10 @@ javac --source-path lfx --module-path %PATH_TO_FX% --add-modules javafx.graphics
       --class-path %DESTINATION% -d %DESTINATION% lfx/map/Field.java ^
           lfx/object/Hero.java lfx/object/Weapon.java lfx/object/Energy.java
 
+echo "compile_tools"
+javac --source-path lfx ^
+      --class-path %DESTINATION% -d %DESTINATION% lfx/tool/RawTxtParser.java
+
 echo "compile_base"
 javac --source-path lfx --module-path %PATH_TO_FX% --add-modules javafx.graphics ^
       --class-path %DESTINATION% -d %DESTINATION% lfx/map/BaseMap.java lfx/object/AbstractObject.java

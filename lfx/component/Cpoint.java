@@ -1,5 +1,6 @@
 package lfx.component;
 
+import java.util.HashMap;
 import java.util.Map;
 import lfx.util.Const;
 import lfx.util.Point;
@@ -23,13 +24,19 @@ public class Cpoint extends Point {
   public final boolean throwing;
 
   // grasper
-  public Cpoint(int x, int y, int vaction, int decrease, Map<String, Integer> meta) {
+  @SafeVarargs
+  public Cpoint(int x, int y, int vaction, int decrease, String... metaArray) {
     super(x, y);
     this.decrease = decrease;
     this.vaction = vaction;
-    taction = meta.getOrDefault("taction", Const.TBA);
-    aaction = meta.getOrDefault("aaction", Const.TBA);
-    jaction = meta.getOrDefault("jaction", Const.TBA);
+    Map<String, Integer> meta = new HashMap<>(16);
+    for (String info : metaArray) {
+      String[] kv = info.split(" ");
+      meta.put(kv[0], Integer.valueOf(kv[1]));
+    }
+    taction = meta.getOrDefault("taction", Const.NOP);
+    aaction = meta.getOrDefault("aaction", Const.NOP);
+    jaction = meta.getOrDefault("jaction", Const.NOP);
     throwvx = meta.getOrDefault("throwvx", 0);
     throwvy = meta.getOrDefault("throwvy", 0);
     throwvz = meta.getOrDefault("throwvz", 0);

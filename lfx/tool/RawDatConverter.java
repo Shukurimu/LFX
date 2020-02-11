@@ -15,7 +15,7 @@ public final class RawDatConverter {
       return;
     }
     for (File file: folder.listFiles(
-        x -> (x.getAbsoluteFile().isFile() && x.getName().endsWith(".dat")))) {
+         x -> (x.getAbsoluteFile().isFile() && x.getName().endsWith(".dat")))) {
       String rawFileName = file.getName();
       String newFileName = rawFileName.replaceFirst("dat$", "txt");
       FileInputStream is = new FileInputStream(file.getAbsolutePath());
@@ -30,7 +30,7 @@ public final class RawDatConverter {
       }
       os.close();
       is.close();
-      System.out.printf("Convert: %s -> %s\n", rawFileName, newFileName);
+      System.out.printf("Convert: %s -> %s%n", rawFileName, newFileName);
     }
     return;
   }

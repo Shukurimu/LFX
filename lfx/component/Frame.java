@@ -103,28 +103,20 @@ public final class Frame {
 
   public static final class Collector {
     List<Frame> data;
-    List<Tuple<Image, Image>> picList;
+    List<Tuple<Image, Image>> imageList;
 
-    public Collector(int size, List<Tuple<Image, Image>> picList) {
+    public Collector(int size, List<Tuple<Image, Image>> imageList) {
       data = new ArrayList<>(Collections.nCopies(size, dummy));
-      this.picList = picList;
+      this.imageList = imageList;
     }
 
-    int nonNullValue(Integer originValue, int defaultValue) {
+    static int nonNullValue(Integer originValue, int defaultValue) {
       return originValue == null ? originValue.intValue() : defaultValue;
     }
 
     public void add(int curr, int wait, int next, State state,
-                    int picIndex, int centerx, int centery,
-                    Map<String, Integer> optField, Object... elements) {
-      int dvx = nonNullValue(optField.remove("dvx"), 0);
-      int dvy = nonNullValue(optField.remove("dvy"), 0);
-      int dvz = nonNullValue(optField.remove("dvz"), 0);
-      int cost = nonNullValue(optField.remove("mp"), 0);
-
-      Map<Combo, Integer> combo = new EnumMap<>(Combo.class);
-      optField.forEach((string, act) -> combo.put(Combo.valueOf(string), act));
-
+                    int picIndex, int centerx, int centery, Object... elements) {
+      Map<String, Integer> optField = Map.of();
       List<Bdy> bdyList = new ArrayList<>();
       List<Itr> itrList = new ArrayList<>();
       List<Opoint> opointList = new ArrayList<>();
@@ -132,8 +124,10 @@ public final class Frame {
       Cpoint cpoint = null;
       String sound = null;
       for (Object e : elements) {
-        if (e instanceof String) {
-          sound = (String) e;
+        if (e instanceof Map) {
+          @SuppressWarnings("unchecked")
+          Map<String, Integer> temp = (Map<String, Integer>) e;
+          optField = temp;
         } else if (e instanceof Bdy) {
           bdyList.add((Bdy) e);
         } else if (e instanceof Itr) {
@@ -144,12 +138,21 @@ public final class Frame {
           opointList.add((Opoint) e);
         } else if (e instanceof Cpoint) {
           cpoint = (Cpoint) e;
+        } else if (e instanceof String) {
+          sound = (String) e;
         } else {
           System.out.println("NotImplemented: " + e.toString());
         }
       }
 
-      Tuple<Image, Image> pics = picList.get(picIndex);
+      int dvx = nonNullValue(optField.remove("dvx"), 0);
+      int dvy = nonNullValue(optField.remove("dvy"), 0);
+      int dvz = nonNullValue(optField.remove("dvz"), 0);
+      int cost = nonNullValue(optField.remove("mp"), 0);
+      Map<Combo, Integer> combo = new EnumMap<>(Combo.class);
+      optField.forEach((string, act) -> combo.put(Combo.valueOf(string), act));
+
+      Tuple<Image, Image> pics = imageList.get(picIndex);
       data.set(curr, new Frame(pics.first, pics.second, centerx, centery,
                                state, curr, wait, next,
                                dvx, dvy, dvz, cost,

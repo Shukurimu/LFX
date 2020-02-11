@@ -10,6 +10,7 @@ import lfx.util.Area;
 import lfx.util.Tuple;
 
 public interface Weapon extends Observable {
+  int DEF_SCOPE = Itr.WEAPON_SCOPE;
   double INITIAL_MP = 750.0;
   Map<String, Double> SPECIAL_MP = Map.of("Milk", 500.0 / 3.0);
   Set<String> NON_NEUTRAL_SET = Set.of("IceSword", "LouisArmour1", "LouisArmour2");
@@ -28,7 +29,7 @@ public interface Weapon extends Observable {
   boolean isSmall();
   void destroy();
   List<Double> consume();
-  List<Tuple<Itr, Area>> getStrengthItrs(Wpoint.Usage wusage);
+  List<Tuple<Itr, Area>> getStrengthItrs(int wusage);
 
   int ACT_RANGE = 16;
   int ACT_IN_THE_SKY = 0;

@@ -25,11 +25,11 @@ public final class Opoint extends Point {
     this.direction = direction;
   }
 
-  public static Opoint front(int x, int y, int dvx, int dvy, String oid, int action, int amount) {
+  public static Opoint front(int x, int y, String oid, int dvx, int dvy, int action, int amount) {
     return new Opoint(true, x, y, dvx, dvy, amount, action, oid, Direction.SAME);
   }
 
-  public static Opoint back(int x, int y, int dvx, int dvy, String oid, int action, int amount) {
+  public static Opoint back(int x, int y, String oid, int dvx, int dvy, int action, int amount) {
     return new Opoint(true, x, y, dvx, dvy, amount, action, oid, Direction.OPPOSITE);
   }
 

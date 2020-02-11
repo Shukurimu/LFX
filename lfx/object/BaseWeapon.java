@@ -46,12 +46,12 @@ class BaseWeapon extends AbstractObject implements Weapon {
   public final String soundHit;
   public final String soundDrop;
   public final String soundBroken;
-  public final Map<Wpoint.Usage, Itr> strengthMap;
+  public final Map<Integer, Itr> strengthMap;
   public final Set<Weapon> immune = new HashSet<>();
   private Hero owner = null;
 
   protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
-                       Map<String, String> stamina, Map<Wpoint.Usage, Itr> strengthMap) {
+                       Map<String, String> stamina, Map<Integer, Itr> strengthMap) {
     super(identifier, frameList);
     this.subtype = subtype;
     isHeavy = subtype == Subtype.HEAVY;
@@ -64,7 +64,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
     soundHit = stamina.get(Key_hit_sound);
     soundDrop = stamina.get(Key_drop_sound);
     soundBroken = stamina.get(Key_broken_sound);
-    this.strengthMap = strengthMap;
+    this.strengthMap = Map.copyOf(strengthMap);
   }
 
   protected BaseWeapon(BaseWeapon base) {
@@ -239,7 +239,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
     // there is no wpoint in the first frame of picking weapon (Act_punch)
     if (wpoint != null) {
       setPosition(owner.getBasePosition(wpoint), frame.wpoint, wpoint.zOffset);
-      if (wpoint.usage == Wpoint.Usage.DROP) {
+      if (wpoint.usage == 0) {
         vx = faceRight ? wpoint.dvx : -wpoint.dvx;
         vy = wpoint.dvy;
         vz = owner.getInputZ() * wpoint.dvz;
@@ -301,7 +301,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  public List<Tuple<Itr, Area>> getStrengthItrs(Wpoint.Usage wusage) {
+  public List<Tuple<Itr, Area>> getStrengthItrs(int wusage) {
     Itr strengthItr = strengthMap.get(wusage);
     if (strengthItr == null) {
       return List.of();

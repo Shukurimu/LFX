@@ -5,6 +5,7 @@ import java.util.List;
 public final class Const {
   public static final int FRAME_NUM = 400;
   public static final int TBA = 1357924680;
+  public static final int NOP = 1357986420;
   public static final int LAG = 3;
   public static final int DV_550 = 550;
   public static final int ZWIDTH = 12;

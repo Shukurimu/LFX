@@ -1,6 +1,7 @@
 package lfx.object;
 
 import javafx.scene.image.Image;
+import lfx.component.Itr;
 import lfx.component.Wpoint;
 import lfx.object.Observable;
 import lfx.util.Controller;
@@ -8,6 +9,7 @@ import lfx.util.Point;
 import lfx.util.Viewer;
 
 public interface Hero extends Observable {
+  int DEF_SCOPE = Itr.HERO_SCOPE;
 
   // The defend point is set to NODEF_DP if got hit not in defend state.
   int NODEF_DP = 45;
@@ -96,8 +98,8 @@ public interface Hero extends Observable {
   int ACT_RUN_ATK = 85;
   int ACT_DASH_ATK = 90;
   int ACT_DASH_DEF = 95;
-  int ACT_ROLLING = 102;
   int ACT_ROWING1 = 100;
+  int ACT_ROLLING = 102;
   int ACT_ROWING2 = 108;
   int ACT_DEFEND = 110;
   int ACT_DEFEND_HIT = 111;
