@@ -28,6 +28,7 @@ public interface Weapon extends Observable {
   boolean isLight();
   boolean isSmall();
   void destroy();
+  Observable getHolder();
   List<Double> consume();
   List<Tuple<Itr, Area>> getStrengthItrs(int wusage);
 

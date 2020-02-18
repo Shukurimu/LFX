@@ -2,6 +2,7 @@ package lfx.component;
 
 import lfx.util.Box;
 import lfx.util.Const;
+import lfx.util.Tuple;
 
 public final class Itr {
   public static final int DVX = 0;
@@ -22,32 +23,36 @@ public final class Itr {
                                          | Const.getBothView(Const.SCOPE_VIEW_ENERGY);
 
   public enum Kind {
-    GRASP_DOP (""),  // kind1
-    PICK      (""),  // kind2
-    GRASP_BDY (""),  // kind3
-    THROW_ATK (""),  // kind4
-    STRENGTH  (""),  // kind5
-    LET_SPUNCH(""),  // kind6
-    ROLL_PICK (""),  // kind7
-    HEAL      (""),  // kind8
-    SHIELD    (""),  // kind9
-    SONATA    (""),  // kind10.kind11
-    BLOCK     (""),  // kind14
-    VORTEX    (""),  // kind15
+    GRASP_DOP (false,  true, ""),  // kind1
+    PICK      (false,  true, ""),  // kind2
+    GRASP_BDY (false,  true, ""),  // kind3
+    THROW_ATK ( true, false, ""),  // kind4
+    STRENGTH  (false, false, ""),  // kind5
+    LET_SPUNCH(false, false, ""),  // kind6
+    ROLL_PICK (false,  true, ""),  // kind7
+    HEAL      (false, false, ""),  // kind8
+    SHIELD    ( true, false, ""),  // kind9
+    SONATA    ( true, false, ""),  // kind10.kind11
+    BLOCK     (false, false, ""),  // kind14
+    VORTEX    ( true, false, ""),  // kind15
     // kind16 is replaced by ICE and calling smooth()
-    PUNCH   ("data/001.wav"),  // effect0
-    STAB    ("data/032.wav"),  // effect1
-    FIRE    ("data/070.wav"),  // effect2
-    ICE     ("data/065.wav"),  // effect3
-    WEAKFIRE("data/070.wav"),  // effect20.effect21
-    WEAKICE ("data/065.wav"),  // effect30
-    NONE    ("");
+    PUNCH   (true, false, "data/001.wav"),  // effect0
+    STAB    (true, false, "data/032.wav"),  // effect1
+    FIRE    (true, false, "data/070.wav"),  // effect2
+    ICE     (true, false, "data/065.wav"),  // effect3
+    WEAKFIRE(true, false, "data/070.wav"),  // effect20.effect21
+    WEAKICE (true, false, "data/065.wav"),  // effect30
+    NONE    (true, false, "");
     // effect4 is replaced by NON_HERO_SCOPE
     // effect23 is replaced by calling exp()
 
+    public final boolean damage;
+    public final boolean callback;
     public final String sound;
 
-    private Kind(String sound) {
+    private Kind(boolean damage, boolean callback, String sound) {
+      this.damage = damage;
+      this.callback = callback;
       this.sound = sound;
     }
 
@@ -124,9 +129,11 @@ public final class Itr {
   }
 
   // Explosion kind negative dvx goes two directions.
-  public double calcDvx(double px, boolean faceRight) {
-    return explosion ? (px < (box.x + box.w / 2) ? -dvx : dvx)
-                     : (faceRight ? dvx : -dvx);
+  public Tuple<Double, Boolean> calcDvx(double px, boolean faceRight) {
+    Double vx = explosion ? (px < (box.x + box.w / 2) ? -dvx : dvx)
+                          : Double.valueOf(faceRight ? dvx : -dvx);
+    Boolean facing = faceRight == (dvx >= 0.0);
+    return new Tuple<>(vx, facing);
   }
 
 }

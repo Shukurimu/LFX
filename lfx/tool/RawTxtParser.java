@@ -3,6 +3,7 @@ package lfx.tool;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.regex.Pattern;
 import java.util.Scanner;
 import java.util.Set;
 import lfx.component.Bdy;
+import lfx.component.Effect;
 import lfx.component.State;
 import lfx.object.Hero;
 import lfx.util.Tuple;
@@ -242,71 +244,86 @@ public class RawTxtParser {
     return propertyList;
   }
 
-  State getState(int rawState, int curr) {
+  Tuple<State, String> getState(int rawState, int curr) {
+    Function<State, Tuple<State, String>> wrapper = state -> new Tuple<>(state, null);
     if (isHero) {
       if (curr == Hero.ACT_CROUCH1) {
-        return State.LAND;
+        return wrapper.apply(State.LAND);
       }
       if (Hero.ACT_HEAVY_RUN > curr && curr >= Hero.ACT_HEAVY_WALK) {
-        return State.HEAVY_WALK;
+        return wrapper.apply(State.HEAVY_WALK);
       }
       if (Hero.ACT_HEAVY_STOP_RUN > curr && curr >= Hero.ACT_HEAVY_RUN) {
-        return State.HEAVY_RUN;
+        return wrapper.apply(State.HEAVY_RUN);
       }
       if (Hero.ACT_ROWING2 > curr && curr >= Hero.ACT_ROLLING) {
-        return State.NORMAL;
+        return wrapper.apply(State.NORMAL);
       }
       if (rawState == 18 && (curr < Hero.ACT_UPWARD_FIRE || curr >= Hero.ACT_TIRED)) {
-        return State.NORMAL;
+        return wrapper.apply(State.NORMAL);
       }
     }
     switch (rawState) {
-      case 0: return State.STAND;
-      case 1: return State.WALK;
-      case 2: return State.RUN;
-      case 3: return State.NORMAL;  // attack action
-      case 4: return State.JUMP;
-      case 5: return State.DASH;
-      case 6: return State.ROW;
-      case 7: return State.DEFEND;
-      case 8: return State.NORMAL;  // (broken_defend) no use
-      case 9: return State.GRASP;
-      case 10: return State.GRASP;
-      case 11: return State.NORMAL;
-      case 12: return State.FALL;
-      case 13: return State.NORMAL;
-      case 14: return State.LYING;
-      case 15: return State.NORMAL;
-      case 16: return State.NORMAL;
-      case 17: return State.DRINK;
-      case 18: return State.FIRE;  // only used in hero on fire actions
-      case 19: return State.NORMAL;  // (firerun) use return State_noact with dvz and visual effect
-      case 100: return State.NORMAL;  // (louis landing) use Effect
-      case 301: return State.NORMAL;  // (Deep_Strafe) use return State_noact with dvz
-      case 400: return State.NORMAL;  // (teleport) use Effect
-      case 401: return State.NORMAL;  // (teleport) use Effect
-      case 500: return State.TRY_TRANSFORM;
-      case 501: return State.NORMAL;  // (transformback) use Effect
-      case 1000: return State.IN_THE_SKY;
-      case 1001: return State.ON_HAND;
-      case 1002: return State.THROWING;
-      case 1003: return State.JUST_ON_GROUND;
-      case 1004: return State.ON_GROUND;
-      case 2000: return State.IN_THE_SKY;
-      case 2001: return State.ON_HAND;
-      case 2004: return State.ON_GROUND;  // unknown
-      case 3000: return State.NORMAL;
-      case 3001: return State.HITTING;
-      case 3002: return State.HIT;
-      case 3003: return State.REBOUND;
-      case 3004: return State.HIT;  // unknown real effect
-      case 3005: return State.ENERGY;
-      case 3006: return State.PIERCE;
-      case 1700: return State.NORMAL;  // (healing) use Effect
-      case 9995: return State.UNIMPLEMENTED;
-      case 9996: return State.NORMAL;  // use opoint kind==ARMOUR
-      case 9998: return State.NORMAL;
-      default: return State.NORMAL;
+      case 0: return wrapper.apply(State.STAND);
+      case 1: return wrapper.apply(State.WALK);
+      case 2: return wrapper.apply(State.RUN);
+      case 3: return wrapper.apply(State.NORMAL);  // (attack action) no use
+      case 4: return wrapper.apply(State.JUMP);
+      case 5: return wrapper.apply(State.DASH);
+      case 6: return wrapper.apply(State.ROW);
+      case 7: return wrapper.apply(State.DEFEND);
+      case 8: return wrapper.apply(State.NORMAL);  // (broken_defend) no use
+      case 9: return wrapper.apply(State.GRASP);
+      case 10: return wrapper.apply(State.GRASP);
+      case 11: return wrapper.apply(State.NORMAL);
+      case 12: return wrapper.apply(State.FALL);
+      case 13: return wrapper.apply(State.NORMAL);
+      case 14: return wrapper.apply(State.LYING);
+      case 15: return wrapper.apply(State.NORMAL);
+      case 16: return wrapper.apply(State.NORMAL);
+      case 17: return wrapper.apply(State.DRINK);
+      case 18: return wrapper.apply(State.FIRE);  // only used in hero on fire actions
+      case 19: return wrapper.apply(State.NORMAL);  // (Firen firerun) use dvz and visual effect
+      case 100:  // (Louis landing)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.until(94))", Effect.LANDING_ACT));
+      case 301: return wrapper.apply(State.NORMAL);  // (Deep chop_series) use dvz
+      case 400:  // (Woody teleport enemy)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.once(120.0))", Effect.TELEPORT_ENEMY));
+      case 401:  // (Woody teleport teammate)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.once(60.0))", Effect.TELEPORT_TEAM));
+      case 500: return wrapper.apply(State.TRY_TRANSFORM);
+      case 501: return wrapper.apply(State.NORMAL);  // (transformback) use Effect
+      case 1000: return wrapper.apply(State.IN_THE_SKY);
+      case 1001: return wrapper.apply(State.ON_HAND);
+      case 1002: return wrapper.apply(State.THROWING);
+      case 1003: return wrapper.apply(State.JUST_ON_GROUND);
+      case 1004: return wrapper.apply(State.ON_GROUND);
+      case 1700:  // (John healing)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.last(100, 1.0))", Effect.HEALING));
+      case 2000: return wrapper.apply(State.IN_THE_SKY);
+      case 2001: return wrapper.apply(State.ON_HAND);
+      case 2004: return wrapper.apply(State.ON_GROUND);  // unknown
+      case 3000: return wrapper.apply(State.NORMAL);
+      case 3001: return wrapper.apply(State.HITTING);
+      case 3002: return wrapper.apply(State.HIT);
+      case 3003: return wrapper.apply(State.REBOUND);
+      case 3004: return wrapper.apply(State.HIT);  // unknown real effect
+      case 3005: return wrapper.apply(State.ENERGY);
+      case 3006: return wrapper.apply(State.PIERCE);
+      case 9995:  // (transform into LouisEX)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.once(\"LouisEX\"))", Effect.TRANSFORM_INTO));
+      case 9996:  // (create Louis armours)
+        return new Tuple<>(State.NORMAL, String.format(
+            "Tuple.of(%s, Effect.Value.once())", Effect.CREATE_ARMOUR));
+      case 9998: return wrapper.apply(State.UNIMPLEMENTED);
+      default:
+        message("Unexpected raw state %d", rawState);
+        return wrapper.apply(State.UNIMPLEMENTED);
     }
   }
 
@@ -391,17 +408,18 @@ public class RawTxtParser {
     return;
   }
 
-  Tuple<String, Integer> parseAction(String rawAction) {
+  Tuple<String, String> parseAction(String rawAction) {
     int intValue = Math.abs(Integer.valueOf(rawAction));
     String rawResult = null;
-    Integer invisibility = null;
+    String invisibility = null;
     if (intValue == 1000) {
       rawResult = "ACT_REMOVAL";
     } else if (intValue == 999) {
       rawResult = "ACT_DEF";
     } else if (intValue > 1000) {
       rawResult = "ACT_DEF";
-      invisibility = Integer.valueOf(intValue - 1100);
+      invisibility = String.format("Tuple.of(%s, Effect.Value.last(%d))",
+                                   Effect.INVISIBILITY, intValue - 1100);
     } else if (intValue == 0) {
       rawResult = Integer.toString(frameNumber);
     } else {
@@ -432,9 +450,9 @@ public class RawTxtParser {
     int wait = Integer.valueOf(data.remove("wait"));
     int centerx = Integer.valueOf(data.remove("centerx"));
     int centery = Integer.valueOf(data.remove("centery"));
-    State state = getState(rawState, frameNumber);
+    Tuple<State, String> stateTuple = getState(rawState, frameNumber);
 
-    Tuple<String, Integer> nextTuple = parseAction(data.remove("next"));
+    Tuple<String, String> nextTuple = parseAction(data.remove("next"));
     
     int dvx = Integer.valueOf(data.getOrDefault("dvx", "0"));
     int dvy = Integer.valueOf(data.getOrDefault("dvy", "0"));
@@ -483,7 +501,7 @@ public class RawTxtParser {
                                 frameNumber,
                                 wait,
                                 nextTuple.first,
-                                state.toString(),
+                                stateTuple.first.toString(),
                                 picIndex, centerx, centery,
                                 sound
     ));
@@ -504,9 +522,14 @@ public class RawTxtParser {
         remaining.add(result);
       }
     }
+    if (stateTuple.second != null) {  // innate effect
+      remaining.add(stateTuple.second);
+    }
+    if (nextTuple.second != null) {  // invisibility
+      remaining.add(nextTuple.second);
+    }
 
     lineList.add(String.format("%scollector.add(  // %s", indent(2), frameNote));
-
     int count = remaining.size();
     for (String line : remaining) {
       lineList.add(String.format("%s%s%s", indent(4), line, --count > 0 ? "," : ""));

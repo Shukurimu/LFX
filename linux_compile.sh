@@ -29,6 +29,12 @@ function compile_extend() {
               lfx/object/Hero.java lfx/object/Weapon.java lfx/object/Energy.java
 }
 
+function compile_tools() {
+    echo "${FUNCNAME}"
+    javac --source-path lfx \
+          --class-path ${DESTINATION} -d ${DESTINATION} lfx/tool/RawTxtParser.java
+}
+
 function compile_base() {
     echo "${FUNCNAME}"
     javac --source-path lfx --module-path ${PATH_TO_FX} --add-modules javafx.graphics \
@@ -72,6 +78,7 @@ compile_util
 compile_component
 compile_interface
 compile_extend
+compile_tools
 compile_base
 compile_concrete
 compile_some

@@ -124,7 +124,17 @@ class BaseWeapon extends AbstractObject implements Weapon {
     return subtype == Subtype.SMALL;
   }
 
-  /** Return null if cannot be consumed. */
+  @Override
+  public void destroy() {
+    hp = 0.0;
+    // TODO: create fabrics
+    return;
+  }
+
+  public Observable getHolder() {
+    return owner;
+  }
+
   @Override
   public List<Double> consume() {
     if (0.0 >= mp) {
@@ -140,13 +150,6 @@ class BaseWeapon extends AbstractObject implements Weapon {
     }
     System.out.println("Unknown consume: " + identifier);
     return null;
-  }
-
-  @Override
-  public void destroy() {
-    hp = 0.0;
-    // TODO: create fabrics
-    return;
   }
 
   @Override
@@ -167,7 +170,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
       final Observable that = tuple.first;
       final Itr itr = tuple.second;
       hp -= itr.injury;
-      vx += itr.calcDvx(vx, faceRight);
+      vx += itr.calcDvx(vx, faceRight).first;
       vy += itr.dvy;
       if (itr.fall >= 0) {
         // nextAct = subtype.hitAct(fall, vx);

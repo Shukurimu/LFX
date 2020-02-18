@@ -144,8 +144,8 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   // Most of the time, potential HP is reduced by one-third of the received damage.
-  // Use `sync=true` to the situations not following this rule (e.g., throwinjury).
-  // Note that the lower bound is zero in LFX, which is different from LF2.
+  // Use `sync=true` in the situations not following this rule (e.g., throwinjury).
+  // Note that the hp lower bound is zero in LFX, which is different from LF2.
   @Override
   protected void hpLost(double injury, boolean sync) {
     hp -= injury;
@@ -183,79 +183,90 @@ class BaseHero extends AbstractObject implements Hero {
     return Const.getSideView(Const.SCOPE_VIEW_HERO, targetTeamId == this.teamId);
   }
 
-  @Override
-  protected void itrCallback() {
-    System.out.println("itrCallback NotImplemented");
-    return;
+  private Weapon confirmPicking(Observable that) {
+    Weapon target = (Weapon) that;
+    if (target.getHolder() == this) {
+      weapon = target;
+    }
+    return target;
   }
 
   @Override
   public void react() {
     int nextAct = ACT_TBA;
 
-    RESULT_LOOP:
+    for (Tuple<Observable, Itr> tuple: sendItrList) {
+      Itr itr = tuple.second;
+      switch (itr.kind) {
+        case GRASP_DOP:
+        case GRASP_BDY:
+          break;
+        case PICK:
+          // You always perform the action even if picking failed.
+          nextAct = confirmPicking(tuple.first).isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+          break;
+        case ROLL_PICK:
+          confirmPicking(tuple.first);
+          break;
+        default:
+          if (itr.kind.callback) {
+            System.err.printf("Itr %s does not process callback.%n", itr);
+          }
+      }
+    }
+    sendItrList.clear();
+
     for (Tuple<Observable, Itr> tuple: recvItrList) {
-      final Observable that = tuple.first;
-      final Itr itr = tuple.second;
+      Observable that = tuple.first;
+      Itr itr = tuple.second;
       switch (itr.kind) {
         case LET_SPUNCH:
-          buff.put(Effect.ATTACK_SPUNCH, Effect.oneshot());
-          continue RESULT_LOOP;
-        case PICK:
-          nextAct = weapon.isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
-          // fall-through
-        case ROLL_PICK:
-          // will not affect current action
-          continue RESULT_LOOP;
+          buff.put(Effect.ATTACK_SPUNCH, Effect.Value.once());
+          break;
         case BLOCK:
-          buff.put(Effect.MOVE_BLOCKING, Effect.oneshot());
-          continue RESULT_LOOP;
+          buff.put(Effect.MOVE_BLOCKING, Effect.Value.once());
+          break;
         case HEAL:
-          // buff.put(Effect.HEALING, new Effect.Value(itr.dvy, (double)(itr.injury / itr.dvy)));
-          continue RESULT_LOOP;
+          buff.put(Effect.HEALING, Effect.Value.last(itr.dvy, (double) itr.injury / itr.dvy));
+          break;
         default:
           System.out.println("NotImplemented Effect: " + itr.kind);
       }
-      hpLost(itr.injury, false);
-      dp += itr.bdefend;
-      fp += itr.fall;
-      vx += itr.calcDvx(vx, faceRight);
-      vy += itr.dvy;
+
       actLag = itr.calcLag(actLag);
+      Tuple<Double, Boolean> dvxTuple = itr.calcDvx(px, faceRight);  // (dvx, sameDirection)
+      hitSpan = 2;
+      if (frame.state == State.DEFEND && dvxTuple.second) {
+        hpLost(itr.injury * DEFEND_INJURY_REDUCTION, false);
+        vx += dvxTuple.first * DEFEND_DVX_REDUCTION;
+        dp += itr.bdefend;
+        if (hp <= 0.0) {
+          nextAct = ACT_FORWARD_FALL1;
+        } else if (dp > 30) {
+          transitFrame(ACT_BROKEN_DEF);
+        } else if (frame.curr == ACT_DEFEND) {
+          transitFrame(ACT_DEFEND_HIT);
+        }
+      } else {
+        hpLost(itr.injury, false);
+        vx += dvxTuple.first;
+        dp = Math.max(dp + itr.bdefend, NODEF_DP);
+        fp = (fp + itr.fall + 19) / 20 * 20;
+        if (frame.state == State.ICE || fp > 60 || (fp > 20 && py < 0.0) || hp <= 0.0) {
+          vy += itr.dvy;
+          nextAct = dvxTuple.second ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1;
+        } else if (fp > 40) {
+          nextAct = ACT_DOP;
+        } else if (fp > 20) {
+          nextAct = dvxTuple.second ? ACT_INJURE3 : ACT_INJURE2;
+        } else if (fp >= 0) {
+          nextAct = ACT_INJURE1;
+        } else {
+          // Negative fp causes nothing.
+        }
+      }
     }
     recvItrList.clear();
-
-    hitSpan = 2;
-    if (frame.state == State.ICE) {
-    }
-    // TODO: defend same direction
-    // if (frame.state == State.DEFEND) {
-      // hpLost(injury * DEFEND_INJURY_REDUCTION, false);
-      // vx = dvx * DEFEND_DVX_REDUCTION;
-      // if (hp == 0.0) {
-        // fp = dp = 0;
-        // nextAct = ACT_FORWARD_FALL1;
-      // } else if (dp > 30) {
-        // transitFrame(ACT_BROKEN);
-      // } else if (frame.curr == ACT_DEFEND) {
-        // transitFrame(ACT_DEFENDHIT);
-      // }
-    // }
-    // dp = NODEF_DP;
-    // fp = (fp + fall + 19) / 20 * 20;
-    // if (originalIced || (fp > 60) || ((fp > 20) && (py < 0.0)) || (hp == 0.0)) {
-      // fp = dp = 0;
-      // vy = dvy;
-      // setCurr(((dvx > 0.0) == faceRight) ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1);
-    // } else if (fp > 40) {
-      // setCurr(ACT_dop);
-    // } else if (fp > 20) {
-      // setCurr(((dvx > 0.0) == faceRight) ? ACT_injure3 : ACT_injure2);
-    // } else if (fp >= 0) {
-      // setCurr(ACT_injure1);
-    // } else {
-      // negative fp causes NOP
-    // }
     return;
   }
 
@@ -777,6 +788,7 @@ class BaseHero extends AbstractObject implements Hero {
     } else if (frame.state == State.FIRE) {
       nextAct = landing(true, false, 0.0);
     } else if (frame.state == State.ICE) {
+      // TODO: small fall
       nextAct = landing(true, false, ICED_FALLDOWN_DAMAGE);
     } else if (buff.containsKey(Effect.LANDING_ACT)) {
       nextAct = buff.remove(Effect.LANDING_ACT).intValue;

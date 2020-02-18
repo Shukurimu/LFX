@@ -131,7 +131,7 @@ public abstract class AbstractObject implements Observable {
   protected abstract int getDefaultActNumber();
 
   protected Frame getFrame(int actNumber) {
-    if (actNumber == ACT_SELF) {
+    if (actNumber == frame.curr) {
       return frame;
     }
     actNumber = Math.abs(actNumber);
@@ -154,7 +154,7 @@ public abstract class AbstractObject implements Observable {
   protected void transitFrame(int actNumber) {
     faceRight ^= actNumber < 0;
     frame = getFrame(actNumber);
-    // frame.effect.forEach((key, value) -> buff.compute(key, Effect.Value::stack));
+    frame.effect.forEach((key, value) -> buff.compute(key, value::stack));
     return;
   }
 
@@ -209,7 +209,9 @@ public abstract class AbstractObject implements Observable {
   @Override
   public abstract int getScopeView(int teamId);
 
-  protected abstract void itrCallback();
+  protected void itrCallback() {
+    System.out.println("NotImplemented");
+  }
 
   @Override
   public void interact(Observable source, Observable target, Itr itr) {
@@ -309,12 +311,12 @@ public abstract class AbstractObject implements Observable {
         case TELEPORT_TEAM:
           System.out.println("Teleport");
           break;
-        case TRANSFORM_TO:
+        case TRANSFORM_INTO:
         case TRANSFORM_BACK:
           System.out.println("Transform");
           break;
       }
-      if (value.lapse()) {
+      if (value.elapse()) {
         iterator.remove();
       }
     }
