@@ -52,18 +52,6 @@ public final class Const {
   public static final double CAMERA_SPEED_THRESHOLD = 0.05;
   public static final long VALID_KEY_INTERVAL = 200L;
 
-  public static final int SCOPE_VIEW_HERO   = 0x100;
-  public static final int SCOPE_VIEW_WEAPON = 0x010;
-  public static final int SCOPE_VIEW_ENERGY = 0x001;
-
-  public static int getSideView(int baseScope, boolean teammate) {
-    return teammate ? (baseScope << 1) : baseScope;
-  }
-
-  public static int getBothView(int baseScope) {
-    return getSideView(baseScope, true) | getSideView(baseScope, false);
-  }
-
   private Const() {}
 
 }

@@ -4,7 +4,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import lfx.component.Itr;
 import lfx.util.Box;
-import lfx.util.Const;
+import lfx.util.Scope;
 
 public final class Bdy {
 
@@ -48,7 +48,7 @@ public final class Bdy {
 
   public boolean interactsWith(Itr itr, int scopeView) {
     if (attr.contains(Attribute.FRIENDLY_FIRE)) {
-      scopeView = Const.getBothView(scopeView);
+      scopeView = Scope.getBothView(scopeView);
     }
     if ((scopeView & itr.scope) == 0) {
       return false;

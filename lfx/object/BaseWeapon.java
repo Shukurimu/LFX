@@ -14,6 +14,7 @@ import lfx.object.AbstractObject;
 import lfx.object.Weapon;
 import lfx.util.Area;
 import lfx.util.Const;
+import lfx.util.Scope;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
@@ -52,7 +53,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
                        Map<String, String> stamina, Map<Integer, Itr> strengthMap) {
-    super(identifier, frameList);
+    super(identifier, frameList, Scope.WEAPON);
     this.subtype = subtype;
     isHeavy = subtype == Subtype.HEAVY;
     gravityRatio = subtype.gravityRatio;
@@ -150,11 +151,6 @@ class BaseWeapon extends AbstractObject implements Weapon {
     }
     System.out.println("Unknown consume: " + identifier);
     return null;
-  }
-
-  @Override
-  public int getScopeView(int targetTeamId) {
-    return Const.getSideView(Const.SCOPE_VIEW_WEAPON, targetTeamId == this.teamId);
   }
 
   @Override

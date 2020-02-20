@@ -14,6 +14,7 @@ public interface Observable {
   // int DEF_SCOPE;  There will be a field in derived interfaces for different default scope view.
   int ACT_DEF = 999;
   int ACT_TBA = 1236987450;  // arbitrary
+  int ACT_SELF = 246813579;  // arbitrary
   int ACT_REMOVAL = 321456987;  // arbitrary
   int ACT_DUMMY = 399;
   /* (self-test value) initial z-velocity for those quantity more than 1 */

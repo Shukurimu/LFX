@@ -9,6 +9,7 @@ import lfx.object.Observable;
 import lfx.util.Combo;
 import lfx.util.Const;
 import lfx.util.Point;
+import lfx.util.Scope;
 import lfx.util.Util;
 
 class BaseEnergy extends AbstractObject implements Energy {
@@ -18,7 +19,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   private Observable creator = null;
 
   protected BaseEnergy(String identifier, List<Frame> frameList, String soundHit) {
-    super(identifier, frameList);
+    super(identifier, frameList, Scope.ENERGY);
     this.soundHit = soundHit;
   }
 
@@ -56,11 +57,6 @@ class BaseEnergy extends AbstractObject implements Energy {
   public void disperse() {
     System.out.println("disperse NotImplemented");
     return;
-  }
-
-  @Override
-  public int getScopeView(int targetTeamId) {
-    return Const.getSideView(Const.SCOPE_VIEW_ENERGY, targetTeamId == this.teamId);
   }
 
   @Override

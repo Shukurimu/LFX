@@ -30,6 +30,7 @@ import lfx.util.Area;
 import lfx.util.Box;
 import lfx.util.Const;
 import lfx.util.Point;
+import lfx.util.Scope;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
@@ -46,6 +47,7 @@ public abstract class AbstractObject implements Observable {
   protected final List<Tuple<Itr, Area>> itrList = new ArrayList<>(8);
   protected final Map<Effect, Effect.Value> buff = new EnumMap<>(Effect.class);
   protected final Map<Observable, Integer> vrest = new WeakHashMap<>(128);
+  protected final int scope;
   protected int arest = 0;
   protected int actLag = 0;
   protected int teamId = 0;
@@ -69,14 +71,16 @@ public abstract class AbstractObject implements Observable {
   private boolean existence = true;
   protected final ImageView visualNode = new ImageView();
 
-  protected AbstractObject(String identifier, List<Frame> frameList) {
+  protected AbstractObject(String identifier, List<Frame> frameList, int scope) {
     this.identifier = identifier;
     this.frameList = frameList;
+    this.scope = scope;
   }
 
   protected AbstractObject(AbstractObject base) {
     identifier = base.identifier;
     frameList = base.frameList;
+    scope = base.scope;
     hp = base.hp;
     mp = base.mp;
     hpMax = base.hpMax;
@@ -175,13 +179,8 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public void setPosition(double[] basePosition, Point point, double zOffect) {
-    if (point == null) {  // Opoint case
-      anchorX = basePosition[0];
-      anchorY = basePosition[1];
-    } else {
-      anchorX = basePosition[0] - (faceRight ? point.x : -point.x);
-      anchorY = basePosition[1] - point.y;
-    }
+    anchorX = basePosition[0] - (faceRight ? point.x : -point.x);
+    anchorY = basePosition[1] - point.y;
     px = anchorX + (faceRight ? frame.centerx : -frame.centerx);
     py = anchorY + frame.centery;
     pz = basePosition[2] + zOffect;
@@ -206,8 +205,9 @@ public abstract class AbstractObject implements Observable {
     return itrList;
   }
 
-  @Override
-  public abstract int getScopeView(int teamId);
+  public int getScopeView(int targetTeamId) {
+    return Scope.getSideView(scope, targetTeamId == teamId);
+  }
 
   protected void itrCallback() {
     System.out.println("NotImplemented");
@@ -386,7 +386,7 @@ public abstract class AbstractObject implements Observable {
     for (int i = 0; i < opoint.amount; ++i) {
       boolean facing = opoint.direction.getFacing(faceRight);
       Observable clone = origin.makeClone(teamId, facing);
-      clone.setPosition(basePosition, null, Const.Z_OFFSET);
+      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
       double thisVz = (opoint.amount == 1) ? 0.0 : (i * zStep - Z_RANGE);
       clone.setVelocity(facing ? opoint.dvx : -opoint.dvx,
                         opoint.dvy,
@@ -433,7 +433,7 @@ public abstract class AbstractObject implements Observable {
       clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * dx[i],
                         (Util.randomBounds(0.0, 3.0) - 8.0),
                         (Util.randomBounds(0.0, 4.0) + 3.0) * dz[i]);
-      clone.setPosition(basePosition, null, Const.Z_OFFSET);
+      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
       output.add(clone);
     }
 
@@ -445,7 +445,7 @@ public abstract class AbstractObject implements Observable {
       clone.setVelocity(Util.randomBounds(0.0, 9.6) - 4.8,
                         Util.randomBounds(0.0, 2.5) - 6.0,
                         Util.randomBounds(0.0, 6.0) - 3.0);
-      clone.setPosition(basePosition, null, Const.Z_OFFSET);
+      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
       output.add(clone);
     }
 

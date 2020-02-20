@@ -2,6 +2,7 @@ package lfx.component;
 
 import lfx.util.Box;
 import lfx.util.Const;
+import lfx.util.Scope;
 import lfx.util.Tuple;
 
 public final class Itr {
@@ -12,15 +13,6 @@ public final class Itr {
   public static final int INJURY = 0;
   public static final int AREST = -7;  // hero default
   public static final int VREST = +9;  // weapon default
-  public static final int HERO_SCOPE = Const.getSideView(Const.SCOPE_VIEW_HERO, false)
-                                     | Const.getBothView(Const.SCOPE_VIEW_WEAPON)
-                                     | Const.getBothView(Const.SCOPE_VIEW_ENERGY);
-  public static final int WEAPON_SCOPE = HERO_SCOPE;
-  public static final int ENERGY_SCOPE = Const.getSideView(Const.SCOPE_VIEW_HERO, false)
-                                       | Const.getBothView(Const.SCOPE_VIEW_WEAPON)
-                                       | Const.getSideView(Const.SCOPE_VIEW_ENERGY, false);
-  public static final int NON_HERO_SCOPE = Const.getBothView(Const.SCOPE_VIEW_WEAPON)
-                                         | Const.getBothView(Const.SCOPE_VIEW_ENERGY);
 
   public enum Kind {
     GRASP_DOP (false,  true, ""),  // kind1
@@ -104,7 +96,7 @@ public final class Itr {
   public static Itr grab(Box box, boolean forceGrasp, int catchingact, int caughtact) {
     return new Itr(box, forceGrasp ? Kind.GRASP_BDY : Kind.GRASP_DOP,
                    catchingact, caughtact, 0, 0, 0, 0,
-                   Const.getSideView(Const.SCOPE_VIEW_HERO, false), "");
+                   Scope.ITR_ENEMY_HERO, "");
   }
 
   // kind only (PICK, BLOCK, ...)
@@ -113,7 +105,7 @@ public final class Itr {
   }
 
   // weapon on hand
-  public static Itr hand(Box box) {
+  public static Itr onHand(Box box) {
     return new Itr(box, Kind.NONE, 0, 0, 0, 0, 0, 0, 0, "");
   }
 
@@ -121,7 +113,7 @@ public final class Itr {
   public static Itr strength(String kind, int dvx, int dvy,
                              int fall, int bdefend, int injury, int vrest) {
     return new Itr(null, Kind.valueOf(kind), dvx, dvy,
-                   fall, bdefend, injury, vrest, HERO_SCOPE, "");
+                   fall, bdefend, injury, vrest, Scope.ITR_HERO, "");
   }
 
   public int calcLag(int originalValue) {

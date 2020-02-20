@@ -1,15 +1,15 @@
 package lfx.object;
 
 import javafx.scene.image.Image;
-import lfx.component.Itr;
 import lfx.component.Wpoint;
 import lfx.object.Observable;
 import lfx.util.Controller;
 import lfx.util.Point;
+import lfx.util.Scope;
 import lfx.util.Viewer;
 
 public interface Hero extends Observable {
-  int DEF_SCOPE = Itr.HERO_SCOPE;
+  int DEF_SCOPE = Scope.ITR_HERO;
 
   // The defend point is set to NODEF_DP if got hit not in defend state.
   int NODEF_DP = 45;

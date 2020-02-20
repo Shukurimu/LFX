@@ -17,6 +17,7 @@ import lfx.util.Input;
 import lfx.util.Looper;
 import lfx.util.Point;
 import lfx.util.Util;
+import lfx.util.Scope;
 import lfx.util.Tuple;
 import lfx.util.Viewer;
 
@@ -60,7 +61,7 @@ class BaseHero extends AbstractObject implements Hero {
 
   protected BaseHero(String identifier, List<Frame> frameList,
                      Map<String, Double> stamina, Image portrait) {
-    super(identifier, frameList);
+    super(identifier, frameList, Scope.HERO);
     this.portrait = portrait;
     Value_walking_speed  = stamina.get(Key_walking_speed);
     Value_walking_speedz = stamina.get(Key_walking_speedz);
@@ -176,11 +177,6 @@ class BaseHero extends AbstractObject implements Hero {
       int mpCost = target.cost - hpCost * 100;
       return new double[] {hp - hpCost, mp - mpCost};
     }
-  }
-
-  @Override
-  public int getScopeView(int targetTeamId) {
-    return Const.getSideView(Const.SCOPE_VIEW_HERO, targetTeamId == this.teamId);
   }
 
   private Weapon confirmPicking(Observable that) {
