@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -14,7 +15,6 @@ import lfx.object.AbstractObject;
 import lfx.object.Weapon;
 import lfx.util.Area;
 import lfx.util.Const;
-import lfx.util.Scope;
 import lfx.util.Tuple;
 import lfx.util.Util;
 

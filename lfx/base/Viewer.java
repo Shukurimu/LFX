@@ -1,4 +1,4 @@
-package lfx.util;
+package lfx.base;
 
 public class Viewer {
   public double mpRatio = 0.0;

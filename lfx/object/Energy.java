@@ -1,7 +1,7 @@
 package lfx.object;
 
+import lfx.base.Scope;
 import lfx.object.Observable;
-import lfx.util.Scope;
 
 public interface Energy extends Observable {
   int DEF_SCOPE = Scope.ITR_ENERGY;

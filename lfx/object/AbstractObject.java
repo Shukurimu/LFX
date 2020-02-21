@@ -9,13 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
 import javafx.scene.Node;
+import lfx.base.Box;
+import lfx.base.Scope;
 import lfx.component.Bdy;
 import lfx.component.Effect;
 import lfx.component.Frame;
@@ -27,10 +24,8 @@ import lfx.object.Hero;
 import lfx.object.Observable;
 import lfx.object.Weapon;
 import lfx.util.Area;
-import lfx.util.Box;
 import lfx.util.Const;
 import lfx.util.Point;
-import lfx.util.Scope;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
@@ -335,7 +330,11 @@ public abstract class AbstractObject implements Observable {
   protected abstract boolean adjustBoundary();
 
   protected Area makeArea(Box box) {
-    return new Area(anchorX, anchorY, pz, faceRight, box);
+    double baseX = anchorX + (faceRight ? box.x : (box.w - box.x));
+    double baseY = anchorY + box.y;
+    return new Area(baseX, baseX + box.w,
+                    baseY, baseY + box.h,
+                    pz - box.zu, pz + box.zd);
   }
 
   protected void updateBdys() {
@@ -460,87 +459,6 @@ public abstract class AbstractObject implements Observable {
 
   public static Set<Map.Entry<String, Hero>> getHeroEntry() {
     return heroMapping.entrySet();
-  }
-
-  protected Image loadImage(String path) {
-    Image image = null;
-    try {
-      image = new Image(this.getClass().getResourceAsStream(path));
-    } catch (Exception expection) {
-      expection.printStackTrace();
-      System.err.println("Exception in loading " + path);
-    }
-    return image;
-  }
-
-  /** Some Bitmaps are not loaded correctly in JavaFX,
-      you may need to pre-convert it to standard format. */
-  protected List<Tuple<Image, Image>> loadImageCells(
-      String path, int w, int h, int row, int col) {
-    Image origin = loadImage(path);
-    final int ow = (int) origin.getWidth();
-    final int oh = (int) origin.getHeight();
-    final int ln = ow * oh;
-    int[] pixels = new int[ln];
-    int realRow = Math.min(row, (ow + 1) / (w + 1));  // row values can be out of bound
-
-    if (origin.isError()) {
-      System.out.println(String.format("Resource Error: %s%n%s", path, origin.getException()));
-      javafx.application.Platform.exit();
-      return List.of();
-    }
-
-    PixelReader reader = origin.getPixelReader();
-    reader.getPixels(0, 0, ow, oh, PixelFormat.getIntArgbPreInstance(), pixels, 0, ow);
-    for (int i = 0; i < ln; ++i) {
-      if (pixels[i] == 0xff000000) {
-        pixels[i] = 0;
-      }
-    }
-
-    WritableImage buff1 = new WritableImage(ow, oh);
-    PixelWriter writer1 = buff1.getPixelWriter();
-    writer1.setPixels(0, 0, ow, oh, PixelFormat.getIntArgbPreInstance(), pixels, 0, ow);
-
-    // Programmically mirror the image.
-    for (int r = 0; r < oh; ++r) {
-      if ((r + 1) % (h + 1) == 0) {
-        continue;
-      }
-      int s = r * ow;
-      for (int c = 0; c < realRow; ++c) {
-        int x = s + c * (w + 1);
-        for (int i = x, j = x + w - 1; i < j; ++i, --j) {
-          int ptemp = pixels[i];
-          pixels[i] = pixels[j];
-          pixels[j] = ptemp;
-        }
-      }
-    }
-    WritableImage buff2 = new WritableImage(ow, oh);
-    PixelWriter writer2 = buff2.getPixelWriter();
-    writer2.setPixels(0, 0, ow, oh, PixelFormat.getIntArgbPreInstance(), pixels, 0, ow);
-
-    List<Tuple<Image, Image>> pictureList = new ArrayList<>(w * h);
-    WritableImage nothing = new WritableImage(w, h);
-    Tuple<Image, Image> nothingTuple = new Tuple<>(nothing, nothing);
-    PixelReader reader1 = buff1.getPixelReader();
-    PixelReader reader2 = buff2.getPixelReader();
-    for (int i = 0; i < col; ++i) {
-      for (int j = 0; j < row; ++j) {
-        // +1px for separating line
-        int x = j * (w + 1);
-        int y = i * (h + 1);
-        if (x + w < ow && y + h < oh) {
-          pictureList.add(new Tuple<>(new WritableImage(reader1, x, y, w, h),
-                                      new WritableImage(reader2, x, y, w, h)));
-        } else {
-          // index-out-of-bound
-          pictureList.add(nothingTuple);
-        }
-      }
-    }
-    return pictureList;
   }
 
 }

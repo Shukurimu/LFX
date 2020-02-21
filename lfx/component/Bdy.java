@@ -2,9 +2,9 @@ package lfx.component;
 
 import java.util.EnumSet;
 import java.util.Set;
+import lfx.base.Box;
+import lfx.base.Scope;
 import lfx.component.Itr;
-import lfx.util.Box;
-import lfx.util.Scope;
 
 public final class Bdy {
 

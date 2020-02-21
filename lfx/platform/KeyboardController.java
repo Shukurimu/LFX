@@ -5,10 +5,9 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import javafx.scene.input.KeyCode;
-import lfx.util.Combo;
+import lfx.base.Controller;
+import lfx.base.Input;
 import lfx.util.Const;
-import lfx.util.Controller;
-import lfx.util.Input;
 import lfx.util.Tuple;
 
 public final class KeyboardController implements Controller {
@@ -62,7 +61,7 @@ public final class KeyboardController implements Controller {
               monitorArray[6].isValid(currentTime),  // do_d
               monitorArray[2].doublePress && monitorArray[2].isValid(currentTime),  // do_LL
               monitorArray[3].doublePress && monitorArray[3].isValid(currentTime),  // do_RR
-              Combo.parse(sequence)
+              sequence
     );
     return;
   }

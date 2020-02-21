@@ -3,6 +3,10 @@ package lfx.object;
 import java.util.List;
 import java.util.Map;
 import javafx.scene.image.Image;
+import lfx.base.Controller;
+import lfx.base.Input;
+import lfx.base.Scope;
+import lfx.base.Viewer;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -10,16 +14,11 @@ import lfx.component.State;
 import lfx.component.Wpoint;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
-import lfx.util.Combo;
 import lfx.util.Const;
-import lfx.util.Controller;
-import lfx.util.Input;
 import lfx.util.Looper;
 import lfx.util.Point;
 import lfx.util.Util;
-import lfx.util.Scope;
 import lfx.util.Tuple;
-import lfx.util.Viewer;
 
 class BaseHero extends AbstractObject implements Hero {
   // Hidden action frame counters.
@@ -834,7 +833,7 @@ class BaseHero extends AbstractObject implements Hero {
     if (hpmp == null) {  // no cost
       return frame.next;
     }
-    Integer spare = frame.combo.get(Combo.hit_d);
+    Integer spare = frame.combo.get(Input.Combo.hit_d);
     if (hpmp[1] >= 0.0 || spare == null) {
       hp = hpmp[0];
       mp = hpmp[1];

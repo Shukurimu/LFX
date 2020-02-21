@@ -1,8 +1,8 @@
 package lfx.component;
 
-import lfx.util.Box;
+import lfx.base.Box;
+import lfx.base.Scope;
 import lfx.util.Const;
-import lfx.util.Scope;
 import lfx.util.Tuple;
 
 public final class Itr {

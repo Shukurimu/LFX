@@ -1,6 +1,6 @@
 package lfx.component;
 
-import lfx.util.Direction;
+import lfx.base.Direction;
 import lfx.util.Point;
 
 public final class Opoint extends Point {

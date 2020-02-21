@@ -6,7 +6,15 @@ set -e
 
 echo 'compile util'
 javac ${BASIC_ARGUMENTS} \
-      lfx/util/*.java
+      lfx/util/Area.java lfx/util/Const.java lfx/util/Looper.java lfx/util/Point.java lfx/util/Tuple.java lfx/util/Util.java
+
+echo 'compile util.resource'
+javac ${BASIC_ARGUMENTS} --module-path ${PATH_TO_FX} --add-modules javafx.graphics \
+      lfx/util/Resource.java
+
+echo 'compile base'
+javac ${BASIC_ARGUMENTS} \
+      lfx/base/*.java
 
 echo 'compile component'
 javac ${BASIC_ARGUMENTS} --module-path ${PATH_TO_FX} --add-modules javafx.graphics \

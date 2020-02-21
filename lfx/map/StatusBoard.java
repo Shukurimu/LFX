@@ -14,10 +14,10 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.text.TextAlignment;
+import lfx.base.Viewer;
 import lfx.object.Hero;
 import lfx.util.Const;
 import lfx.util.Tuple;
-import lfx.util.Viewer;
 
 public class StatusBoard extends Canvas {
   private static final double PADDING = 5.0;

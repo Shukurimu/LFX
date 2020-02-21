@@ -19,10 +19,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.transform.Scale;
+import lfx.base.Controller;
 import lfx.platform.ConfigScene;
 import lfx.platform.KeyboardController;
 import lfx.util.Const;
-import lfx.util.Controller;
 
 public final class Main extends Application {
   Consumer<Scene> sceneChanger = null;

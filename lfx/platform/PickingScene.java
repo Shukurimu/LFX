@@ -28,13 +28,13 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import lfx.base.Controller;
+import lfx.base.Input;
 import lfx.map.BaseMap;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
 import lfx.platform.KeyboardController;
 import lfx.util.Const;
-import lfx.util.Controller;
-import lfx.util.Input;
 import lfx.util.Tuple;
 import lfx.util.Util;
 

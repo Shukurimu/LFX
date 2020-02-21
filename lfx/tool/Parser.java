@@ -46,19 +46,19 @@ public class Parser {
   static final Set<String> imageKeySet = Set.of("w", "h", "row", "col");
   static final Set<String> bdyKeySet = Set.of("kind", "x", "y", "w", "h");
   static final Set<String> itrKeySet = Set.of(
-    "kind", "x", "y", "w", "h", "zwidth", "dvx", "dvy",
-    "fall", "bdefend", "injury", "vrest", "arest", "catchingact", "caughtact", "effect"
+      "kind", "x", "y", "w", "h", "zwidth", "dvx", "dvy",
+      "fall", "bdefend", "injury", "vrest", "arest", "catchingact", "caughtact", "effect"
   );
   static final Set<String> wpointKeySet = Set.of(
-    "kind", "x", "y", "weaponact", "attacking", "dvx", "dvy", "dvz", "cover"
+      "kind", "x", "y", "weaponact", "attacking", "dvx", "dvy", "dvz", "cover"
   );
   static final Set<String> opointKeySet = Set.of(
-    "kind", "x", "y", "action", "dvx", "dvy", "oid", "facing"
+      "kind", "x", "y", "action", "dvx", "dvy", "oid", "facing"
   );
   static final Set<String> cpointKeySet = Set.of(
-    "kind", "x", "y", "injury", "vaction", "aaction", "jaction", "taction",
-    "throwvx", "throwvy", "throwvz", "throwinjury", "fronthurtact", "backhurtact",
-    "hurtable", "decrease", "dircontrol", "cover"
+      "kind", "x", "y", "injury", "vaction", "aaction", "jaction", "taction",
+      "throwvx", "throwvy", "throwvz", "throwinjury", "fronthurtact", "backhurtact",
+      "hurtable", "decrease", "dircontrol", "cover"
   );
   static final Set<String> frameKeySet = Set.of(
       "pic", "state", "wait", "next", "centerx", "centery",  // required
@@ -893,7 +893,8 @@ public class Parser {
     lineList.add(String.format("%s}", indent(1)));
     lineList.add("");
     lineList.add("}");
-    System.err.printf("Find %d frames in %s. Remain: %s.%n", frameCount, className, content);
+    System.err.printf("Find %d frames in %s. Remaining: %s%n",
+                      frameCount, className, content.isEmpty() ? "(empty)" : content);
     return;
   }
 

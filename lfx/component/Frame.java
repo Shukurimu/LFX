@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import javafx.scene.image.Image;
+import lfx.base.Input;
 import lfx.component.Bdy;
 import lfx.component.Cpoint;
 import lfx.component.Effect;
@@ -13,7 +14,6 @@ import lfx.component.Itr;
 import lfx.component.Opoint;
 import lfx.component.State;
 import lfx.component.Wpoint;
-import lfx.util.Combo;
 import lfx.util.Const;
 import lfx.util.Tuple;
 
@@ -31,7 +31,7 @@ public final class Frame {
   public final int dvy;
   public final int dvz;
   public final int cost;
-  public final Map<Combo, Integer> combo;
+  public final Map<Input.Combo, Integer> combo;
   public final Map<Effect, Effect.Value> effect;
   public final List<Bdy> bdyList;
   public final List<Itr> itrList;
@@ -43,7 +43,7 @@ public final class Frame {
   public Frame(Image pic1, Image pic2, int centerx, int centery,
                State state, int curr, int wait, int next,
                int dvx, int dvy, int dvz, int cost,
-               Map<Combo, Integer> combo, Map<Effect, Effect.Value> effect,
+               Map<Input.Combo, Integer> combo, Map<Effect, Effect.Value> effect,
                List<Bdy> bdyList, List<Itr> itrList, List<Opoint> opointList,
                Cpoint cpoint, Wpoint wpoint, String sound) {
     this.pic1 = pic1;
@@ -149,8 +149,8 @@ public final class Frame {
       int dvy = nonNullValue(optField.remove("dvy"), 0);
       int dvz = nonNullValue(optField.remove("dvz"), 0);
       int cost = nonNullValue(optField.remove("mp"), 0);
-      Map<Combo, Integer> combo = new EnumMap<>(Combo.class);
-      optField.forEach((string, act) -> combo.put(Combo.valueOf(string), act));
+      Map<Input.Combo, Integer> combo = new EnumMap<>(Input.Combo.class);
+      optField.forEach((string, act) -> combo.put(Input.Combo.valueOf(string), act));
 
       Tuple<Image, Image> pics = imageList.get(picIndex);
       data.set(curr, new Frame(pics.first, pics.second, centerx, centery,

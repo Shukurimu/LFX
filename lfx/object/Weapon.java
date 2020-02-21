@@ -3,11 +3,11 @@ package lfx.object;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lfx.base.Scope;
 import lfx.component.Itr;
 import lfx.component.Wpoint;
 import lfx.object.Observable;
 import lfx.util.Area;
-import lfx.util.Scope;
 import lfx.util.Tuple;
 
 public interface Weapon extends Observable {

@@ -1,4 +1,4 @@
-package lfx.util;
+package lfx.base;
 
 public final class Scope {
   public static final int HERO   = 0x100;

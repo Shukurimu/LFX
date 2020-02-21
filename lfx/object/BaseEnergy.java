@@ -1,15 +1,15 @@
 package lfx.object;
 
 import java.util.List;
+import lfx.base.Input;
+import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
 import lfx.object.Observable;
-import lfx.util.Combo;
 import lfx.util.Const;
 import lfx.util.Point;
-import lfx.util.Scope;
 import lfx.util.Util;
 
 class BaseEnergy extends AbstractObject implements Energy {
@@ -73,7 +73,7 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected int updateAction(int nextAct) {
-    switch (frame.combo.getOrDefault(Combo.hit_Ra, 0)) {
+    switch (frame.combo.getOrDefault(Input.Combo.hit_Ra, 0)) {
       case FA_DENNIS_CHASE:
         nextAct = moveDennisChase(nextAct);
         break;
@@ -146,7 +146,7 @@ class BaseEnergy extends AbstractObject implements Energy {
       if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
         vz = 0.0;
       } else {
-        pz += vz + frame.combo.getOrDefault(Combo.hit_j, 0);
+        pz += vz + frame.combo.getOrDefault(Input.Combo.hit_j, 0);
       }
     }
     return nextAct;
@@ -154,14 +154,14 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected int updateHealth(int nextAct) {
-    hp -= frame.combo.getOrDefault(Combo.hit_a, 0);
+    hp -= frame.combo.getOrDefault(Input.Combo.hit_a, 0);
     return nextAct;
   }
 
   @Override
   protected int getNextActNumber() {
     return hp > 0.0 ? frame.next
-                    : frame.combo.getOrDefault(Combo.hit_d, frame.next);
+                    : frame.combo.getOrDefault(Input.Combo.hit_d, frame.next);
   }
 
   @Override
@@ -170,7 +170,7 @@ class BaseEnergy extends AbstractObject implements Energy {
     if (xBound.get(0) >= px && px >= xBound.get(1)) {
       /** Refresh countdown timer if in bound. */
       lifetime = DESTROY_TIME;
-    } else if ((!frame.combo.containsKey(Combo.hit_Ra) || hp < 0.0) && (--lifetime < 0)) {
+    } else if ((!frame.combo.containsKey(Input.Combo.hit_Ra) || hp < 0.0) && (--lifetime < 0)) {
       /** Even the blast flies out of bound and is not in a functional frame (hit_Fa == NONE),
           it still can live a short time. (e.g., dennis_chase first 4 frames) */
       return false;

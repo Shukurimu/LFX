@@ -1,6 +1,6 @@
-package lfx.util;
+package lfx.base;
 
-import lfx.util.Input;
+import lfx.base.Input;
 
 public interface Controller {
   void updateSimpleInput(Input input);
