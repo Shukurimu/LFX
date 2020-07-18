@@ -1,4 +1,6 @@
 *.txt
+*.bat
+*.sh
 classes/
 rawdata/
 sprite/

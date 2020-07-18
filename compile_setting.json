@@ -1,0 +1,113 @@
+{
+  "Windows": {
+    "path": "(YOU NEED TO SET IT MANUALLY)",
+    "path_to_fx": "C:\\Program Files\\Java\\javafx-sdk-11\\lib"
+  },
+  "Linux": {
+    "path": "${HOME}/jdk-11.0.2.jdk/Contents/Home/bin",
+    "path_to_fx": "${HOME}/javafx-sdk-11.0.2/lib"
+  },
+  "destination": "classes",
+  "root": "lfx",
+  "steps": [
+    {
+      "target": "utils",
+      "pathes": [
+        "lfx/util/Area.java",
+        "lfx/util/Const.java",
+        "lfx/util/Looper.java",
+        "lfx/util/Point.java",
+        "lfx/util/Tuple.java",
+        "lfx/util/Util.java"
+      ],
+      "enabled": 1
+    },
+    {
+      "target": "bases",
+      "pathes": [
+        "lfx/base/Box.java",
+        "lfx/base/Controller.java",
+        "lfx/base/Direction.java",
+        "lfx/base/Input.java",
+        "lfx/base/Scope.java",
+        "lfx/base/Viewer.java"
+      ],
+      "enabled": 1
+    },
+    {
+      "target": "components",
+      "pathes": [
+        "lfx/component/Bdy.java",
+        "lfx/component/Cpoint.java",
+        "lfx/component/Effect.java",
+        "lfx/component/Itr.java",
+        "lfx/component/Opoint.java",
+        "lfx/component/State.java",
+        "lfx/component/Wpoint.java"
+      ],
+      "enabled": 1
+    },
+    {
+      "target": "image-related parts",
+      "modules": ["javafx.graphics"],
+      "pathes": [
+        "lfx/util/Resource.java",
+        "lfx/base/VisualNode.java",
+        "lfx/component/Frame.java",
+        "lfx/map/Layer.java"
+      ],
+      "enabled": 1
+    },
+    {
+      "target": "base interfaces",
+      "pathes": ["lfx/map/Environment.java", "lfx/object/Observable.java"],
+      "enabled": 1
+    },
+    {
+      "target": "extend interfaces",
+      "modules": ["javafx.graphics"],
+      "pathes": [
+        "lfx/map/Field.java",
+        "lfx/object/Hero.java",
+        "lfx/object/Weapon.java",
+        "lfx/object/Energy.java"
+      ],
+      "enabled": 1
+    },
+    {
+      "target": "tools",
+      "pathes": ["lfx/tool/Parser.java"],
+      "enabled": 0
+    },
+    {
+      "target": "base classes",
+      "modules": ["javafx.graphics"],
+      "pathes": ["lfx/map/BaseMap.java", "lfx/object/AbstractObject.java"],
+      "enabled": 1
+    },
+    {
+      "target": "concrete classes",
+      "modules": ["javafx.graphics"],
+      "pathes": ["lfx/object/BaseHero.java", "lfx/object/BaseWeapon.java", "lfx/object/BaseEnergy.java"],
+      "enabled": 1
+    },
+    {
+      "target": "UIs",
+      "modules": ["javafx.graphics"],
+      "pathes": ["lfx/platform/KeyboardController.java", "lfx/map/StatusBoard.java"],
+      "enabled": 0
+    },
+    {
+      "target": "scenes",
+      "modules": ["javafx.graphics", "javafx.controls"],
+      "pathes": ["lfx/platform/ConfigScene.java", "lfx/platform/Arena.java", "lfx/platform/PickingScene.java"],
+      "enabled": 0
+    },
+    {
+      "target": "main",
+      "modules": ["javafx.graphics,javafx.controls"],
+      "pathes": ["lfx/platform/Main.java"],
+      "enabled": 0
+    }
+  ]
+}
