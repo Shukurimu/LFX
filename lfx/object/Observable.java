@@ -1,7 +1,7 @@
 package lfx.object;
 
 import java.util.List;
-import javafx.scene.Node;
+import lfx.base.VisualNode;
 import lfx.component.Bdy;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -11,15 +11,6 @@ import lfx.util.Point;
 import lfx.util.Tuple;
 
 public interface Observable {
-  // int DEF_SCOPE;  There will be a field in derived interfaces for different default scope view.
-  int ACT_DEF = 999;
-  int ACT_TBA = 1236987450;  // arbitrary
-  int ACT_SELF = 246813579;  // arbitrary
-  int ACT_REMOVAL = 321456987;  // arbitrary
-  int ACT_DUMMY = 399;
-  /* (self-test value) initial z-velocity for those quantity more than 1 */
-  double Z_RANGE = 5.0;
-  double Z_MULTIPLIER = 2.5;
 
   Observable makeClone(int teamId, boolean faceRight);
 
@@ -29,17 +20,25 @@ public interface Observable {
   int getTeamId();
 
   Frame getCurrentFrame();
+  boolean isFirstTimeunit();
 
-  /** Opoint and throwing can have initial vz. */
+  /**
+   * Returns the sign of value representing Up/Down key press.
+   * For opoint and throwing, they can have initial vz.
+   *
+   * @return +1, 0, or -1
+   */
   double getInputZ();
 
-  /** Player presses F7. */
+  /**
+   * Resets the object to its initial stamina, basically called when F7 is pressed.
+   */
   void revive();
 
   /** For Xpoint to set correct position. */
-  double[] getBasePosition(Point point);
+  List<Double> getBasePosition(Point point);
   /** Set position of Xpoint relative to base position. */
-  void setPosition(double[] basePosition, Point point, double zOffect);
+  void setPosition(List<Double> basePosition, Point point, double zOffect);
   /** Used in Opoint. */
   void setVelocity(double vx, double vy, double vz);
 
@@ -59,11 +58,11 @@ public interface Observable {
   void react();
 
   /** Do actions & update status. */
-  void move();
+  void act();
 
   boolean exists();
 
-  Node getVisualNode();
+  VisualNode getVisualNode();
 
   void updateVisualNode();
 

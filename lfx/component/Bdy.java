@@ -8,6 +8,9 @@ import lfx.component.Itr;
 
 public final class Bdy {
 
+  /**
+   * To simplify itr-bdy logic, some state-related attributes are transplanted here.
+   */
   public enum Attribute {
     // exclusive
     FRIENDLY_FIRE,

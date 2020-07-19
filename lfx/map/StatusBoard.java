@@ -58,29 +58,32 @@ public class StatusBoard extends Canvas {
     );
     HP_BAR_CURR = new LinearGradient(
         BAR_BEGIN, HP_FILL_Y, BAR_BEGIN + BAR_WIDTH, HP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.brighter()));
+        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.brighter())
+    );
     HP_BAR_BASE = new LinearGradient(
         BAR_BEGIN, HP_FILL_Y, BAR_BEGIN + BAR_WIDTH, HP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.darker()));
-
+        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.darker())
+    );
     List<Tuple<Double, Color>> mpInfoList = List.of(
         new Tuple<>(0.0, Color.DARKORCHID),
         new Tuple<>(1.0, Color.AQUA)
     );
     MP_BAR_CURR = new LinearGradient(
         BAR_BEGIN, MP_FILL_Y, BAR_BEGIN + BAR_WIDTH, MP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.brighter()));
+        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.brighter())
+    );
     MP_BAR_BASE = new LinearGradient(
         BAR_BEGIN, MP_FILL_Y, BAR_BEGIN + BAR_WIDTH, MP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.darker()));
-
+        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.darker())
+    );
     List<Tuple<Double, Color>> viewInfoList = List.of(
         new Tuple<>(0.0, Color.color(0.4, 0.4, 0.4, 0.5)),
         new Tuple<>(0.2, Color.color(0.6, 0.6, 0.6, 0.5)),
         new Tuple<>(1.0, Color.color(0.0, 0.0, 0.0, 0.5))
     );
     BAR_3D_LOOK = new LinearGradient(
-        0, 0, 0, 1, true, CycleMethod.NO_CYCLE, buildStops.apply(viewInfoList, c -> c));
+        0, 0, 0, 1, true, CycleMethod.NO_CYCLE, buildStops.apply(viewInfoList, c -> c)
+    );
   }
 
   public StatusBoard(Hero hero, Image icon) {

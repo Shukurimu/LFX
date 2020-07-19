@@ -1,10 +1,8 @@
 package lfx.object;
 
-import lfx.base.Scope;
 import lfx.object.Observable;
 
 public interface Energy extends Observable {
-  int DEF_SCOPE = Scope.ITR_ENERGY;
   int ACT_FLYING = 0;
   int ACT_HITTING = 10;
   int ACT_HIT = 20;

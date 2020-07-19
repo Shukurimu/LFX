@@ -9,10 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import javafx.scene.image.ImageView;
-import javafx.scene.Node;
 import lfx.base.Box;
 import lfx.base.Scope;
+import lfx.base.VisualNode;
 import lfx.component.Bdy;
 import lfx.component.Effect;
 import lfx.component.Frame;
@@ -36,6 +35,7 @@ public abstract class AbstractObject implements Observable {
 
   public final String identifier;
   protected final List<Frame> frameList;  // shared between same objects
+  protected final List<Observable> opointObjectList = new ArrayList<>(16);
   protected final List<Tuple<Observable, Itr>> sendItrList = new ArrayList<>(16);
   protected final List<Tuple<Observable, Itr>> recvItrList = new ArrayList<>(16);
   protected final List<Tuple<Bdy, Area>> bdyList = new ArrayList<>(8);
@@ -44,8 +44,9 @@ public abstract class AbstractObject implements Observable {
   protected final Map<Observable, Integer> vrest = new WeakHashMap<>(128);
   protected final int scope;
   protected int arest = 0;
-  protected int actLag = 0;
+  protected int actPause = 0;
   protected int teamId = 0;
+  protected int transition = 0;
   protected Environment env = null;
   protected Frame frame = null;
   protected boolean faceRight = true;
@@ -60,11 +61,10 @@ public abstract class AbstractObject implements Observable {
   protected double hpMax = 500.0;
   protected double hp2nd = 500.0;
   protected double mpMax = 500.0;
-  protected int transition = 0;
   private double anchorX = 0.0;  // picture x-coordinate (left if faceRight else right)
   private double anchorY = 0.0;  // picture y-coordinate (top)
   private boolean existence = true;
-  protected final ImageView visualNode = new ImageView();
+  protected final VisualNode visualNode = new VisualNode();
 
   protected AbstractObject(String identifier, List<Frame> frameList, int scope) {
     this.identifier = identifier;
@@ -86,7 +86,9 @@ public abstract class AbstractObject implements Observable {
   @Override
   public abstract AbstractObject makeClone(int teamId, boolean faceRight);
 
-  /** Call once after base object is constructed. */
+  /**
+   * Call once after base object is constructed.
+   */
   protected abstract void registerObjectMap();
 
   // TODO: Change to factory method
@@ -115,6 +117,11 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public boolean isFirstTimeunit() {
+    return transition == frame.wait;
+  }
+
+  @Override
   public double getInputZ() {
     return 0.0;
   }
@@ -126,28 +133,26 @@ public abstract class AbstractObject implements Observable {
     return;
   }
 
-  /** For the cases of next:999 in LF2. */
+  /**
+   * For the cases of next:999 in LF2.
+   */
   protected abstract int getDefaultActNumber();
 
+  /**
+   * Returns the frame of target actNumber.
+   * Sets existence to false if no expecting frame registered.
+   *
+   * @param actNumber any valid frame index; can positive or negative
+   * @return target Frame
+   */
   protected Frame getFrame(int actNumber) {
-    if (actNumber == frame.curr) {
-      return frame;
-    }
     actNumber = Math.abs(actNumber);
-    if (actNumber == ACT_DEF) {
+    if (actNumber == Const.DEF) {
       actNumber = getDefaultActNumber();
     }
-    try {
-      return frameList.get(actNumber);
-    } catch (Exception ex) {
-      existence = false;
-      return null;
-    }
-  }
-
-  protected void hpLost(double injury, boolean sync) {
-    hp -= injury;
-    return;
+    Frame targetFrame = frameList.get(actNumber);
+    existence &= targetFrame != Frame.DUMMY;
+    return targetFrame;
   }
 
   protected void transitFrame(int actNumber) {
@@ -157,28 +162,26 @@ public abstract class AbstractObject implements Observable {
     return;
   }
 
-  protected void updateAnchor() {
-    anchorX = faceRight ? (px - frame.centerx) : (px + frame.centerx);
-    anchorY = py - frame.centery;
+  protected void hpLost(double injury, boolean sync) {
+    hp -= injury;
     return;
   }
 
   @Override
-  public double[] getBasePosition(Point point) {
-    return new double[] {
-      anchorX + (faceRight ? point.x : -point.x),
-      anchorY + point.y,
-      pz,
-    };
+  public List<Double> getBasePosition(Point point) {
+    return List.of(anchorX + (faceRight ? point.x : -point.x),
+                   anchorY + point.y,
+                   pz
+    );
   }
 
   @Override
-  public void setPosition(double[] basePosition, Point point, double zOffect) {
-    anchorX = basePosition[0] - (faceRight ? point.x : -point.x);
-    anchorY = basePosition[1] - point.y;
+  public void setPosition(List<Double> basePosition, Point point, double zOffect) {
+    anchorX = basePosition.get(0) - (faceRight ? point.x : -point.x);
+    anchorY = basePosition.get(1) - point.y;
     px = anchorX + (faceRight ? frame.centerx : -frame.centerx);
     py = anchorY + frame.centery;
-    pz = basePosition[2] + zOffect;
+    pz = basePosition.get(2) + zOffect;
     return;
   }
 
@@ -200,6 +203,10 @@ public abstract class AbstractObject implements Observable {
     return itrList;
   }
 
+  /**
+   * Returns this scope from another object.
+   * It is mainly used while checking interaction.
+   */
   public int getScopeView(int targetTeamId) {
     return Scope.getSideView(scope, targetTeamId == teamId);
   }
@@ -218,43 +225,47 @@ public abstract class AbstractObject implements Observable {
     return;
   }
 
+  private Itr checkInteraction(Observable that) {
+    int scopeView = that.getScopeView(teamId);
+    for (Tuple<Bdy, Area> bdyArea : that.getBdys()) {
+      Bdy bdy = bdyArea.first;
+      Area area = bdyArea.second;
+      for (Tuple<Itr, Area> itrArea : itrList) {
+        if (!area.collidesWith(itrArea.second)) {
+          continue;
+        }
+        Itr itr = itrArea.first;
+        if (!bdy.interactsWith(itr, scopeView)) {
+          continue;
+        }
+        // TODO: grasp & weapon-pick
+        // TODO: distinguish active or passive
+        return itr;
+      }
+    }
+    return null;
+  }
+
   @Override
   public void spreadItrs(List<Observable> everything) {
     int timestamp = env.getTimestamp();
-    ONE_MATCH_LOOP:
+    if (arest > timestamp) {
+      return;
+    }
     for (Observable that : everything) {
-      if (arest > timestamp) {
-        return;
-      }
       if (vrest.getOrDefault(that, 0) > timestamp) {
         continue;
       }
-
-      int scopeView = that.getScopeView(teamId);
-      for (Tuple<Bdy, Area> bdyArea : that.getBdys()) {
-        Bdy bdy = bdyArea.first;
-        Area area = bdyArea.second;
-
-        for (Tuple<Itr, Area> itrArea : itrList) {
-          if (!area.collidesWith(itrArea.second)) {
-            continue;
-          }
-
-          Itr itr = itrArea.first;
-          if (!bdy.interactsWith(itr, scopeView)) {
-            continue;
-          }
-          // TODO: grasp & weapon-pick
-          // TODO: distinguish active or passive
-          this.interact(this, that, itr);
-          that.interact(this, that, itr);
-          if (itr.vrest < 0) {
-            arest = timestamp - itr.vrest;
-          } else {
-            vrest.put(that, timestamp + itr.vrest);
-          }
-          break ONE_MATCH_LOOP;
+      Itr itr = checkInteraction(that);
+      if (itr != null) {
+        this.interact(this, that, itr);
+        that.interact(this, that, itr);
+        if (itr.vrest < 0) {
+          arest = timestamp - itr.vrest;
+        } else {
+          vrest.put(that, timestamp + itr.vrest);
         }
+        return;
       }
     }
     return;
@@ -263,37 +274,7 @@ public abstract class AbstractObject implements Observable {
   @Override
   public abstract void react();
 
-  @Override
-  public void move() {
-    /** Opoint is triggered only at the first timeunit. */
-    if (transition == frame.wait) {
-      frame.opointList.forEach(opoint -> opointify(opoint));
-    }
-    int nextAct = ACT_TBA;
-    nextAct = applyStatus(nextAct);
-    nextAct = updateAction(nextAct);
-    nextAct = updateKinetic(nextAct);
-    nextAct = updateHealth(nextAct);
-
-    if (actLag > 0) {
-      --actLag;
-    } else if (nextAct != ACT_TBA) {
-      transitFrame(nextAct);
-    } else if (--transition < 0) {
-      transitFrame(getNextActNumber());
-    }
-
-
-    existence = existence && adjustBoundary();
-    updateAnchor();
-    updateBdys();
-    updateItrs();
-    updateVisualNode();
-    return;
-  }
-
-  // TODO: check taking effect at frame begining or ending.
-  protected int applyStatus(int nextAct) {
+  protected int applyStatus() {
     Iterator<Map.Entry<Effect, Effect.Value>> iterator = buff.entrySet().iterator();
     while (iterator.hasNext()) {
       Map.Entry<Effect, Effect.Value> entry = iterator.next();
@@ -315,26 +296,36 @@ public abstract class AbstractObject implements Observable {
         iterator.remove();
       }
     }
-    return ACT_TBA;
+    return Const.TBA;
   }
 
-  /** State-related & User-input */
+  // State-related & User-input
   protected abstract int updateAction(int nextAct);
-  /** Velocity & Position */
+  // Velocity & Position
   protected abstract int updateKinetic(int nextAct);
-  /** HP & MP & Stamina */
-  protected abstract int updateHealth(int nextAct);
-  /** Get proper action number connected by next-tag. */
+  // HP & MP
+  protected abstract int updateStamina(int nextAct);
+  // Get proper action number connected by next-tag.
   protected abstract int getNextActNumber();
-  /** Fit the boundary of map, or set to be removed. */
-  protected abstract boolean adjustBoundary();
+  /**
+   * If the object still alive, fit the boundary to the env and returns true.
+   * Returns false otherwise.
+   */
+  protected abstract boolean fitBoundary();
+
+  protected void updateAnchor() {
+    anchorX = faceRight ? (px - frame.centerx) : (px + frame.centerx);
+    anchorY = py - frame.centery;
+    return;
+  }
 
   protected Area makeArea(Box box) {
     double baseX = anchorX + (faceRight ? box.x : (box.w - box.x));
     double baseY = anchorY + box.y;
     return new Area(baseX, baseX + box.w,
                     baseY, baseY + box.h,
-                    pz - box.zu, pz + box.zd);
+                    pz - box.zu, pz + box.zd
+    );
   }
 
   protected void updateBdys() {
@@ -354,21 +345,50 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public void act() {
+    opointObjectList.clear();
+    // Opoint is triggered only at the first timeunit.
+    if (isFirstTimeunit()) {
+      frame.opointList.forEach(opoint -> opointObjectList.addAll(opointify(opoint)));
+    }
+    // TODO: check taking effect is at frame begining or ending.
+    int nextAct = applyStatus();
+    nextAct = updateAction(nextAct);
+    nextAct = updateKinetic(nextAct);
+    nextAct = updateStamina(nextAct);
+
+    if (actPause > 0) {
+      --actPause;
+    } else if (nextAct != Const.TBA) {
+      transitFrame(nextAct);
+    } else if (--transition < 0) {
+      transitFrame(getNextActNumber());
+    }
+
+    if (fitBoundary()) {
+      updateAnchor();
+      updateBdys();
+      updateItrs();
+      updateVisualNode();
+    } else {
+      existence = false;
+    }
+    return;
+  }
+
+  @Override
   public boolean exists() {
     return existence;
   }
 
   @Override
-  public Node getVisualNode() {
+  public VisualNode getVisualNode() {
     return visualNode;
   }
 
   @Override
   public void updateVisualNode() {
-    visualNode.setX(anchorX);
-    visualNode.setY(anchorY + pz);
-    visualNode.setViewOrder(pz);
-    visualNode.setImage(faceRight ? frame.pic1 : frame.pic2);
+    visualNode.updateImage(anchorX, anchorY, pz, faceRight ? frame.pic1 : frame.pic2);
     return;
   }
 
@@ -379,47 +399,44 @@ public abstract class AbstractObject implements Observable {
     }
     List<Observable> output = new ArrayList<>(opoint.amount);
     // TODO: slightly different vx in multiple shots
-    double zStep = (opoint.amount == 1) ? 0.0 : (2.0 * Z_RANGE / (opoint.amount - 1));
+    double zStep = (opoint.amount == 1) ? 0.0 : (2.0 * Opoint.Z_RANGE / (opoint.amount - 1));
     double ctrlVz = 2.5 * getInputZ();
-    double[] basePosition = getBasePosition(opoint);
+    List<Double> basePosition = getBasePosition(opoint);
     for (int i = 0; i < opoint.amount; ++i) {
       boolean facing = opoint.direction.getFacing(faceRight);
       Observable clone = origin.makeClone(teamId, facing);
-      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
-      double thisVz = (opoint.amount == 1) ? 0.0 : (i * zStep - Z_RANGE);
+      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
+      double thisVz = (opoint.amount == 1) ? 0.0 : (i * zStep - Opoint.Z_RANGE);
       clone.setVelocity(facing ? opoint.dvx : -opoint.dvx,
                         opoint.dvy,
-                        ctrlVz + thisVz);
+                        ctrlVz + thisVz
+      );
       output.add(clone);
     }
-    // TODO: Several weapon should immune to each other (shurikens, arrows)
+    // TODO: Several weapons should immune to each other (shurikens, arrows)
     return output;
   }
 
-  protected void opointify(Opoint opoint) {
+  protected List<Observable> opointify(Opoint opoint) {
     Observable energy = energyMapping.get(opoint.oid);
     if (energy != null) {
-      env.spawnEnergy(generateList(opoint, energy));
-      return;
+      return generateList(opoint, energy);
     }
     Observable weapon = weaponMapping.get(opoint.oid);
     if (weapon != null) {
-      env.spawnWeapon(generateList(opoint, weapon));
-      return;
+      return generateList(opoint, weapon);
     }
     Observable hero = heroMapping.get(opoint.oid);
     if (hero != null) {
-      env.spawnHero(generateList(opoint, hero));
-      return;
+      return generateList(opoint, hero);
     }
     System.err.println("Oid not found: " + opoint.oid);
-    return;
+    return List.of();
   }
 
-  /** Implementation is very likely different from LF2. */
+  // Implementation is very likely different from LF2.
   protected void opointCreateArmour() {
-    List<Observable> output = new ArrayList<>(5);
-    double[] basePosition = getBasePosition(new Point(0.0, 0.0));
+    List<Double> basePosition = getBasePosition(new Point(0.0, 0.0));
     double[] dx = {1.0, 1.0, -1.0, -1.0};
     double[] dz = {1.0, -1.0, 1.0, -1.0};
     for (int i = 0; i < 4; ++i) {
@@ -432,8 +449,8 @@ public abstract class AbstractObject implements Observable {
       clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * dx[i],
                         (Util.randomBounds(0.0, 3.0) - 8.0),
                         (Util.randomBounds(0.0, 4.0) + 3.0) * dz[i]);
-      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
-      output.add(clone);
+      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
+      opointObjectList.add(clone);
     }
 
     Observable origin = weaponMapping.get("LouisArmour2");
@@ -444,11 +461,10 @@ public abstract class AbstractObject implements Observable {
       clone.setVelocity(Util.randomBounds(0.0, 9.6) - 4.8,
                         Util.randomBounds(0.0, 2.5) - 6.0,
                         Util.randomBounds(0.0, 6.0) - 3.0);
-      clone.setPosition(basePosition, Point.ZERO, Const.Z_OFFSET);
-      output.add(clone);
+      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
+      opointObjectList.add(clone);
     }
 
-    env.spawnWeapon(output);
     return;
   }
 

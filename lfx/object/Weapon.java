@@ -3,15 +3,12 @@ package lfx.object;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lfx.base.Scope;
 import lfx.component.Itr;
-import lfx.component.Wpoint;
 import lfx.object.Observable;
 import lfx.util.Area;
 import lfx.util.Tuple;
 
 public interface Weapon extends Observable {
-  int DEF_SCOPE = Scope.ITR_WEAPON;
   double INITIAL_MP = 750.0;
   Map<String, Double> SPECIAL_MP = Map.of("Milk", 500.0 / 3.0);
   Set<String> NON_NEUTRAL_SET = Set.of("IceSword", "LouisArmour1", "LouisArmour2");
@@ -28,6 +25,7 @@ public interface Weapon extends Observable {
   boolean isDrink();
   boolean isLight();
   boolean isSmall();
+  void release();
   void destroy();
   Observable getHolder();
   List<Double> consume();

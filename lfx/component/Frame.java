@@ -18,7 +18,7 @@ import lfx.util.Const;
 import lfx.util.Tuple;
 
 public final class Frame {
-  public static final Frame dummy = new Frame();
+  public static final Frame DUMMY = new Frame();
   public final Image pic1;
   public final Image pic2;
   public final int centerx;
@@ -68,7 +68,7 @@ public final class Frame {
     this.wpoint = wpoint;
   }
 
-  private Frame() {  // dummy
+  private Frame() {  // DUMMY
     pic1 = pic2 = null;
     centerx = centery = cost = 0;
     state = State.UNIMPLEMENTED;
@@ -106,7 +106,7 @@ public final class Frame {
     List<Tuple<Image, Image>> imageList;
 
     public Collector(int size, List<Tuple<Image, Image>> imageList) {
-      data = new ArrayList<>(Collections.nCopies(size, dummy));
+      data = new ArrayList<>(Collections.nCopies(size, DUMMY));
       this.imageList = imageList;
     }
 

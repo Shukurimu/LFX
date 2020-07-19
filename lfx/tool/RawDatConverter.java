@@ -1,7 +1,9 @@
-/** https://www.lf-empire.de/forum/showthread.php?tid=1877
-    Programmed by Blue Phoenix
-    Explanations and help by Silva
-    Latest version: 14 Jan 2009 */
+/**
+ * https://www.lf-empire.de/forum/showthread.php?tid=1877
+ * Programmed by Blue Phoenix
+ * Explanations and help by Silva
+ * Latest version: 14 Jan 2009
+ */
 
 import java.io.*;
 
@@ -24,8 +26,9 @@ public final class RawDatConverter {
       int readBytes = 0;
       byte[] buffer = new byte[encryptChar.length];
       while ((readBytes = is.read(buffer)) > 0) {
-        for (int i = 0; i < readBytes; ++i)
+        for (int i = 0; i < readBytes; ++i) {
           buffer[i] -= encryptChar[i];
+        }
         os.write(buffer, 0, readBytes);
       }
       os.close();

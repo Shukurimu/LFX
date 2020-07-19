@@ -1,7 +1,5 @@
 package lfx.component;
 
-import java.util.HashMap;
-import java.util.Map;
 import lfx.util.Const;
 import lfx.util.Point;
 
@@ -11,8 +9,8 @@ public class Cpoint extends Point {
   public final int taction;
   public final int aaction;
   public final int jaction;
-  public final int throwvx;  // also graspee's fronthurtact
-  public final int throwvy;  // also graspee's backhurtact
+  public final int throwvx;
+  public final int throwvy;
   public final int throwvz;
   public final int throwinjury;
   public final int injury;
@@ -22,42 +20,117 @@ public class Cpoint extends Point {
   public final boolean cover;
   public final boolean hurtable;
   public final boolean throwing;
+  public final int frontHurtAct;
+  public final int backHurtAct;
 
-  // grasper
-  @SafeVarargs
-  public Cpoint(int x, int y, int vaction, int decrease, String... metaArray) {
-    super(x, y);
-    this.decrease = decrease;
-    this.vaction = vaction;
-    Map<String, Integer> meta = new HashMap<>(16);
-    for (String info : metaArray) {
-      String[] kv = info.split(" ");
-      meta.put(kv[0], Integer.valueOf(kv[1]));
+  public static class Builder {
+    private int x;
+    private int y;
+    private int decrease;
+    private int vaction;
+    private int taction = Const.NOP;
+    private int aaction = Const.NOP;
+    private int jaction = Const.NOP;
+    private int throwvx;
+    private int throwvy;
+    private int throwvz;
+    private int throwinjury;
+    private int injury;
+    private int cover;
+    private boolean dircontrol;
+    private boolean transform;
+    private boolean hurtable;
+    private boolean throwing;
+
+    public Builder(int x, int y, int vaction, int decrease) {
+      this.x = x;
+      this.y = y;
+      this.decrease = decrease;
+      this.vaction = vaction;
     }
-    taction = meta.getOrDefault("taction", Const.NOP);
-    aaction = meta.getOrDefault("aaction", Const.NOP);
-    jaction = meta.getOrDefault("jaction", Const.NOP);
-    throwvx = meta.getOrDefault("throwvx", 0);
-    throwvy = meta.getOrDefault("throwvy", 0);
-    throwvz = meta.getOrDefault("throwvz", 0);
-    throwinjury = meta.getOrDefault("throwinjury", 0);
-    injury = meta.getOrDefault("injury", 0);
-    dircontrol = meta.getOrDefault("dircontrol", 0) == 1;
-    transform = meta.getOrDefault("transform", 0) == 1;
-    int rawCover = meta.getOrDefault("cover", 0);
-    face2face = rawCover < 10;
-    cover = (rawCover & 1) == 1;
-    hurtable = meta.getOrDefault("hurtable", 1) == 1;
-    throwing = meta.getOrDefault("throwing", 0) == 1
-               || throwvx != 0 || throwvy != 0 || throwvz != 0 || throwinjury != 0;
+
+    public Builder taction(int taction) {
+      this.taction = taction;
+      return this;
+    }
+
+    public Builder aaction(int aaction) {
+      this.aaction = aaction;
+      return this;
+    }
+
+    public Builder jaction(int jaction) {
+      this.jaction = jaction;
+      return this;
+    }
+
+    public Builder doThrow(int throwvx, int throwvy, int throwvz, int throwinjury) {
+      this.throwvx = throwvx;
+      this.throwvy = throwvy;
+      this.throwvz = throwvz;
+      this.throwinjury = throwinjury;
+      this.throwing = true;
+      return this;
+    }
+
+    public Builder injury(int injury) {
+      this.injury = injury;
+      return this;
+    }
+
+    public Builder cover(int cover) {
+      this.cover = cover;
+      return this;
+    }
+
+    public Builder dircontrol() {
+      dircontrol = true;
+      return this;
+    }
+
+    public Builder transform() {
+      transform = true;
+      return this;
+    }
+
+    public Builder hurtable() {
+      hurtable = true;
+      return this;
+    }
+
+    public Cpoint build() {
+      return new Cpoint(this);
+    }
+
   }
 
-  // graspee
+  private Cpoint(Builder builder) {
+    super(builder.x, builder.y);
+    decrease = builder.decrease;
+    vaction = builder.vaction;
+    taction = builder.taction;
+    aaction = builder.aaction;
+    jaction = builder.jaction;
+    throwvx = builder.throwvx;
+    throwvy = builder.throwvy;
+    throwvz = builder.throwvz;
+    throwinjury = builder.throwinjury;
+    injury = builder.injury;
+    dircontrol = builder.dircontrol;
+    transform = builder.transform;
+    face2face = builder.cover < 10;
+    cover = (builder.cover & 1) == 1;
+    hurtable = builder.hurtable;
+    throwing = builder.throwing;
+    frontHurtAct = backHurtAct = 0;
+  }
+
   public Cpoint(int x, int y, int frontHurtAct, int backHurtAct) {
     super(x, y);
-    throwvx = frontHurtAct;
-    throwvy = backHurtAct;
-    decrease = vaction = taction = aaction = jaction = throwvz = throwinjury = injury = 0;
+    this.frontHurtAct = frontHurtAct;
+    this.backHurtAct = backHurtAct;
+    vaction = taction = aaction = jaction = Const.NOP;
+    decrease = throwvx = throwvy = throwvz = throwinjury = injury = 0;
     dircontrol = transform = face2face = cover = hurtable = throwing = false;
   }
 

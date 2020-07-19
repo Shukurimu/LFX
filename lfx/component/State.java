@@ -12,10 +12,10 @@ public enum State {
   RUN   (true),  // UDLFajd
   HEAVY_WALK(true),  // UDLFa
   HEAVY_RUN (true),  // UDLFa
-  JUMP    (true),  // flyingFlag UDLF 
-  DASH    (true),  // flyingFlag UDLF
-  LAND    (true),  // flyingFlag ajd (crouch2)
-  ROW     (true),  // flyingFlag UDLFj
+  JUMP    (false),  // flyingFlag UDLF
+  DASH    (false),  // flyingFlag UDLF
+  LAND    (false),  // flyingFlag ajd (crouch2)
+  ROW     (false),  // flyingFlag UDLFj
   DRINK   (true),  // connected with weapon
   GRASP   (true),  // complicated cpoint
   DEFEND  (true),  // goes to act 111 if hit
@@ -38,10 +38,10 @@ public enum State {
   PIERCE  (true),
   UNIMPLEMENTED(true);
 
-  public final boolean basicMove;
+  public final boolean resetFlying;
 
-  private State(boolean basicMove) {
-    this.basicMove = basicMove;
+  private State(boolean resetFlying) {
+    this.resetFlying = resetFlying;
   }
 
   @Override

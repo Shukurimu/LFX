@@ -3,9 +3,9 @@ package lfx.map;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.List;
 import javafx.scene.layout.Pane;
 import javafx.scene.Node;
 import lfx.map.Field;
@@ -105,12 +105,10 @@ public class BaseMap implements Field {
     return itemXBound;
   }
 
-  @Override
   public List<Observable> getHeroView() {
     return heroView;
   }
 
-  @Override
   public void spawnHero(List<Observable> objectList) {
     synchronized (heroQueue) {
       heroQueue.addAll(objectList);
@@ -118,7 +116,6 @@ public class BaseMap implements Field {
     return;
   }
 
-  @Override
   public void spawnWeapon(List<Observable> objectList) {
     synchronized (weaponQueue) {
       weaponQueue.addAll(objectList);
@@ -126,7 +123,6 @@ public class BaseMap implements Field {
     return;
   }
 
-  @Override
   public void spawnEnergy(List<Observable> objectList) {
     synchronized (energyQueue) {
       energyQueue.addAll(objectList);
@@ -165,10 +161,10 @@ public class BaseMap implements Field {
 
   protected void updateObservableList(List<Observable> targetList,
                                       List<Observable> targetQueue) {
-    targetList.forEach(o -> o.move());
+    targetList.forEach(o -> o.act());
     targetList.removeIf(o -> !o.exists());
     targetList.addAll(targetQueue);
-    targetQueue.forEach(o -> fxNodeList.add(o.getVisualNode()));
+    targetQueue.forEach(o -> fxNodeList.add(o.getVisualNode().getFxNode()));
     targetQueue.clear();
     return;
   }

@@ -126,6 +126,12 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
+  public void release() {
+    owner = null;
+    return;
+  }
+
+  @Override
   public void destroy() {
     hp = 0.0;
     // TODO: create fabrics
@@ -209,7 +215,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   private int moveFree(int nextAct) {
-    if (actLag == 0) {
+    if (actPause == 0) {
       return nextAct;
     }
     vx = frame.calcVX(vx, faceRight);
@@ -254,21 +260,21 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected int updateKinetic(int nextAct) {
-    return ACT_TBA;
+    return Const.TBA;
   }
 
   @Override
-  protected int updateHealth(int nextAct) {
-    return hp >= 0.0 && mp >= 0.0 ? ACT_TBA : ACT_TBA;
+  protected int updateStamina(int nextAct) {
+    return hp >= 0.0 && mp >= 0.0 ? Const.TBA : Const.TBA;
   }
 
   @Override
   protected int getNextActNumber() {
-    return ACT_TBA;
+    return Const.TBA;
   }
 
   @Override
-  protected boolean adjustBoundary() {
+  protected boolean fitBoundary() {
     List<Double> xBound = env.getItemXBound();
     if (frame.state != State.ON_GROUND || (xBound.get(0) >= px && px >= xBound.get(1))) {
       List<Double> zBound = env.getZBound();

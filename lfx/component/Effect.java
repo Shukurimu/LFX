@@ -2,10 +2,9 @@ package lfx.component;
 
 /**
  * Apparently there are several functionalities which can take effect over time.
- * For instance, John's healing effect regenerates target within 100 timeunits.
+ * For instance, healing effect keeps regenerating target hero in 100 timeunits.
  * This class substitutes for specialized `state` and `next` as well.
  */
-
 public enum Effect {
   MOVE_BLOCKING,
   ATTACK_SPUNCH,

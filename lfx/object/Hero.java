@@ -2,30 +2,26 @@ package lfx.object;
 
 import javafx.scene.image.Image;
 import lfx.base.Controller;
-import lfx.base.Scope;
 import lfx.base.Viewer;
 import lfx.component.Wpoint;
 import lfx.object.Observable;
+import lfx.util.Const;
 import lfx.util.Point;
 
 public interface Hero extends Observable {
-  int DEF_SCOPE = Scope.ITR_HERO;
-
   // The defend point is set to NODEF_DP if got hit not in defend state.
   int NODEF_DP = 45;
   double DEFEND_INJURY_REDUCTION = 0.10;
   double DEFEND_DVX_REDUCTION = 0.10;
-  double FALLING_BOUNCE_VY = -4.25;  // guess-value
-  double LANDING_VELOCITY_REMAIN = 0.5;  // guess-value
-  double CONTROL_VZ = 2.5;  // press U or D; test-value
-  double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test-value
+  double FALLING_BOUNCE_VY = -4.25;  // guess
+  double LANDING_VELOCITY_REMAIN = 0.5;  // guess
+  double CONTROL_VZ = 2.5;  // press U or D; test
+  double DIAGONAL_VX_RATIO = 1.0 / 1.4;  // test
   double ICED_FALLDOWN_DAMAGE = 10.0;
   double SONATA_FALLDOWN_DAMAGE = 10.0;
 
-
   @Override Hero makeClone(int teamId, boolean faceRight);
   Wpoint getWpoint();
-  // For balls with chasing ability.
   boolean isAlive();
   Point getChasingPoint();
   Image getPortrait();
@@ -53,29 +49,6 @@ public interface Hero extends Observable {
   String Key_hp_reg = "hp_reg";
   String Key_mp_reg = "mp_reg";
 
-  // Hidden flying-velocity status
-  int NO_FLYING = 0;
-  int JUMP_V0_0 = 1 << 1;  // jump vertically
-  int JUMP_VP_0 = 2 << 1;  // jump with positive velocity
-  int JUMP_VN_0 = 3 << 1;  // jump with negative velocity
-  int DASH_RP_0 = 4 << 1;  // dash with positive velocity and facing right
-  int DASH_RN_0 = 5 << 1;  // dash with negative velocity and facing right
-  int DASH_LP_0 = 6 << 1;  // dash with positive velocity and facing left
-  int DASH_LN_0 = 7 << 1;  // dash with negative velocity and facing left
-  int  ROW_VP_0 = 8 << 1;  //  row with positive velocity
-  int  ROW_VN_0 = 9 << 1;  //  row with negative velocity
-  int JUMP_V0_1 = JUMP_V0_0 | 1;
-  int JUMP_VP_1 = JUMP_VP_0 | 1;
-  int JUMP_VN_1 = JUMP_VN_0 | 1;
-  int DASH_RP_1 = DASH_RP_0 | 1;
-  int DASH_RN_1 = DASH_RN_0 | 1;
-  int DASH_LP_1 = DASH_LP_0 | 1;
-  int DASH_LN_1 = DASH_LN_0 | 1;
-  int  ROW_VP_1 =  ROW_VP_0 | 1;
-  int  ROW_VN_1 =  ROW_VN_0 | 1;
-
-  int ACT_TRANSFORM_INVALID = ACT_DEF;
-  int ACT_TRANSFORM_BACK = 245;  // default
   int ACT_STANDING = 0;
   int ACT_WALKING = 5;
   int ACT_RUNNING = 9;
@@ -98,9 +71,9 @@ public interface Hero extends Observable {
   int ACT_RUN_ATK = 85;
   int ACT_DASH_ATK = 90;
   int ACT_DASH_DEF = 95;
-  int ACT_ROWING1 = 100;
+  int ACT_FLIP1 = 100;
   int ACT_ROLLING = 102;
-  int ACT_ROWING2 = 108;
+  int ACT_FLIP2 = 108;
   int ACT_DEFEND = 110;
   int ACT_DEFEND_HIT = 111;
   int ACT_BROKEN_DEF = 112;
@@ -128,7 +101,7 @@ public interface Hero extends Observable {
   int ACT_JUMPAIR = 212;  // gain jumping force
   int ACT_DASH1 = 213;
   int ACT_DASH2 = 214;  // reverse
-  int ACT_CROUCH1 = 215;
+  int ACT_CROUCH1 = 215;  // jump and flip landing
   int ACT_STOPRUN = 218;
   int ACT_CROUCH2 = 219;
   int ACT_INJURE1 = 220;
@@ -140,6 +113,8 @@ public interface Hero extends Observable {
   int ACT_LYING1 = 230;
   int ACT_LYING2 = 231;
   int ACT_THROW_LYING_MAN = 232;
+  int ACT_TRANSFORM_FAIL = Const.DEF;
+  int ACT_TRANSFORM_BACK = 245;
 
 }
 

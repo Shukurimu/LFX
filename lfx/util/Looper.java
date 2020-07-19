@@ -1,7 +1,9 @@
 package lfx.util;
 
+/**
+ * Mainly used in Hero's hidden counter.
+ */
 public final class Looper {
-  /** Used in Hero's hidden picture counter. */
   private int index = -1;
   private final int[] data;
 

@@ -139,7 +139,7 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected int updateKinetic(int nextAct) {
-    if (actLag == 0) {
+    if (actPause == 0) {
       vx = frame.calcVX(vx, faceRight);
       px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
       vy = frame.calcVY(vy);
@@ -153,7 +153,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected int updateHealth(int nextAct) {
+  protected int updateStamina(int nextAct) {
     hp -= frame.combo.getOrDefault(Input.Combo.hit_a, 0);
     return nextAct;
   }
@@ -165,7 +165,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected boolean adjustBoundary() {
+  protected boolean fitBoundary() {
     List<Double> xBound = env.getItemXBound();
     if (xBound.get(0) >= px && px >= xBound.get(1)) {
       /** Refresh countdown timer if in bound. */

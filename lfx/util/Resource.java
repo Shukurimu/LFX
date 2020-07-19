@@ -26,8 +26,10 @@ public final class Resource {
     return null;
   }
 
-  /** Some Bitmaps are not loaded correctly in JavaFX,
-      you may need to pre-convert it into standard format. */
+  /**
+   * Some Bitmaps are not loaded correctly in JavaFX.
+   * You may need to convert them into standard format in advance.
+   */
   public static List<Tuple<Image, Image>> loadImageCells(
       String path, int w, int h, int row, int col) {
     Image rawImage = loadImage(path);
@@ -47,7 +49,7 @@ public final class Resource {
     Tuple<Image, Image> nothingTuple = Tuple.of(new WritableImage(w, h));
     List<Tuple<Image, Image>> pictureList = new ArrayList<>(w * h);
     final int[] buffer = new int[w * h];
-    for (int y = 0; y < col; y += h + 1) {  // +1 px for separating line
+    for (int y = 0; y < col; y += h + 1) {  // +1 for separating line
       for (int x = 0; x < row; x += w + 1) {
         if (x + w <= width && y + h <= height) {
           Image normal = new WritableImage(reader, x, y, w, h);

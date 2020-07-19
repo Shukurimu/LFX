@@ -17,7 +17,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.util.Duration;
-import lfx.map.Environment;
 import lfx.map.Field;
 import lfx.map.Layer;
 import lfx.map.StatusBoard;

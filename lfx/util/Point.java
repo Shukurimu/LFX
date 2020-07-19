@@ -1,7 +1,7 @@
 package lfx.util;
 
 public class Point {
-  public static final Point ZERO = new Point(0.0, 0.0);
+  public static final Point ORIGIN = new Point(0.0, 0.0);
   public final double x;
   public final double y;
 

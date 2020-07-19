@@ -2,11 +2,13 @@ package lfx.base;
 
 import lfx.util.Const;
 
+/**
+ * Indicate the coverage of Bdy and Itr.
+ */
 public final class Box {
-  // Indicate the coverage of Bdy and Itr.
   public static final Box LINEAR = new Box(-12345678, 23456789, -12345, 23456, 12345);
   public static final Box GLOBAL = new Box(-12345678, 23456789, -12345678, 23456789, 12345);
-  public static final Box HIDDEN = new Box(0, 1, 654321, 1);  // Bdy: pseudo-invulnerable
+  public static final Box HIDDEN = new Box(0, 1, 654321, 1);  // pseudo-invulnerable
 
   public final int x;
   public final int y;
