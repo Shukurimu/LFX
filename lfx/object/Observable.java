@@ -49,7 +49,7 @@ public interface Observable {
   /** Return view from this team to teamId.*/
   int getScopeView(int teamId);
 
-  void interact(Observable source, Observable target, Itr itr);
+  void receiveItr(Observable source, Itr itr);
   /** Check all ItrArea happened in current timeunit.
       Store the interactable ones into pending list. */
   void spreadItrs(List<Observable> everything);

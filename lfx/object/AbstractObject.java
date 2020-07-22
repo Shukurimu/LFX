@@ -42,13 +42,12 @@ public abstract class AbstractObject implements Observable {
   protected final List<Tuple<Itr, Area>> itrList = new ArrayList<>(8);
   protected final Map<Effect, Effect.Value> buff = new EnumMap<>(Effect.class);
   protected final Map<Observable, Integer> vrest = new WeakHashMap<>(128);
-  protected final int scope;
   protected int arest = 0;
   protected int actPause = 0;
   protected int teamId = 0;
   protected int transition = 0;
   protected Environment env = null;
-  protected Frame frame = null;
+  protected Frame frame = Frame.DUMMY;
   protected boolean faceRight = true;
   protected double px = 0.0;
   protected double py = 0.0;
@@ -61,26 +60,22 @@ public abstract class AbstractObject implements Observable {
   protected double hpMax = 500.0;
   protected double hp2nd = 500.0;
   protected double mpMax = 500.0;
+  private final VisualNode visualNode = new VisualNode();
+  private final int baseScope;
   private double anchorX = 0.0;  // picture x-coordinate (left if faceRight else right)
   private double anchorY = 0.0;  // picture y-coordinate (top)
   private boolean existence = true;
-  protected final VisualNode visualNode = new VisualNode();
 
-  protected AbstractObject(String identifier, List<Frame> frameList, int scope) {
+  protected AbstractObject(String identifier, List<Frame> frameList, int baseScope) {
     this.identifier = identifier;
     this.frameList = frameList;
-    this.scope = scope;
+    this.baseScope = baseScope;
   }
 
   protected AbstractObject(AbstractObject base) {
     identifier = base.identifier;
     frameList = base.frameList;
-    scope = base.scope;
-    hp = base.hp;
-    mp = base.mp;
-    hpMax = base.hpMax;
-    mpMax = base.mpMax;
-    hp2nd = base.hp2nd;
+    baseScope = base.baseScope;
   }
 
   @Override
@@ -208,21 +203,11 @@ public abstract class AbstractObject implements Observable {
    * It is mainly used while checking interaction.
    */
   public int getScopeView(int targetTeamId) {
-    return Scope.getSideView(scope, targetTeamId == teamId);
+    return Scope.getSideView(baseScope, targetTeamId == teamId);
   }
 
   protected void itrCallback() {
     System.out.println("NotImplemented");
-  }
-
-  @Override
-  public void interact(Observable source, Observable target, Itr itr) {
-    if (source == this) {
-      sendItrList.add(new Tuple<>(target, itr));
-    } else {
-      recvItrList.add(new Tuple<>(source, itr));
-    }
-    return;
   }
 
   private Itr checkInteraction(Observable that) {
@@ -247,6 +232,12 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public void receiveItr(Observable source, Itr itr) {
+    recvItrList.add(new Tuple<>(source, itr));
+    return;
+  }
+
+  @Override
   public void spreadItrs(List<Observable> everything) {
     int timestamp = env.getTimestamp();
     if (arest > timestamp) {
@@ -258,12 +249,12 @@ public abstract class AbstractObject implements Observable {
       }
       Itr itr = checkInteraction(that);
       if (itr != null) {
-        this.interact(this, that, itr);
-        that.interact(this, that, itr);
-        if (itr.vrest < 0) {
-          arest = timestamp - itr.vrest;
-        } else {
+        sendItrList.add(new Tuple<>(that, itr));
+        that.receiveItr(this, itr);
+        if (itr.vrest > 0) {
           vrest.put(that, timestamp + itr.vrest);
+        } else {
+          arest = timestamp - itr.vrest;
         }
         return;
       }
@@ -291,6 +282,8 @@ public abstract class AbstractObject implements Observable {
         case TRANSFORM_BACK:
           System.out.println("Transform");
           break;
+        default:
+          System.out.println("Other");
       }
       if (value.elapse()) {
         iterator.remove();
@@ -309,7 +302,8 @@ public abstract class AbstractObject implements Observable {
   protected abstract int getNextActNumber();
   /**
    * If the object still alive, fit the boundary to the env and returns true.
-   * Returns false otherwise.
+   *
+   * @return false if the object should be deleted
    */
   protected abstract boolean fitBoundary();
 
@@ -349,7 +343,7 @@ public abstract class AbstractObject implements Observable {
     opointObjectList.clear();
     // Opoint is triggered only at the first timeunit.
     if (isFirstTimeunit()) {
-      frame.opointList.forEach(opoint -> opointObjectList.addAll(opointify(opoint)));
+      frame.opointList.forEach(opoint -> opointify(opoint));
     }
     // TODO: check taking effect is at frame begining or ending.
     int nextAct = applyStatus();
@@ -392,13 +386,23 @@ public abstract class AbstractObject implements Observable {
     return;
   }
 
-  private List<Observable> generateList(Opoint opoint, Observable origin) {
+  protected void opointify(Opoint opoint) {
+    Observable origin = energyMapping.get(opoint.oid);
+    if (origin == null) {
+      origin = weaponMapping.get(opoint.oid);
+      if (origin == null) {
+        origin = heroMapping.get(opoint.oid);
+        if (origin == null) {
+          System.err.println("Oid not found: " + opoint.oid);
+          return;
+        }
+      }
+    }
     if (!opoint.release) {
       System.out.println("NotImplemented: Holding Opoint");
-      return List.of();
+      return;
     }
-    List<Observable> output = new ArrayList<>(opoint.amount);
-    // TODO: slightly different vx in multiple shots
+    // TODO: slightly different px in multiple shots
     double zStep = (opoint.amount == 1) ? 0.0 : (2.0 * Opoint.Z_RANGE / (opoint.amount - 1));
     double ctrlVz = 2.5 * getInputZ();
     List<Double> basePosition = getBasePosition(opoint);
@@ -411,60 +415,32 @@ public abstract class AbstractObject implements Observable {
                         opoint.dvy,
                         ctrlVz + thisVz
       );
-      output.add(clone);
+      opointObjectList.add(clone);
     }
     // TODO: Several weapons should immune to each other (shurikens, arrows)
-    return output;
-  }
-
-  protected List<Observable> opointify(Opoint opoint) {
-    Observable energy = energyMapping.get(opoint.oid);
-    if (energy != null) {
-      return generateList(opoint, energy);
-    }
-    Observable weapon = weaponMapping.get(opoint.oid);
-    if (weapon != null) {
-      return generateList(opoint, weapon);
-    }
-    Observable hero = heroMapping.get(opoint.oid);
-    if (hero != null) {
-      return generateList(opoint, hero);
-    }
-    System.err.println("Oid not found: " + opoint.oid);
-    return List.of();
+    return;
   }
 
   // Implementation is very likely different from LF2.
   protected void opointCreateArmour() {
     List<Double> basePosition = getBasePosition(new Point(0.0, 0.0));
-    double[] dx = {1.0, 1.0, -1.0, -1.0};
-    double[] dz = {1.0, -1.0, 1.0, -1.0};
-    for (int i = 0; i < 4; ++i) {
-      Observable origin = weaponMapping.get("LouisArmour1");
+    String[] oid = {"LouisArmour1", "LouisArmour1", "LouisArmour1", "LouisArmour1", "LouisArmour2"};
+    double[] rvx = {1.0, 1.0, -1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
+    double[] rvz = {1.0, -1.0, 1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
+    for (int i = 0; i < 5; ++i) {
+      Observable origin = weaponMapping.get(oid[i]);
       if (origin == null) {
-        System.err.println("LouisArmour1 not found.");
+        System.err.println(oid[i] + " not found.");
         break;
       }
       Observable clone = origin.makeClone(teamId, Util.randomBool());
-      clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * dx[i],
+      clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * rvx[i],
                         (Util.randomBounds(0.0, 3.0) - 8.0),
-                        (Util.randomBounds(0.0, 4.0) + 3.0) * dz[i]);
+                        (Util.randomBounds(0.0, 4.0) + 3.0) * rvz[i]
+      );
       clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
       opointObjectList.add(clone);
     }
-
-    Observable origin = weaponMapping.get("LouisArmour2");
-    if (origin == null) {
-      System.err.println("LouisArmour2 not found.");
-    } else {
-      Observable clone = origin.makeClone(teamId, Util.randomBool());
-      clone.setVelocity(Util.randomBounds(0.0, 9.6) - 4.8,
-                        Util.randomBounds(0.0, 2.5) - 6.0,
-                        Util.randomBounds(0.0, 6.0) - 3.0);
-      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
-      opointObjectList.add(clone);
-    }
-
     return;
   }
 

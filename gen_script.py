@@ -29,8 +29,6 @@ def main(args):
     output_lines.append('javac --version')
 
     for step_dict in setting['steps']:
-        if not step_dict['enabled']:
-            continue
         output_lines.append('')
         output_lines.append('echo "Compile {}"'.format(step_dict['target']))
         modules = step_dict.get('modules')
