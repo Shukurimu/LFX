@@ -76,6 +76,13 @@ public class Parser {
       "WeaponStrength", "strength",
       "FrameCollector", "collector"
   );
+  static final int DVX = 0;
+  static final int DVY = -7;
+  static final int FALL = 20;
+  static final int BDEFEND = 0;
+  static final int INJURY = 0;
+  static final int AREST = -7;  // hero default
+  static final int VREST = 9;  // weapon default
 
   final String className;
   final String baseClassName;
@@ -288,7 +295,7 @@ public class Parser {
         break;
       }
     }
-    
+
     lineList.add("");
     final String mapName = variableNaming.get("HeroStamina");
     lineList.add(String.format("%sMap<String, Double> %s = new HashMap<>();", indent(2), mapName));
@@ -330,15 +337,15 @@ public class Parser {
             kind = Itr.Kind.STAB;
             break;
           case 2:  // State19 Effect2 works like Effect20
-            kind = state == 19 ? Itr.Kind.WEAKFIRE : Itr.Kind.FIRE;
+            kind = state == 19 ? Itr.Kind.WEAK_FIRE : Itr.Kind.FIRE;
             break;
           case 20:  // on fire
-            kind = Itr.Kind.WEAKFIRE;
+            kind = Itr.Kind.WEAK_FIRE;
             scope = "Scope.ITR_ALL_HERO";
             state18Warning = false;
             break;
           case 21:
-            kind = Itr.Kind.WEAKFIRE;
+            kind = Itr.Kind.WEAK_FIRE;
             break;
           case 22:
             kind = Itr.Kind.FIRE;
@@ -352,7 +359,7 @@ public class Parser {
             kind = Itr.Kind.ICE;
             break;
           case 30:
-            kind = Itr.Kind.WEAKICE;
+            kind = Itr.Kind.WEAK_ICE;
             break;
           case 4:
             kind = Itr.Kind.PUNCH;
@@ -363,9 +370,13 @@ public class Parser {
         }
         break;
       case 4:
-        kind = Itr.Kind.THROW_ATK;
+        kind = Itr.Kind.THROW_DAMAGE;
         scope = "Scope.ITR_TEAMMATE_HERO";
         break;
+      case 6:
+        kind = Itr.Kind.FORCE_ACT;
+        data.put("dvy", "Hero.ACT_SUPER_PUNCH");
+        scope = "Scope.ITR_ENEMY_HERO";
       case 8:
         kind = Itr.Kind.HEAL;
         data.put("dvy", "100");
@@ -472,7 +483,7 @@ public class Parser {
     Function<State, Tuple<State, String>> wrapper = state -> new Tuple<>(state, null);
     if (isHero) {
       if (curr == Hero.ACT_CROUCH1) {
-        return wrapper.apply(State.LAND);
+        return wrapper.apply(State.LANDING);
       }
       if (Hero.ACT_HEAVY_RUN > curr && curr >= Hero.ACT_HEAVY_WALK) {
         return wrapper.apply(State.HEAVY_WALK);
@@ -494,11 +505,11 @@ public class Parser {
       case 3: return wrapper.apply(State.NORMAL);  // (attack action) no use
       case 4: return wrapper.apply(State.JUMP);
       case 5: return wrapper.apply(State.DASH);
-      case 6: return wrapper.apply(State.ROW);
+      case 6: return wrapper.apply(State.FLIP);
       case 7: return wrapper.apply(State.DEFEND);
       case 8: return wrapper.apply(State.NORMAL);  // (broken_defend) no use
-      case 9: return wrapper.apply(State.GRASP);
-      case 10: return wrapper.apply(State.GRASP);
+      case 9: return wrapper.apply(State.GRAB);
+      case 10: return wrapper.apply(State.GRAB);
       case 11: return wrapper.apply(State.NORMAL);
       case 12: return wrapper.apply(State.FALL);
       case 13: return wrapper.apply(State.NORMAL);
@@ -589,7 +600,7 @@ public class Parser {
         String value = pureInt(data.remove(key));
         if (!value.equals("0")) {
           optionalList.add(String.format("\"%s\"", key));
-          optionalList.add(key.startsWith("dv") && value.equals("550") ? "Const.DV_550" : value);
+          optionalList.add(key.startsWith("dv") && value.equals("550") ? "Frame.RESET_VELOCITY" : value);
         }
       }
     }
@@ -703,9 +714,6 @@ public class Parser {
                              pureInt(data.get("catchingact")), pureInt(data.get("caughtact")));
       case 5:
         return String.format("Itr.onHand(%s)", boxArgs);
-      case 6:
-        return String.format("Itr.kind(%s, %s, %s)",
-                             boxArgs, Itr.Kind.LET_SPUNCH, "Scope.ITR_ENEMY_HERO");
       case 7:
         return String.format("Itr.kind(%s, %s, %s)",
                              boxArgs, Itr.Kind.ROLL_PICK, "Scope.ITR_ALL_WEAPON");

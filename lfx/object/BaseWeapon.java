@@ -49,7 +49,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
   public final String soundBroken;
   public final Map<Integer, Itr> strengthMap;
   public final Set<Weapon> immune = new HashSet<>();
-  private Hero owner = null;
+  private Hero holder = null;
 
   protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
                        Map<String, String> stamina, Map<Integer, Itr> strengthMap) {
@@ -127,7 +127,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   public void release() {
-    owner = null;
+    holder = null;
     return;
   }
 
@@ -139,7 +139,13 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   public Observable getHolder() {
-    return owner;
+    return holder;
+  }
+
+  @Override
+  protected void addRaceCondition(Observable competitor) {
+    holder = (Hero) competitor;
+    return;
   }
 
   @Override
@@ -195,7 +201,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected int updateAction(int nextAct) {
-    return owner == null ? moveFree(nextAct) : moveHeld(nextAct);
+    return holder == null ? moveFree(nextAct) : moveHeld(nextAct);
   }
 
   private int landing() {
@@ -221,7 +227,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
     vx = frame.calcVX(vx, faceRight);
     px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
     vy = frame.calcVY(vy);
-    if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
+    if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Frame.RESET_VELOCITY) {
       vz = 0.0;
     } else {
       pz += vz;
@@ -239,17 +245,17 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   private int moveHeld(int nextAct) {
-    teamId = owner.getTeamId();
-    Wpoint wpoint = owner.getWpoint();
+    teamId = holder.getTeamId();
+    Wpoint wpoint = holder.getWpoint();
     // there is no wpoint in the first frame of picking weapon (Act_punch)
     if (wpoint != null) {
-      setPosition(owner.getBasePosition(wpoint), frame.wpoint, wpoint.zOffset);
+      setPosition(holder.getBasePosition(wpoint), frame.wpoint, wpoint.zOffset);
       if (wpoint.usage == 0) {
         vx = faceRight ? wpoint.dvx : -wpoint.dvx;
         vy = wpoint.dvy;
-        vz = owner.getInputZ() * wpoint.dvz;
+        vz = holder.getInputZ() * wpoint.dvz;
         nextAct = wpoint.weaponact + (isHeavy ? HEAVY_RANGE : ACT_RANGE);
-        owner = null;
+        holder = null;
         // TODO: hero-side release weapon reference
       } else {
         nextAct = wpoint.weaponact;
@@ -287,7 +293,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected void updateBdys() {
-    if (owner == null) {
+    if (holder == null) {
       bdyList.clear();
     } else {
       super.updateBdys();
@@ -297,7 +303,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected void updateItrs() {
-    if (owner == null) {
+    if (holder == null) {
       super.updateItrs();
     } else {
       bdyList.clear();

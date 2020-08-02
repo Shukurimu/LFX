@@ -1,14 +1,12 @@
 package lfx.base;
 
-import lfx.util.Const;
-
 /**
  * Indicate the coverage of Bdy and Itr.
  */
-public final class Box {
-  public static final Box LINEAR = new Box(-12345678, 23456789, -12345, 23456, 12345);
-  public static final Box GLOBAL = new Box(-12345678, 23456789, -12345678, 23456789, 12345);
-  public static final Box HIDDEN = new Box(0, 1, 654321, 1);  // pseudo-invulnerable
+public class Box {
+  public static final Box GLOBAL = new Box(-12345678, -12345678, 23456789, 23456789, 56789);
+  public static final Box HIDDEN = new Box(20, 654321, 1, 1, 1);  // pseudo-invulnerable
+  public static final int Z_WIDTH = 12;
 
   public final int x;
   public final int y;
@@ -26,13 +24,17 @@ public final class Box {
     this.zd = zd;
   }
 
-  public Box(int x, int y, int w, int h, int zwidth) {
-    this(x, y, w, h, zwidth, zwidth);
+  public Box(int x, int y, int w, int h, int zWidth) {
+    this(x, y, w, h, zWidth, zWidth);
   }
 
-  // common usage: default zwidth
   public Box(int x, int y, int w, int h) {
-    this(x, y, w, h, Const.ZWIDTH, Const.ZWIDTH);
+    this(x, y, w, h, Z_WIDTH, Z_WIDTH);
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Box(x %d ~ %d, y %d ~ %d, z %d ~ %d)", x, w, y, h, zu, zd);
   }
 
 }

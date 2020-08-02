@@ -14,10 +14,10 @@ public enum State {
   HEAVY_RUN (true),  // UDLFa
   JUMP    (false),  // flyingFlag UDLF
   DASH    (false),  // flyingFlag UDLF
-  LAND    (false),  // flyingFlag ajd (crouch2)
-  ROW     (false),  // flyingFlag UDLFj
+  LANDING (false),  // flyingFlag ajd (crouch2)
+  FLIP    (false),  // flyingFlag UDLFj
   DRINK   (true),  // connected with weapon
-  GRASP   (true),  // complicated cpoint
+  GRAB    (true),  // complicated cpoint
   DEFEND  (true),  // goes to act 111 if hit
   FALL    (true),  // changes action accroding to vy
   FIRE    (true),  // changes action accroding to vy
@@ -46,7 +46,7 @@ public enum State {
 
   @Override
   public String toString() {
-    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+    return String.format("State.%s", name());
   }
 
 }

@@ -1,14 +1,14 @@
 package lfx.component;
 
-import lfx.util.Const;
+import lfx.base.Action;
 import lfx.util.Point;
 
 public class Cpoint extends Point {
+  public final Action vAction;
+  public final Action tAction;
+  public final Action aAction;
+  public final Action jAction;
   public final int decrease;
-  public final int vaction;
-  public final int taction;
-  public final int aaction;
-  public final int jaction;
   public final int throwvx;
   public final int throwvy;
   public final int throwvz;
@@ -20,17 +20,51 @@ public class Cpoint extends Point {
   public final boolean cover;
   public final boolean hurtable;
   public final boolean throwing;
-  public final int frontHurtAct;
-  public final int backHurtAct;
+  public final Action frontHurtAction;
+  public final Action backHurtAction;
+
+  private Cpoint(Builder builder) {
+    super(builder.x, builder.y);
+    vAction = builder.vAction;
+    tAction = builder.tAction;
+    aAction = builder.aAction;
+    jAction = builder.jAction;
+    decrease = builder.decrease;
+    throwvx = builder.throwvx;
+    throwvy = builder.throwvy;
+    throwvz = builder.throwvz;
+    throwinjury = builder.throwinjury;
+    injury = builder.injury;
+    dircontrol = builder.dircontrol;
+    transform = builder.transform;
+    face2face = builder.cover < 10;
+    cover = (builder.cover & 1) == 1;
+    hurtable = builder.hurtable;
+    throwing = builder.throwing;
+    frontHurtAction = backHurtAction = Action.UNASSIGNED;
+  }
+
+  public Cpoint(int x, int y, Action frontHurtAction, Action backHurtAction) {
+    super(x, y);
+    this.frontHurtAction = frontHurtAction;
+    this.backHurtAction = backHurtAction;
+    vAction = tAction = aAction = jAction = Action.UNASSIGNED;
+    decrease = throwvx = throwvy = throwvz = throwinjury = injury = 0;
+    dircontrol = transform = face2face = cover = hurtable = throwing = false;
+  }
+
+  public Cpoint(int x, int y, int fronthurtact, int backhurtact) {
+    this(x, y, new Action(fronthurtact), new Action(backhurtact));
+  }
 
   public static class Builder {
     private int x;
     private int y;
+    private Action vAction;
+    private Action tAction = Action.UNASSIGNED;
+    private Action aAction = Action.UNASSIGNED;
+    private Action jAction = Action.UNASSIGNED;
     private int decrease;
-    private int vaction;
-    private int taction = Const.NOP;
-    private int aaction = Const.NOP;
-    private int jaction = Const.NOP;
     private int throwvx;
     private int throwvy;
     private int throwvz;
@@ -42,26 +76,42 @@ public class Cpoint extends Point {
     private boolean hurtable;
     private boolean throwing;
 
-    public Builder(int x, int y, int vaction, int decrease) {
+    public Builder(int x, int y, Action vAction, int decrease) {
       this.x = x;
       this.y = y;
+      this.vAction = vAction;
       this.decrease = decrease;
-      this.vaction = vaction;
+    }
+
+    public Builder(int x, int y, int vaction, int decrease) {
+      this(x, y, new Action(vaction), decrease);
+    }
+
+    public Builder taction(Action tAction) {
+      this.tAction = tAction;
+      return this;
     }
 
     public Builder taction(int taction) {
-      this.taction = taction;
+      return this.taction(new Action(taction));
+    }
+
+    public Builder aaction(Action aAction) {
+      this.aAction = aAction;
       return this;
     }
 
     public Builder aaction(int aaction) {
-      this.aaction = aaction;
+      return this.aaction(new Action(aaction));
+    }
+
+    public Builder jaction(Action jAction) {
+      this.jAction = jAction;
       return this;
     }
 
     public Builder jaction(int jaction) {
-      this.jaction = jaction;
-      return this;
+      return this.jaction(new Action(jaction));
     }
 
     public Builder doThrow(int throwvx, int throwvy, int throwvz, int throwinjury) {
@@ -102,36 +152,6 @@ public class Cpoint extends Point {
       return new Cpoint(this);
     }
 
-  }
-
-  private Cpoint(Builder builder) {
-    super(builder.x, builder.y);
-    decrease = builder.decrease;
-    vaction = builder.vaction;
-    taction = builder.taction;
-    aaction = builder.aaction;
-    jaction = builder.jaction;
-    throwvx = builder.throwvx;
-    throwvy = builder.throwvy;
-    throwvz = builder.throwvz;
-    throwinjury = builder.throwinjury;
-    injury = builder.injury;
-    dircontrol = builder.dircontrol;
-    transform = builder.transform;
-    face2face = builder.cover < 10;
-    cover = (builder.cover & 1) == 1;
-    hurtable = builder.hurtable;
-    throwing = builder.throwing;
-    frontHurtAct = backHurtAct = 0;
-  }
-
-  public Cpoint(int x, int y, int frontHurtAct, int backHurtAct) {
-    super(x, y);
-    this.frontHurtAct = frontHurtAct;
-    this.backHurtAct = backHurtAct;
-    vaction = taction = aaction = jaction = Const.NOP;
-    decrease = throwvx = throwvy = throwvz = throwinjury = injury = 0;
-    dircontrol = transform = face2face = cover = hurtable = throwing = false;
   }
 
 }

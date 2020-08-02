@@ -6,14 +6,17 @@ import java.util.List;
 import java.util.Map;
 import javafx.scene.input.KeyCode;
 import lfx.base.Controller;
-import lfx.base.Input;
+import lfx.base.Direction;
+import lfx.base.Order;
 import lfx.util.Const;
 import lfx.util.Tuple;
 
-public final class KeyboardController implements Controller {
+public class KeyboardController implements Controller {
   private static final Map<KeyCode, KeyMonitor> mapping = new EnumMap<>(KeyCode.class);
   private final List<Tuple<KeyMonitor, String>> keyList = new ArrayList<>(Const.KEY_NUM);
   private final KeyMonitor[] monitorArray = new KeyMonitor[Const.KEY_NUM];
+  private final StringBuilder sequence = new StringBuilder(8);
+  private long updatedTime =
   private long consumedTime = 0L;
 
   public KeyboardController(String[] stringArray) {
@@ -32,43 +35,103 @@ public final class KeyboardController implements Controller {
     return;
   }
 
-  public void updateSimpleInput(Input input) {
-    input.do_U = monitorArray[0].pressCount > 0;
-    input.do_D = monitorArray[1].pressCount > 0;
-    input.do_L = monitorArray[2].pressCount > 0;
-    input.do_R = monitorArray[3].pressCount > 0;
-    input.do_a = monitorArray[4].pressCount > 0;
-    input.do_j = monitorArray[5].pressCount > 0;
-    return;
-  }
-
-  public void updateInput(Input input) {
+  @Override
+  public void update() {
+    sequence.setLength​(0);
     keyList.sort((m1, m2) -> Long.compare(m1.first.pressTime, m2.first.pressTime));
-    StringBuilder sequence = new StringBuilder(8);
     for (Tuple<KeyMonitor, String> tuple : keyList) {
       if (tuple.first.pressTime > consumedTime) {
         break;
       }
       sequence.append(tuple.second);
     }
-    long currentTime = System.currentTimeMillis();
-    input.set(monitorArray[0].pressCount > 0,  // do_U
-              monitorArray[1].pressCount > 0,  // do_D
-              monitorArray[2].pressCount > 0,  // do_L
-              monitorArray[3].pressCount > 0,  // do_R
-              monitorArray[4].isValid(currentTime),  // do_a
-              monitorArray[5].isValid(currentTime),  // do_j
-              monitorArray[6].isValid(currentTime),  // do_d
-              monitorArray[2].doublePress && monitorArray[2].isValid(currentTime),  // do_LL
-              monitorArray[3].doublePress && monitorArray[3].isValid(currentTime),  // do_RR
-              sequence
-    );
+    updatedTime = System.currentTimeMillis();
     return;
   }
 
+  @Override
   public void consumeKeys() {
     consumedTime = System.currentTimeMillis();
     return;
+  }
+
+  @Override
+  public boolean press_U() {
+    return monitorArray[0].pressCount > 0;
+  }
+
+  @Override
+  public boolean press_D() {
+    return monitorArray[1].pressCount > 0;
+  }
+
+  @Override
+  public boolean press_L() {
+    return monitorArray[2].pressCount > 0;
+  }
+
+  @Override
+  public boolean press_R() {
+    return monitorArray[3].pressCount > 0;
+  }
+
+  @Override
+  public boolean press_a() {
+    return monitorArray[4].isValid(currentTime);
+  }
+
+  @Override
+  public boolean press_j() {
+    return monitorArray[5].isValid(currentTime);
+  }
+
+  @Override
+  public boolean press_d() {
+    return monitorArray[6].isValid(currentTime);
+  }
+
+  @Override
+  public boolean pressRunL() {
+    return monitorArray[2].doublePress && monitorArray[2].isValid(currentTime);
+  }
+
+  @Override
+  public boolean pressRunL() {
+    return monitorArray[3].doublePress && monitorArray[3].isValid(currentTime);
+  }
+
+  @Override
+  public boolean pressWalkX() {
+    return press_L() ^ press_R();
+  }
+
+  @Override
+  public boolean pressWalkZ() {
+    return press_U() ^ press_D();
+  }
+
+  @Override
+  public boolean pressWalk() {
+    return pressWalkX() | pressWalkZ();
+  }
+
+  @Override
+  public Direction getDirection() {
+    if (press_L()) {
+      return press_R() ? Direction.SAME : Direction.LEFT;
+    } else {
+      return press_R() ? Direction.RIGHT : Direction.SAME;
+    }
+  }
+
+  @Override
+  public Order getOrder() {
+    for (Order order : Order.values()) {
+      if (sequence.indexOf(order.keySquence) >= 0) {
+        return order;
+      }
+    }
+    return null;
   }
 
   public static boolean press(KeyCode code) {

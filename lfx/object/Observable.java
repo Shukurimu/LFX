@@ -18,9 +18,10 @@ public interface Observable {
                   double hp, double mp, int actNumber, int teamId);
 
   int getTeamId();
-
+  boolean getFacing();
   Frame getCurrentFrame();
   boolean isFirstTimeunit();
+  boolean isRealFirstTimeunit();
 
   /**
    * Returns the sign of value representing Up/Down key press.

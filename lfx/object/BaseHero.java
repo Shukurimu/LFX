@@ -2,7 +2,6 @@ package lfx.object;
 
 import java.util.List;
 import java.util.Map;
-import javafx.scene.image.Image;
 import lfx.base.Controller;
 import lfx.base.Input;
 import lfx.base.Scope;
@@ -15,6 +14,7 @@ import lfx.component.Wpoint;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
 import lfx.util.Const;
+import lfx.util.ImageCell;
 import lfx.util.Looper;
 import lfx.util.Point;
 import lfx.util.Util;
@@ -25,7 +25,7 @@ class BaseHero extends AbstractObject implements Hero {
   private final Looper walkingIndexer = new Looper(2, 3, 2, 1, 0, 1);
   private final Looper runningIndexer = new Looper(0, 1, 2, 1);
 
-  private final Image portrait;
+  private final ImageCell portrait;
   private final double Value_walking_speed;
   private final double Value_walking_speedz;
   private final double Value_walking_speedx;
@@ -49,8 +49,6 @@ class BaseHero extends AbstractObject implements Hero {
   // Regeneration rates
   private double hpReg = 1.0 / 12.0;
   private double mpReg = 1.0 / 3.00;
-  // dp & fp will not recovere if hit in 2 timeunit.
-  private int hitSpan = 0;
   private int dp = 0;  // defend point
   private int fp = 0;  // fall point
   private Input input = new Input();
@@ -58,7 +56,7 @@ class BaseHero extends AbstractObject implements Hero {
   private Weapon weapon = null;
 
   protected BaseHero(String identifier, List<Frame> frameList,
-                     Map<String, Double> stamina, Image portrait) {
+                     Map<String, Double> stamina, ImageCell portrait) {
     super(identifier, frameList, Scope.HERO);
     this.portrait = portrait;
     Value_walking_speed  = stamina.get(Key_walking_speed);
@@ -164,19 +162,31 @@ class BaseHero extends AbstractObject implements Hero {
     return new Point(px, py - frame.centery / 2.0);
   }
 
-  // Return remaining hp and mp, or null if no cost.
-  protected double[] pseudoCast(Frame target, boolean passive) {
+  /**
+   * Returns resulting hp and mp if cast successful.
+   *
+   * @param target Frame to be test
+   * @param passive true if action is connected by hit-tag
+   * @return remaining [hp, mp], or null if no cost
+   */
+  protected double[] pseudoCast(Frame target, boolean active) {
     // TODO: Louis transformation has hp limitation.
     if (target == null || target.cost == 0 || env.isUnlimitedMode()) {
       return null;
     }
-    if (passive) {  // Followed by next-tag.
-      return new double[] {hp, mp + target.cost};
-    } else {
+    if (active) {
       int hpCost = target.cost / 1000 * 10;
       int mpCost = target.cost - hpCost * 100;
-      return new double[] {hp - hpCost, mp - mpCost};
+      return new double[] {hp - (double) hpCost, mp - (double) mpCost};
+    } else {
+      return new double[] {hp, mp + (double) target.cost};
     }
+  }
+
+  @Override
+  protected void addRaceCondition(Observable competitor) {
+    // TODO
+    return;
   }
 
   private Weapon confirmPicking(Observable that) {
@@ -184,6 +194,7 @@ class BaseHero extends AbstractObject implements Hero {
     if (target.getHolder() == this) {
       weapon = target;
     }
+    // TODO: 2 v.s. 2
     return target;
   }
 
@@ -192,31 +203,24 @@ class BaseHero extends AbstractObject implements Hero {
     int nextAct = Const.TBA;
 
     for (Tuple<Observable, Itr> tuple: sendItrList) {
-      Itr itr = tuple.second;
-      switch (itr.kind) {
-        case GRASP_DOP:
-        case GRASP_BDY:
-          break;
-        case PICK:
-          // You always perform the action even if picking failed.
-          nextAct = confirmPicking(tuple.first).isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
-          break;
-        case ROLL_PICK:
-          confirmPicking(tuple.first);
-          break;
-        default:
-          if (itr.kind.callback) {
-            System.err.printf("Itr %s does not process callback.%n", itr);
-          }
+      Itr itr = tuple.second.kind;
+      if (kind.damage) {
+        actPause = itr.calcPause(actPause);
+      } else if (itr.kind == Itr.Kind.PICK) {
+        // You always perform the action even if picking failed.
+        nextAct = confirmPicking(tuple.first).isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+      } else if (itr.kind == Itr.Kind.ROLL_PICK) {
+        confirmPicking(tuple.first);
+      } else if (itr.kind == Itr.Kind.GRAB_DOP || itr.kind == Itr.Kind.GRAB_BDY) {
+        // TODO
       }
     }
     sendItrList.clear();
 
     for (Tuple<Observable, Itr> tuple: recvItrList) {
-      Observable that = tuple.first;
       Itr itr = tuple.second;
       switch (itr.kind) {
-        case LET_SPUNCH:
+        case FORCE_ACT:
           buff.put(Effect.ATTACK_SPUNCH, Effect.Value.once());
           break;
         case BLOCK:
@@ -228,13 +232,15 @@ class BaseHero extends AbstractObject implements Hero {
         default:
           System.out.println("NotImplemented Effect: " + itr.kind);
       }
-
+      if (!kind.damage) {
+        continue;
+      }
       actPause = itr.calcLag(actPause);
-      Tuple<Double, Boolean> dvxTuple = itr.calcDvx(px, faceRight);  // (dvx, sameDirection)
-      hitSpan = 2;
-      if (frame.state == State.DEFEND && dvxTuple.second) {
+      double dvx = itr.calcDvx(px, tuple.first.getFacing());
+      boolean face2face = faceRight == (dvx < 0.0);
+      if (frame.state == State.DEFEND && face2face) {
         hpLost(itr.injury * DEFEND_INJURY_REDUCTION, false);
-        vx += dvxTuple.first * DEFEND_DVX_REDUCTION;
+        vx += dvx * DEFEND_DVX_REDUCTION;
         dp += itr.bdefend;
         if (hp <= 0.0) {
           nextAct = ACT_FORWARD_FALL1;
@@ -245,16 +251,16 @@ class BaseHero extends AbstractObject implements Hero {
         }
       } else {
         hpLost(itr.injury, false);
-        vx += dvxTuple.first;
-        dp = Math.max(dp + itr.bdefend, NODEF_DP);
+        vx += dvx;
+        dp = Math.max(dp + itr.bdefend, 45);
         fp = (fp + itr.fall + 19) / 20 * 20;
         if (frame.state == State.ICE || fp > 60 || (fp > 20 && py < 0.0) || hp <= 0.0) {
           vy += itr.dvy;
-          nextAct = dvxTuple.second ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1;
+          nextAct = face2face ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1;
         } else if (fp > 40) {
           nextAct = ACT_DOP;
         } else if (fp > 20) {
-          nextAct = dvxTuple.second ? ACT_INJURE3 : ACT_INJURE2;
+          nextAct = face2face ? ACT_INJURE3 : ACT_INJURE2;
         } else if (fp >= 0) {
           nextAct = ACT_INJURE1;
         } else {
@@ -276,13 +282,20 @@ class BaseHero extends AbstractObject implements Hero {
       case HEAVY_RUN:   nextAct = moveHeavyRun(nextAct);   break;
       case JUMP:        nextAct = moveJump(nextAct);       break;
       case DASH:        nextAct = moveDash(nextAct);       break;
-      case LAND:        nextAct = moveLand(nextAct);       break;
-      case FIRE:        nextAct = moveFire(nextAct);       break;
+      case LANDING:     nextAct = moveLanding(nextAct);    break;
+      case FLIP:        nextAct = moveFlip(nextAct);       break;
       case DRINK:       nextAct = moveDrink(nextAct);      break;
-      case ROW:         nextAct = moveRow(nextAct);        break;
       case FALL:        nextAct = moveFall(nextAct);       break;
+      case FIRE:        nextAct = moveFire(nextAct);       break;
       case LYING:       nextAct = moveLying(nextAct);      break;
-      case NORMAL:      break;
+      case NORMAL:
+        // fall-through
+      case DEFEND:
+        // fall-through
+      case GRAB:
+        // fall-through
+      case ICE:
+        break;
       default:
         System.err.println("Unexpected state: " + frame);
     }
@@ -436,7 +449,7 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   private int moveJump(int nextAct) {
-    if (frame.curr == ACT_JUMPAIR && isFirstTimeunit()) {
+    if (frame.curr == ACT_JUMPAIR && isRealFirstTimeunit()) {
       // dvx is applied after friction reduction.
       vx += Math.copySign(Value_jump_distance, vx);
       vy += Value_jump_height;
@@ -464,7 +477,7 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   private int moveDash(int nextAct) {
-    if (isFirstTimeunit()) {
+    if (frame.curr == ACT_DASH1 && isRealFirstTimeunit()) {
       vx = Math.copySign(Value_dash_distance, vx);
       vy += Value_dash_height;
       if (input.do_Z) {
@@ -491,7 +504,7 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int moveLand(int nextAct) {
+  private int moveLanding(int nextAct) {
     if (input.do_j) {
       if (input.do_F) {
         faceRight = input.do_R;
@@ -592,8 +605,8 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int moveRow(int nextAct) {
-    if (isFirstTimeunit()) {
+  private int moveFlip(int nextAct) {
+    if (isRealFirstTimeunit()) {
       vy = Value_rowing_height;
       vx = Math.copySign(Value_rowing_distance, vx);
     }
@@ -608,85 +621,93 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int landing(boolean reboundable, boolean forward, double damage) {
+  private int landing(boolean reboundable, boolean faceForward, double damage) {
     int nextAct = Const.TBA;
-    if (reboundable && py < 0.0 && (vx > 10.0 || vx < -10.0 || vy > 1.0)) {
+    if (reboundable && (vx > 10.0 || vx < -10.0 || vy > 1.0)) {
       vy = FALLING_BOUNCE_VY;
-      nextAct = forward ? ACT_FORWARD_FALLR : ACT_BACKWARD_FALLR;
+      nextAct = faceForward ? ACT_FORWARD_FALLR : ACT_BACKWARD_FALLR;
       hpLost(damage, false);
     } else {
       vy = 0.0;
-      nextAct = forward ? ACT_LYING1 : ACT_LYING2;
-    }
-    if (buff.containsKey(Effect.LANDING_INJURY)) {
-      hpLost(buff.remove(Effect.LANDING_INJURY).intValue, true);
+      nextAct = faceForward ? ACT_LYING1 : ACT_LYING2;
     }
     return nextAct;
   }
 
   @Override
   protected int updateKinetic(int nextAct) {
-    if (actPause != 0)
+    if (actPause != 0) {
       return Const.TBA;
+    }
 
-    vx = frame.calcVX(vx, faceRight);
-    px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
-    // In LF2 even the frame with dvy = -1 causes the character flying for a while,
-    // so dvy takes effect before the calculation of gravity.
-    vy = frame.calcVY(vy);
-    // dvz is not directly added to vz.
-    if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
+    if (frame.dvx == Frame.RESET_VELOCITY) {
+      vx = 0.0;
+    } else {
+      vx = frame.calcVX(vx, faceRight);
+    }
+    if (frame.dvy == Frame.RESET_VELOCITY) {
+      vy = 0.0;
+    } else {
+      // In LF2 even the frame with dvy = -1 causes the character flying for a while,
+      // so dvy takes effect before the calculation of gravity.
+      vy += frame.dvy;
+    }
+    if (frame.dvz == Frame.RESET_VELOCITY) {
       vz = 0.0;
     } else {
-      pz += vz + (input.do_Z ? (input.do_D ? frame.dvz : -frame.dvz) : 0.0);
+      vz += input.do_Z ? (input.do_D ? frame.dvz : -frame.dvz) : 0.0;
     }
-
-    if (py + vy < 0.0) {
+    if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
+      px += vx;
       py += vy;
+      pz += vz;
+    }
+    if (py < 0.0) {  // You are still flying.
       vy = env.applyGravity(vy);
-      return Const.TBA;
+      return nextAct;
     }
 
-    vx = env.applyFriction(vx * LANDING_VELOCITY_REMAIN);
-    vz = env.applyFriction(vz * LANDING_VELOCITY_REMAIN);
+    py = 0.0;  // You are on the ground.
     if (frame.state == State.FALL) {
-      boolean reboundable = frame.curr != ACT_FORWARD_FALLR &&
-                            frame.curr != ACT_FORWARD_FALL1;
-      boolean forward = ACT_FORWARD_FALLR >= frame.curr && frame.curr >= ACT_FORWARD_FALL1;
+      boolean reboundable = frame.curr != ACT_FORWARD_FALLR && frame.curr != ACT_FORWARD_FALL1;
+      boolean faceForward = ACT_FORWARD_FALLR >= frame.curr && frame.curr >= ACT_FORWARD_FALL1;
       nextAct = landing(reboundable, forward, 0.0);
     } else if (frame.state == State.FIRE) {
       nextAct = landing(true, false, 0.0);
     } else if (frame.state == State.ICE) {
-      // TODO: small fall
+      // TODO: not break for small fall
       nextAct = landing(true, false, ICED_FALLDOWN_DAMAGE);
-    } else if (buff.containsKey(Effect.LANDING_ACT)) {
-      nextAct = buff.remove(Effect.LANDING_ACT).intValue;
-      vy = 0.0;
-    } else if (frame.state == State.JUMP || frame.state == State.ROW) {
+    } else if (frame.state == State.JUMP || frame.state == State.FLIP) {
       nextAct = ACT_CROUCH1;
       vy = 0.0;
     } else {
       nextAct = ACT_CROUCH2;
       vy = 0.0;
     }
+    vx = env.applyFriction(vx * LANDING_VELOCITY_REMAIN);
+    vz = env.applyFriction(vz * LANDING_VELOCITY_REMAIN);
+
+    if (buff.containsKey(Effect.LANDING_ACT)) {
+      nextAct = buff.remove(Effect.LANDING_ACT).intValue;
+    }
+    if (buff.containsKey(Effect.LANDING_INJURY)) {
+      hpLost(buff.remove(Effect.LANDING_INJURY).intValue, true);
+    }
     if (buff.remove(Effect.SONATA) != null) {
       hpLost(SONATA_FALLDOWN_DAMAGE, false);
     }
-    py = 0.0;
     return nextAct;
   }
 
   @Override
   protected int updateStamina(int nextAct) {
-    if (0.0 >= hp) {
-      hp = 0.0;
-      hp2nd = Math.max(hp2nd, 0.0);
+    if (hp <= 0.0) {
       return py < 0.0 ? nextAct : vx >= 0.0 ? ACT_LYING1 : ACT_LYING2;
     }
     hp = Math.min(hp2nd, hp + hpReg);
     double bonus = hpMax > hp ? (hpMax - hp) / 300.0 : 0.0;
     mp = Math.min(mpMax, mp + mpReg + bonus);
-    if (--hitSpan < 0) {
+    if (actPause < 0) {  // TODO: or another counter
       if (dp > 0)  --dp;
       if (fp > 0)  --fp;
     }
@@ -696,7 +717,7 @@ class BaseHero extends AbstractObject implements Hero {
   @Override
   protected int getNextActNumber() {
     Frame nextFrame = getFrame(frame.next);
-    double[] hpmp = pseudoCast(nextFrame, true);
+    double[] hpmp = pseudoCast(nextFrame, false);
     if (hpmp == null) {  // no cost
       return frame.next;
     }
@@ -729,7 +750,7 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public Image getPortrait() {
+  public ImageCell getPortrait() {
     return portrait;
   }
 

@@ -9,14 +9,31 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.WritablePixelFormat;
-import lfx.util.Tuple;
 
-public final class Resource {
+public class ImageCell {
   static final WritablePixelFormat<IntBuffer> pixelFormat = PixelFormat.getIntArgbPreInstance();
 
-  private Resource() {}
+  public final Image normal;
+  public final Image mirror;
 
-  public static Image loadImage(String path) {
+  private ImageCell(Image normal, Image mirror) {
+    this.normal = normal;
+    this.mirror = mirror;
+  }
+
+  private ImageCell(Image single) {
+    this.normal = this.mirror = single;
+  }
+
+  public Image get(boolean faceRight) {
+    return faceRight ? normal : mirror;
+  }
+
+  public Image get() {
+    return normal;
+  }
+
+  private static Image loadImage(String path) {
     try {
       return new Image(path);
     } catch (Exception expection) {
@@ -26,12 +43,15 @@ public final class Resource {
     return null;
   }
 
+  public static ImageCell loadPortrait(String path) {
+    return new ImageCell(loadImage(path));
+  }
+
   /**
    * Some Bitmaps are not loaded correctly in JavaFX.
    * You may need to convert them into standard format in advance.
    */
-  public static List<Tuple<Image, Image>> loadImageCells(
-      String path, int w, int h, int row, int col) {
+  public static List<ImageCell> loadImageCells(String path, int w, int h, int row, int col) {
     Image rawImage = loadImage(path);
     if (rawImage.isError()) {
       return List.of();
@@ -46,8 +66,8 @@ public final class Resource {
     matteImage.getPixelWriter().setPixels(0, 0, width, height, pixelFormat, pixels, 0, width);
     PixelReader reader = matteImage.getPixelReader();
 
-    Tuple<Image, Image> nothingTuple = Tuple.of(new WritableImage(w, h));
-    List<Tuple<Image, Image>> pictureList = new ArrayList<>(w * h);
+    ImageCell nothing = new ImageCell(new WritableImage(w, h));
+    List<ImageCell> pictureList = new ArrayList<>(w * h);
     final int[] buffer = new int[w * h];
     for (int y = 0; y < col; y += h + 1) {  // +1 for separating line
       for (int x = 0; x < row; x += w + 1) {
@@ -64,10 +84,10 @@ public final class Resource {
           }
           WritableImage mirror = new WritableImage(w, h);
           mirror.getPixelWriter().setPixels(0, 0, w, h, pixelFormat, buffer, 0, w);
-          pictureList.add(new Tuple<>(normal, mirror));
+          pictureList.add(new ImageCell(normal, mirror));
         } else {
           // index-out-of-bound shows nothing
-          pictureList.add(nothingTuple);
+          pictureList.add(nothing);
         }
       }
     }

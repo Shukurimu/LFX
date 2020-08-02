@@ -72,6 +72,12 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
+  protected void addRaceCondition(Observable competitor) {
+    System.err.printf("%s calls addRaceCondition for %s.%n", this, competitor);
+    return;
+  }
+
+  @Override
   protected int updateAction(int nextAct) {
     switch (frame.combo.getOrDefault(Input.Combo.hit_Ra, 0)) {
       case FA_DENNIS_CHASE:
@@ -143,7 +149,7 @@ class BaseEnergy extends AbstractObject implements Energy {
       vx = frame.calcVX(vx, faceRight);
       px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
       vy = frame.calcVY(vy);
-      if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Const.DV_550) {
+      if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Frame.RESET_VELOCITY) {
         vz = 0.0;
       } else {
         pz += vz + frame.combo.getOrDefault(Input.Combo.hit_j, 0);

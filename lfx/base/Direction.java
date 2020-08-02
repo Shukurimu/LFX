@@ -33,7 +33,7 @@ public enum Direction {
 
   @Override
   public String toString() {
-    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+    return String.format("Direction.%s", name());
   }
 
 }

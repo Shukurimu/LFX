@@ -22,4 +22,24 @@ public final class Util {
     return ThreadLocalRandom.current().nextBoolean();
   }
 
+  public static class ReservoirSampling<T> {
+    private int total = 0;
+    private T current = null;
+
+    public T getNext(T newSample) {
+      ++total;
+      if (randomBounds(0, total) == 0) {
+        current = newSample;
+      }
+      return current;
+    }
+
+    public void reset() {
+      total = 0;
+      current = null;
+      return;
+    }
+
+  }
+
 }

@@ -16,12 +16,12 @@ public enum Effect {
   TELEPORT_TEAM,
   HEALING,
   INVISIBILITY,
-  SONATA,
+  UNFLIPPABLE,  // sonata
   LANDING_INJURY;
 
   @Override
   public String toString() {
-    return String.format("%s.%s", this.getDeclaringClass().getSimpleName(), super.toString());
+    return String.format("Effect.%s", name());
   }
 
   public static class Value {

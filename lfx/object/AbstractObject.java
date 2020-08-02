@@ -64,6 +64,7 @@ public abstract class AbstractObject implements Observable {
   private final int baseScope;
   private double anchorX = 0.0;  // picture x-coordinate (left if faceRight else right)
   private double anchorY = 0.0;  // picture y-coordinate (top)
+  private boolean newAction = true;
   private boolean existence = true;
 
   protected AbstractObject(String identifier, List<Frame> frameList, int baseScope) {
@@ -117,6 +118,11 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public boolean isRealFirstTimeunit() {
+    return newAction && isFirstTimeunit();
+  }
+
+  @Override
   public double getInputZ() {
     return 0.0;
   }
@@ -153,6 +159,8 @@ public abstract class AbstractObject implements Observable {
   protected void transitFrame(int actNumber) {
     faceRight ^= actNumber < 0;
     frame = getFrame(actNumber);
+    newAction = actNumber != Const.ACT_REPEAT;
+    transition = frame.wait;
     frame.effect.forEach((key, value) -> buff.compute(key, value::stack));
     return;
   }
@@ -210,6 +218,8 @@ public abstract class AbstractObject implements Observable {
     System.out.println("NotImplemented");
   }
 
+  protected abstract void addRaceCondition(Observable competitor);
+
   private Itr checkInteraction(Observable that) {
     int scopeView = that.getScopeView(teamId);
     for (Tuple<Bdy, Area> bdyArea : that.getBdys()) {
@@ -223,8 +233,6 @@ public abstract class AbstractObject implements Observable {
         if (!bdy.interactsWith(itr, scopeView)) {
           continue;
         }
-        // TODO: grasp & weapon-pick
-        // TODO: distinguish active or passive
         return itr;
       }
     }
@@ -251,6 +259,9 @@ public abstract class AbstractObject implements Observable {
       if (itr != null) {
         sendItrList.add(new Tuple<>(that, itr));
         that.receiveItr(this, itr);
+        if (itr.kind.raceCondition) {
+          that.addRaceConditionObject(this);
+        }
         if (itr.vrest > 0) {
           vrest.put(that, timestamp + itr.vrest);
         } else {
@@ -382,7 +393,7 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public void updateVisualNode() {
-    visualNode.updateImage(anchorX, anchorY, pz, faceRight ? frame.pic1 : frame.pic2);
+    visualNode.updateImage(anchorX, anchorY, pz, frame.pic.get(faceRight));
     return;
   }
 
@@ -409,7 +420,7 @@ public abstract class AbstractObject implements Observable {
     for (int i = 0; i < opoint.amount; ++i) {
       boolean facing = opoint.direction.getFacing(faceRight);
       Observable clone = origin.makeClone(teamId, facing);
-      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
+      clone.setPosition(basePosition, Point.ORIGIN, Point.Z_OFFSET);
       double thisVz = (opoint.amount == 1) ? 0.0 : (i * zStep - Opoint.Z_RANGE);
       clone.setVelocity(facing ? opoint.dvx : -opoint.dvx,
                         opoint.dvy,
@@ -438,7 +449,7 @@ public abstract class AbstractObject implements Observable {
                         (Util.randomBounds(0.0, 3.0) - 8.0),
                         (Util.randomBounds(0.0, 4.0) + 3.0) * rvz[i]
       );
-      clone.setPosition(basePosition, Point.ORIGIN, Const.Z_OFFSET);
+      clone.setPosition(basePosition, Point.ORIGIN, Point.Z_OFFSET);
       opointObjectList.add(clone);
     }
     return;

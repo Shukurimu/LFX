@@ -2,49 +2,43 @@ package lfx.component;
 
 import lfx.base.Box;
 import lfx.base.Scope;
-import lfx.util.Const;
 import lfx.util.Tuple;
 
-public final class Itr {
-  public static final int DVX = 0;
-  public static final int DVY = -7;
-  public static final int FALL = 20;
-  public static final int BDEFEND = 0;
-  public static final int INJURY = 0;
-  public static final int AREST = -7;  // hero default
-  public static final int VREST = +9;  // weapon default
+public class Itr {
+  public static final int ACT_PAUSE = 3;
 
+  // TODO: Add dedicated field for effect (kind0, SHIELD, THROW_DAMAGE) to save some branch.
   public enum Kind {
-    GRASP_DOP (false,  true, ""),  // kind1
-    PICK      (false,  true, ""),  // kind2
-    GRASP_BDY (false,  true, ""),  // kind3
-    THROW_ATK ( true, false, ""),  // kind4
-    STRENGTH  (false, false, ""),  // kind5
-    LET_SPUNCH(false, false, ""),  // kind6
-    ROLL_PICK (false,  true, ""),  // kind7
-    HEAL      (false, false, ""),  // kind8
-    SHIELD    ( true, false, ""),  // kind9
-    SONATA    ( true, false, ""),  // kind10.kind11
-    BLOCK     (false, false, ""),  // kind14
-    VORTEX    ( true, false, ""),  // kind15
+    GRAB_DOP    (false,  true, ""),  // kind1
+    PICK        (false,  true, ""),  // kind2
+    GRAB_BDY    (false,  true, ""),  // kind3
+    THROW_DAMAGE(false, false, ""),  // kind4
+    STRENGTH    (false, false, ""),  // kind5
+    FORCE_ACT   (false, false, ""),  // extended kind6: dvy as target actNumber
+    ROLL_PICK   (false,  true, ""),  // kind7
+    HEAL        (false, false, ""),  // kind8
+    SHIELD      ( true, false, ""),  // kind9
+    SONATA      (false, false, ""),  // kind10.kind11
+    BLOCK       (false, false, ""),  // kind14
+    VORTEX      (false, false, ""),  // kind15
     // kind16 is replaced by ICE and calling smooth()
-    PUNCH   (true, false, "data/001.wav"),  // effect0
-    STAB    (true, false, "data/032.wav"),  // effect1
-    FIRE    (true, false, "data/070.wav"),  // effect2
-    ICE     (true, false, "data/065.wav"),  // effect3
-    WEAKFIRE(true, false, "data/070.wav"),  // effect20.effect21
-    WEAKICE (true, false, "data/065.wav"),  // effect30
-    NONE    (true, false, "");
+    PUNCH    (true, false, "data/001.wav"),  // effect0
+    STAB     (true, false, "data/032.wav"),  // effect1
+    FIRE     (true, false, "data/070.wav"),  // effect2
+    WEAK_FIRE(true, false, "data/070.wav"),  // effect20.effect21
+    ICE      (true, false, "data/065.wav"),  // effect3
+    WEAK_ICE (true, false, "data/065.wav"),  // effect30
+    NONE     (true, false, "");
     // effect4 is replaced by NON_HERO_SCOPE
-    // effect23 is replaced by calling exp()
+    // effect23 is replaced by specifying exp
 
     public final boolean damage;
-    public final boolean callback;
+    public final boolean raceCondition;
     public final String sound;
 
-    private Kind(boolean damage, boolean callback, String sound) {
+    private Kind(boolean damage, boolean raceCondition, String sound) {
       this.damage = damage;
-      this.callback = callback;
+      this.raceCondition = raceCondition;
       this.sound = sound;
     }
 
@@ -52,80 +46,90 @@ public final class Itr {
 
   public final Box box;
   public final Kind kind;
+  public final int scope;
+  public final int vrest;  // negative value as arest
   public final int dvx;  // also catchingact
   public final int dvy;  // also caughtact
   public final int fall;
   public final int bdefend;
   public final int injury;
-  public final int vrest;  // negative value as arest
-  public final int scope;
-  public final boolean nolag;
-  public final boolean explosion;
+  public final int actPause;
+  public final boolean twoSides;  // effect:23
 
-  public Itr(Box box, Kind kind, Integer dvx, Integer dvy,
-             Integer fall, Integer bdefend, Integer injury, int vrest, int scope, String attr) {
+  public Itr(Box box, Kind kind, int scope, int vrest, int dvx, int dvy,
+             int fall, int bdefend, int injury, boolean twoSides, int actPause) {
     this.box = box;
     this.kind = kind;
-    this.dvx = dvx == null ? DVX : dvx.intValue();
-    this.dvy = dvy == null ? DVY : dvy.intValue();
-    this.fall = fall == null ? FALL : fall.intValue();
-    this.bdefend = bdefend == null ? BDEFEND : bdefend.intValue();
-    this.injury = injury == null ? INJURY : injury.intValue();
-    this.vrest = vrest;
     this.scope = scope;
-    nolag = attr.contains("nolag");
-    explosion = attr.contains("exp");
+    this.vrest = vrest;
+    this.dvx = dvx;
+    this.dvy = dvy;
+    this.fall = fall;
+    this.bdefend = bdefend;
+    this.injury = injury;
+    this.actPause = actPause;
+    this.twoSides = twoSides;
   }
 
-  public Itr(Box box, String kind, Integer dvx, Integer dvy,
-             Integer fall, Integer bdefend, Integer injury, int vrest, int scope, String attr) {
-    this(box, Kind.valueOf(kind), dvx, dvy, fall, bdefend, injury, vrest, scope, attr);
+  public Itr(Box box, Kind kind, int scope, int vrest, int dvx, int dvy,
+             int fall, int bdefend, int injury, boolean twoSides) {
+    this(box, kind, scope, vrest, dvx, dvy, fall, bdefend, injury, twoSides, ACT_PAUSE);
   }
 
-  public Itr(Box box, Kind kind, Integer dvx, Integer dvy,
-             Integer fall, Integer bdefend, Integer injury, int vrest, int scope) {
-    this(box, kind, dvx, dvy, fall, bdefend, injury, vrest, scope, "");
+  public Itr(Box box, Kind kind, int scope, int vrest, int dvx, int dvy,
+             int fall, int bdefend, int injury, int actPause) {
+    this(box, kind, scope, vrest, dvx, dvy, fall, bdefend, injury, false, actPause);
   }
 
-  public Itr(Box box, String kind, Integer dvx, Integer dvy,
-             Integer fall, Integer bdefend, Integer injury, int vrest, int scope) {
-    this(box, Kind.valueOf(kind), dvx, dvy, fall, bdefend, injury, vrest, scope, "");
+  public Itr(Box box, Kind kind, int scope, int vrest, int dvx, int dvy,
+             int fall, int bdefend, int injury) {
+    this(box, kind, scope, vrest, dvx, dvy, fall, bdefend, injury, false, ACT_PAUSE);
   }
 
-  // grab (use constructor if you really want to grab teammate)
-  public static Itr grab(Box box, boolean forceGrasp, int catchingact, int caughtact) {
-    return new Itr(box, forceGrasp ? Kind.GRASP_BDY : Kind.GRASP_DOP,
-                   catchingact, caughtact, 0, 0, 0, 0,
-                   Scope.ITR_ENEMY_HERO, "");
+  // Normal grabbing. Use constructor if you really want to grab teammate.
+  public static Itr grab(Box box, boolean forceGrasp, int catchingAct, int caughtAct) {
+    return new Itr(box, forceGrasp ? Kind.GRAB_BDY : Kind.GRAB_DOP, 0, Scope.ITR_ENEMY_HERO,
+                   catchingAct, caughtAct, 0, 0, 0, false, 0);
   }
 
-  // kind only (PICK, BLOCK, ...)
-  public static Itr kind(Box box, String kind, int scope) {
-    return new Itr(box, Kind.valueOf(kind), 0, 0, 0, 0, 0, 0, scope, "");
+  // Non-damage: PICK, BLOCK, ...
+  public static Itr kind(Box box, Kind kind, int scope) {
+    return new Itr(box, kind, scope, 0, 0, 0, 0, 0, 0, false, 0);
   }
 
   // weapon on hand
   public static Itr onHand(Box box) {
-    return new Itr(box, Kind.NONE, 0, 0, 0, 0, 0, 0, 0, "");
+    return new Itr(box, Kind.NONE, 0, 0, 0, 0, 0, 0, 0, false, 0);
   }
 
   // weapon strength list (treated as hero's attack)
-  public static Itr strength(String kind, int dvx, int dvy,
-                             int fall, int bdefend, int injury, int vrest) {
-    return new Itr(null, Kind.valueOf(kind), dvx, dvy,
-                   fall, bdefend, injury, vrest, Scope.ITR_HERO, "");
+  public static Itr strength(Kind kind, int vrest, int dvx, int dvy,
+                             int fall, int bdefend, int injury) {
+    return new Itr(null, kind, Scope.ITR_HERO, vrest, dvx, dvy,
+                   fall, bdefend, injury, false, ACT_PAUSE);
   }
 
-  public int calcLag(int originalValue) {
-    return nolag ? originalValue : Math.max(originalValue, Const.LAG);
+  public int calcPause(int originalValue) {
+    return Math.max(originalValue, actPause);
   }
 
-  // Explosion kind negative dvx goes two directions.
-  public Tuple<Double, Boolean> calcDvx(double px, boolean faceRight) {
-    Double vx = explosion ? (px < (box.x + box.w / 2) ? -dvx : dvx)
-                          : Double.valueOf(faceRight ? dvx : -dvx);
-    Boolean facing = faceRight == (dvx >= 0.0);
-    return new Tuple<>(vx, facing);
+  /**
+   * Explosion kind negative dvx goes two directions.
+   * @param px of bdy source
+   * @param faceRight of itr source
+   * @return expecting dvx caused by this itr
+   */
+  public double calcDvx(double px, boolean faceRight) {
+    return twoSides ? (px < (box.x + box.w / 2) ? dvx : -dvx)
+                    : (faceRight ? dvx : -dvx);
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Itr(%s, %s, scope %d, vrest %d, %d %d, %d %d %d, pause %d, %b)",
+                         box, kind, scope, vrest, dvx, dvy,
+                         fall, bdefend, injury, actPause, twoSides
+    );
   }
 
 }

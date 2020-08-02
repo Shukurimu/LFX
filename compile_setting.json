@@ -22,13 +22,28 @@
       ]
     },
     {
+      "target": "image-util",
+      "modules": ["javafx.graphics"],
+      "pathes": [
+        "lfx/util/ImageCell.java"
+      ]
+    },
+    {
       "target": "bases",
       "pathes": [
+        "lfx/base/Action.java",
         "lfx/base/Box.java",
         "lfx/base/Controller.java",
+        "lfx/base/Cost.java",
         "lfx/base/Direction.java",
-        "lfx/base/Input.java",
-        "lfx/base/Scope.java",
+        "lfx/base/Order.java",
+        "lfx/base/Scope.java"
+      ]
+    },
+    {
+      "target": "image-base",
+      "modules": ["javafx.graphics"],
+      "pathes": [
         "lfx/base/Viewer.java"
       ]
     },
@@ -37,21 +52,13 @@
       "pathes": [
         "lfx/component/Bdy.java",
         "lfx/component/Cpoint.java",
+        "lfx/component/DataCollector.java",
         "lfx/component/Effect.java",
+        "lfx/component/Frame.java",
         "lfx/component/Itr.java",
         "lfx/component/Opoint.java",
         "lfx/component/State.java",
         "lfx/component/Wpoint.java"
-      ]
-    },
-    {
-      "target": "image-related parts",
-      "modules": ["javafx.graphics"],
-      "pathes": [
-        "lfx/util/Resource.java",
-        "lfx/base/VisualNode.java",
-        "lfx/component/Frame.java",
-        "lfx/map/Layer.java"
       ]
     },
     {

@@ -3,14 +3,6 @@ package lfx.util;
 import java.util.List;
 
 public final class Const {
-  public static final int FRAME_NUM = 400;
-  public static final int DEF = 1357920468;
-  public static final int TBA = 1357924680;
-  public static final int NOP = 1357986420;
-  public static final int LAG = 3;
-  public static final int DV_550 = 550;
-  public static final int ZWIDTH = 12;
-
   public static final List<String> KEY_SYMBOLS = List.of("U", "D", "L", "R", "a", "j", "d");
   public static final int KEY_NUM = KEY_SYMBOLS.size();
   public static final List<String> KEY_NAMES = List.of(
@@ -36,8 +28,6 @@ public final class Const {
   public static final int PLAYER_NUM = DEFAULT_PLAYER_NAME.size();
 
   public static final double CONFIG_BUTTON_WIDTH = 120;
-  /** Adjustment of pz while being held for rendering order. */
-  public static final double Z_OFFSET = 1e-3;
   public static final double DEFAULT_FPS = 30.0;
   public static final double FIELD_WIDTH = 794;
   public static final double FIELD_HEIGHT = 550 - 128;

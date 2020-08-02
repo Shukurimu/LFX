@@ -3,7 +3,7 @@ package lfx.component;
 import lfx.base.Direction;
 import lfx.util.Point;
 
-public final class Opoint extends Point {
+public class Opoint extends Point {
   // (test) upper most item z-velocity for those quantity more than 1
   public static final double Z_RANGE = 5.0;
   // TODO: customized hp or mp

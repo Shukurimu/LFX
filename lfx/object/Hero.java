@@ -1,16 +1,14 @@
 package lfx.object;
 
-import javafx.scene.image.Image;
 import lfx.base.Controller;
 import lfx.base.Viewer;
 import lfx.component.Wpoint;
 import lfx.object.Observable;
+import lfx.object.Playable;
 import lfx.util.Const;
 import lfx.util.Point;
 
-public interface Hero extends Observable {
-  // The defend point is set to NODEF_DP if got hit not in defend state.
-  int NODEF_DP = 45;
+public interface Hero extends Observable, Playable {
   double DEFEND_INJURY_REDUCTION = 0.10;
   double DEFEND_DVX_REDUCTION = 0.10;
   double FALLING_BOUNCE_VY = -4.25;  // guess
@@ -24,8 +22,6 @@ public interface Hero extends Observable {
   Wpoint getWpoint();
   boolean isAlive();
   Point getChasingPoint();
-  Image getPortrait();
-  String getName();
   Point getViewpoint();
   void updateViewer(Viewer viewer);
   void setController(Controller controller);

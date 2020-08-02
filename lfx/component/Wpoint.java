@@ -3,7 +3,7 @@ package lfx.component;
 import lfx.util.Const;
 import lfx.util.Point;
 
-public final class Wpoint extends Point {
+public class Wpoint extends Point {
   public final int weaponact;
   public final int dvx;
   public final int dvy;
@@ -19,7 +19,7 @@ public final class Wpoint extends Point {
     this.dvy = dvy;
     this.dvz = dvz;
     this.usage = usage;
-    this.zOffset = cover == 0 ? Const.Z_OFFSET : -Const.Z_OFFSET;
+    this.zOffset = cover == 0 ? Z_OFFSET : -Z_OFFSET;
   }
 
   // Holding
