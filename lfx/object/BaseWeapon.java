@@ -47,12 +47,12 @@ class BaseWeapon extends AbstractObject implements Weapon {
   public final String soundHit;
   public final String soundDrop;
   public final String soundBroken;
-  public final Map<Integer, Itr> strengthMap;
+  public final Map<Wpoint.Usage, Itr> strengthMap;
   public final Set<Weapon> immune = new HashSet<>();
   private Hero holder = null;
 
   protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
-                       Map<String, String> stamina, Map<Integer, Itr> strengthMap) {
+                       Map<String, String> stamina, Map<Wpoint.Usage, Itr> strengthMap) {
     super(identifier, frameList, Scope.WEAPON);
     this.subtype = subtype;
     isHeavy = subtype == Subtype.HEAVY;
@@ -83,27 +83,29 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  public BaseWeapon makeClone(int teamId, boolean faceRight) {
+  public BaseWeapon makeClone(int teamId) {
     BaseWeapon clone = new BaseWeapon((BaseWeapon) weaponMapping.get(identifier));
     clone.teamId = teamId;
-    clone.faceRight = faceRight;
     return clone;
   }
 
   @Override
-  protected void registerObjectMap() {
-    weaponMapping.putIfAbsent(identifier, this);
+  protected void registerLibrary() {
+    Library.instance().register(this);
     return;
   }
 
   @Override
-  protected int getDefaultActNumber() {
+  protected Action getDefaultAct() {
     if (isHeavy) {
       return py < 0.0 ? Util.randomBounds(0, HEAVY_RANGE) : HEAVY_STABLE_ON_GROUND;
     } else {
       return py < 0.0 ? Util.randomBounds(0, ACT_RANGE) : ACT_STABLE_ON_GROUND;
     }
   }
+
+  @Override
+  protected abstract void transitNextFrame();
 
   @Override
   public boolean isHeavy() {
@@ -200,7 +202,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  protected int updateAction(int nextAct) {
+  protected Action updateAction(Action nextAct) {
     return holder == null ? moveFree(nextAct) : moveHeld(nextAct);
   }
 
@@ -265,12 +267,12 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  protected int updateKinetic(int nextAct) {
+  protected Action updateKinetic(Action nextAct) {
     return Const.TBA;
   }
 
   @Override
-  protected int updateStamina(int nextAct) {
+  protected Action updateStamina(Action nextAct) {
     return hp >= 0.0 && mp >= 0.0 ? Const.TBA : Const.TBA;
   }
 

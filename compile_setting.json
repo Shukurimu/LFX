@@ -65,17 +65,29 @@
       "target": "base interfaces",
       "pathes": [
         "lfx/map/Environment.java",
-        "lfx/object/Observable.java"
+        "lfx/object/Observable.java",
+        "lfx/object/Playable.java"
       ]
     },
     {
       "target": "extend interfaces",
-      "modules": ["javafx.graphics"],
       "pathes": [
-        "lfx/map/Field.java",
         "lfx/object/Hero.java",
         "lfx/object/Weapon.java",
         "lfx/object/Energy.java"
+      ]
+    },
+    {
+      "target": "extend image-interfaces",
+      "modules": ["javafx.graphics"],
+      "pathes": [
+        "lfx/map/Field.java"
+      ]
+    },
+    {
+      "target": "library",
+      "pathes": [
+        "lfx/object/Library.java"
       ]
     },
     {
@@ -86,15 +98,19 @@
     },
     {
       "target": "base classes",
-      "modules": ["javafx.graphics"],
       "pathes": [
-        "lfx/map/BaseMap.java",
         "lfx/object/AbstractObject.java"
       ]
     },
     {
-      "target": "concrete classes",
+      "target": "base image-class",
       "modules": ["javafx.graphics"],
+      "pathes": [
+        "lfx/map/BaseMap.java"
+      ]
+    },
+    {
+      "target": "concrete classes",
       "pathes": [
         "lfx/object/BaseHero.java",
         "lfx/object/BaseWeapon.java",

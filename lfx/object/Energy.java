@@ -3,11 +3,6 @@ package lfx.object;
 import lfx.object.Observable;
 
 public interface Energy extends Observable {
-  int ACT_FLYING = 0;
-  int ACT_HITTING = 10;
-  int ACT_HIT = 20;
-  int ACT_REBOUND = 30;
-  int ACT_DISAPPEAR = 40;
 
   double CHASE_AX = 0.7;
   double CHASE_VXMAX = 14.0;

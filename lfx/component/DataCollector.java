@@ -10,7 +10,6 @@ import lfx.base.Cost;
 import lfx.base.Order;
 import lfx.component.Bdy;
 import lfx.component.Cpoint;
-import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.Opoint;
@@ -58,6 +57,9 @@ public class DataCollector {
 
   public void add(int curr, int wait, State state, int pic, int centerx, int centery,
                   int dvx, int dvy, int dvz, Action next, Object... elements) {
+    if (next == Action.UNASSIGNED) {
+      throw new IllegalArgumentException("Invalid Frame.next: " + next.toString());
+    }
     Map<Order, Action> combo = new EnumMap<>(Order.class);
     List<Bdy> bdyList = new ArrayList<>();
     List<Itr> itrList = new ArrayList<>();

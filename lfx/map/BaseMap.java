@@ -164,7 +164,7 @@ public class BaseMap implements Field {
     targetList.forEach(o -> o.act());
     targetList.removeIf(o -> !o.exists());
     targetList.addAll(targetQueue);
-    targetQueue.forEach(o -> fxNodeList.add(o.getVisualNode().getFxNode()));
+    targetQueue.forEach(o -> fxNodeList.add(o.getViewer().getFxNode()));
     targetQueue.clear();
     return;
   }

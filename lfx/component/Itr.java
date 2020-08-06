@@ -2,7 +2,6 @@ package lfx.component;
 
 import lfx.base.Box;
 import lfx.base.Scope;
-import lfx.util.Tuple;
 
 public class Itr {
   public static final int ACT_PAUSE = 3;

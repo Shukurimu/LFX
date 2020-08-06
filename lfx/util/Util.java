@@ -1,6 +1,7 @@
 package lfx.util;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.List;
 
 public final class Util {
 
@@ -20,6 +21,10 @@ public final class Util {
 
   public static boolean randomBool() {
     return ThreadLocalRandom.current().nextBoolean();
+  }
+
+  public static <T> T getRandomElement(List<T> targetList) {
+    return targetList.get(ThreadLocalRandom.current().nextInt(targetList.size()));
   }
 
   public static class ReservoirSampling<T> {

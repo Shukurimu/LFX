@@ -29,23 +29,25 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  public BaseEnergy makeClone(int teamId, boolean faceRight) {
+  public BaseEnergy makeClone(int teamId) {
     BaseEnergy clone = new BaseEnergy((BaseEnergy) energyMapping.get(identifier));
     clone.teamId = teamId;
-    clone.faceRight = faceRight;
     return clone;
   }
 
   @Override
-  protected void registerObjectMap() {
-    energyMapping.putIfAbsent(identifier, this);
+  protected void registerLibrary() {
+    Library.instance().register(this);
     return;
   }
 
   @Override
-  protected int getDefaultActNumber() {
+  protected Action getDefaultAct() {
     return ACT_FLYING;
   }
+
+  @Override
+  protected abstract void transitNextFrame();
 
   @Override
   public void rebound() {
@@ -73,12 +75,12 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected void addRaceCondition(Observable competitor) {
-    System.err.printf("%s calls addRaceCondition for %s.%n", this, competitor);
+    throw RuntimeException();
     return;
   }
 
   @Override
-  protected int updateAction(int nextAct) {
+  protected Action updateAction(Action nextAct) {
     switch (frame.combo.getOrDefault(Input.Combo.hit_Ra, 0)) {
       case FA_DENNIS_CHASE:
         nextAct = moveDennisChase(nextAct);
@@ -144,7 +146,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected int updateKinetic(int nextAct) {
+  protected Action updateKinetic(Action nextAct) {
     if (actPause == 0) {
       vx = frame.calcVX(vx, faceRight);
       px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
@@ -159,7 +161,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected int updateStamina(int nextAct) {
+  protected Action updateStamina(Action nextAct) {
     hp -= frame.combo.getOrDefault(Input.Combo.hit_a, 0);
     return nextAct;
   }

@@ -1,18 +1,26 @@
 package lfx.component;
 
-import lfx.util.Const;
 import lfx.util.Point;
 
 public class Wpoint extends Point {
+
+  public enum Usage {
+    NONE,
+    NORMAL,
+    JUMP,
+    RUN,
+    DASH;
+  }
+
   public final int weaponact;
   public final int dvx;
   public final int dvy;
   public final int dvz;
-  public final int usage;
+  public final Usage usage;
   public final double zOffset;
 
   private Wpoint(int x, int y, int weaponact, int cover,
-                 int dvx, int dvy, int dvz, int usage) {
+                 int dvx, int dvy, int dvz, Usage usage) {
     super(x, y);
     this.weaponact = weaponact;
     this.dvx = dvx;
@@ -24,17 +32,17 @@ public class Wpoint extends Point {
 
   // Holding
   public Wpoint(int x, int y, int weaponact, int cover) {
-    this(x, y, weaponact, cover, 0, 0, 0, 0);
+    this(x, y, weaponact, cover, 0, 0, 0, Usage.NONE);
   }
 
   // Attacking.Drop
-  public Wpoint(int x, int y, int weaponact, int cover, int usage) {
+  public Wpoint(int x, int y, int weaponact, int cover, Usage usage) {
     this(x, y, weaponact, cover, 0, 0, 0, usage);
   }
 
   // Throw
   public Wpoint(int x, int y, int weaponact, int cover, int dvx, int dvy, int dvz) {
-    this(x, y, weaponact, cover, dvx, dvy, dvz, -1);
+    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.NONE);
   }
 
 }

@@ -1,7 +1,7 @@
 package lfx.object;
 
 import java.util.List;
-import lfx.base.VisualNode;
+import lfx.base.Viewer;
 import lfx.component.Bdy;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -12,16 +12,17 @@ import lfx.util.Tuple;
 
 public interface Observable {
 
-  Observable makeClone(int teamId, boolean faceRight);
+  Observable makeClone(int teamId);
 
   void initialize(Environment env, double px, double py, double pz,
                   double hp, double mp, int actNumber, int teamId);
 
+  String getIdentifier();
   int getTeamId();
   boolean getFacing();
-  Frame getCurrentFrame();
   boolean isFirstTimeunit();
-  boolean isRealFirstTimeunit();
+  boolean isActionFirstTimeunit();
+  Frame getCurrentFrame();
 
   /**
    * Returns the sign of value representing Up/Down key press.
@@ -47,13 +48,16 @@ public interface Observable {
 
   List<Tuple<Itr, Area>> getItrs();
 
-  /** Return view from this team to teamId.*/
-  int getScopeView(int teamId);
-
-  void receiveItr(Observable source, Itr itr);
+  /**
+   * Returns this scope from another's perspective.
+   * It is mainly used while checking interaction.
+   */
+  int getScopeView(int targetTeamId);
   /** Check all ItrArea happened in current timeunit.
       Store the interactable ones into pending list. */
   void spreadItrs(List<Observable> everything);
+
+  void receiveItr(Observable source, Itr itr);
 
   /** React to the received ItrArea. Postback actLag. */
   void react();
@@ -63,9 +67,7 @@ public interface Observable {
 
   boolean exists();
 
-  VisualNode getVisualNode();
-
-  void updateVisualNode();
+  Viewer getViewer();
 
 }
 

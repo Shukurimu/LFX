@@ -1,6 +1,5 @@
 package lfx.base;
 
-import lfx.base.Direction;
 import lfx.base.Order;
 
 public interface Controller {
@@ -15,10 +14,14 @@ public interface Controller {
   boolean press_j();
   boolean press_d();
   boolean pressRun();
-  boolean pressWalkX();
-  boolean pressWalkZ();
   boolean pressWalk();
+  boolean pressX();
+  boolean pressZ();
+  double valueX();
+  double valueZ();
   Direction getDirection();
+  boolean getFacing(boolean originalFacing);
+  boolean reverseFacing(boolean originalFacing);
   Order getOrder();
 
 }

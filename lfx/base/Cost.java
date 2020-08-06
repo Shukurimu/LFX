@@ -2,6 +2,7 @@ package lfx.base;
 
 public class Cost {
   public static final Cost FREE = new Cost(0, 0);
+  // TODO: Louis transformation has hp limitation.
 
   public final int mp;
   public final int hp;
@@ -12,11 +13,11 @@ public class Cost {
   }
 
   public static Cost of(int mp) {
-    return new Cost(mp % 1000, mp / 1000 * 10);
+    return mp == 0 ? FREE : new Cost(mp % 1000, mp / 1000 * 10);
   }
 
   public static Cost of(int mp, int hp) {
-    return new Cost(mp, hp);
+    return mp == 0 && hp == 0 ? FREE : new Cost(mp, hp);
   }
 
   @Override

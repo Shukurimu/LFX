@@ -2,8 +2,10 @@ package lfx.object;
 
 import java.util.List;
 import java.util.Map;
+import lfx.base.Action;
 import lfx.base.Controller;
-import lfx.base.Input;
+import lfx.base.Cost;
+import lfx.base.Order;
 import lfx.base.Scope;
 import lfx.base.Viewer;
 import lfx.component.Effect;
@@ -12,8 +14,8 @@ import lfx.component.Itr;
 import lfx.component.State;
 import lfx.component.Wpoint;
 import lfx.object.AbstractObject;
+import lfx.object.Library;
 import lfx.object.Hero;
-import lfx.util.Const;
 import lfx.util.ImageCell;
 import lfx.util.Looper;
 import lfx.util.Point;
@@ -51,7 +53,6 @@ class BaseHero extends AbstractObject implements Hero {
   private double mpReg = 1.0 / 3.00;
   private int dp = 0;  // defend point
   private int fp = 0;  // fall point
-  private Input input = new Input();
   private Controller controller = null;
   private Weapon weapon = null;
 
@@ -111,22 +112,21 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public BaseHero makeClone(int teamId, boolean faceRight) {
-    BaseHero clone = new BaseHero((BaseHero) heroMapping.get(identifier));
+  public BaseHero makeClone(int teamId) {
+    BaseHero clone = new BaseHero(this);
     clone.teamId = teamId;
-    clone.faceRight = faceRight;
     return clone;
   }
 
   @Override
-  protected void registerObjectMap() {
-    heroMapping.putIfAbsent(identifier, this);
+  protected void registerLibrary() {
+    Library.instance().register(this);
     return;
   }
 
   @Override
   public double getInputZ() {
-    return input.do_Z ? (input.do_U ? 1.0 : -1.0) : 0.0;
+    return controller.pressZ() ? (controller.press_U() ? 1.0 : -1.0) : 0.0;
   }
 
   @Override
@@ -135,9 +135,46 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  protected int getDefaultActNumber() {
-    return py < 0.0 ? ACT_JUMPAIR :
-           (weapon != null && weapon.isHeavy() ? ACT_HEAVY_WALK : ACT_STANDING);
+  protected Action getDefaultAct() {
+    return py < 0.0 ? Action.HERO_JUMPAIR :
+           (weapon != null && weapon.isHeavy() ? Action.HERO_HEAVY_WALK : Action.HERO_STANDING);
+  }
+
+  @Override
+  protected void transitFrame(Action action) {
+    Action orderAction = frame.combo.getOrDefault(controller.getOrder(), Action.UNASSIGNED);
+    if (orderAction == Action.UNASSIGNED) {
+      super.transitFrame(action);
+      return;
+    }
+    Cost cost = frameList.get(orderAction.index).cost;
+    if (cost == Cost.FREE || env.isUnlimitedMode()) {
+      super.transitFrame(orderAction);
+    } else if (mp >= cost.mp && hp >= cost.hp) {
+      mp -= cost.mp;
+      hp -= cost.hp;
+      super.transitFrame(orderAction);
+    } else {
+      super.transitFrame(action);
+    }
+    return;
+  }
+
+  @Override
+  protected void transitNextFrame() {
+    Cost cost = frameList.get(frame.next.index).cost;
+    if (cost == Cost.FREE || env.isUnlimitedMode()) {
+      super.transitFrame(frame.next);
+      return;
+    }
+    Action spareAction = frame.combo.getOrDefault(Order.hit_d, Action.UNASSIGNED);
+    if (spareAction == Action.UNASSIGNED || mp + cost.mp >= 0) {
+      mp = mp + cost.mp;
+      super.transitFrame(frame.next);
+    } else {
+      super.transitFrame(spareAction);
+    }
+    return;
   }
 
   /**
@@ -162,53 +199,31 @@ class BaseHero extends AbstractObject implements Hero {
     return new Point(px, py - frame.centery / 2.0);
   }
 
-  /**
-   * Returns resulting hp and mp if cast successful.
-   *
-   * @param target Frame to be test
-   * @param passive true if action is connected by hit-tag
-   * @return remaining [hp, mp], or null if no cost
-   */
-  protected double[] pseudoCast(Frame target, boolean active) {
-    // TODO: Louis transformation has hp limitation.
-    if (target == null || target.cost == 0 || env.isUnlimitedMode()) {
-      return null;
-    }
-    if (active) {
-      int hpCost = target.cost / 1000 * 10;
-      int mpCost = target.cost - hpCost * 100;
-      return new double[] {hp - (double) hpCost, mp - (double) mpCost};
-    } else {
-      return new double[] {hp, mp + (double) target.cost};
-    }
-  }
-
   @Override
   protected void addRaceCondition(Observable competitor) {
     // TODO
     return;
   }
 
-  private Weapon confirmPicking(Observable that) {
+  private Action confirmPicking(Observable that) {
     Weapon target = (Weapon) that;
     if (target.getHolder() == this) {
       weapon = target;
     }
-    // TODO: 2 v.s. 2
-    return target;
+    return target.isHeavy() ? Action.HERO_PICK_HEAVY : Action.HERO_PICK_LIGHT;
   }
 
   @Override
   public void react() {
-    int nextAct = Const.TBA;
+    Action nextAct = Action.UNASSIGNED;
 
-    for (Tuple<Observable, Itr> tuple: sendItrList) {
-      Itr itr = tuple.second.kind;
-      if (kind.damage) {
+    for (Tuple<Observable, Itr> tuple : sendItrList) {
+      Itr itr = tuple.second;
+      if (itr.kind.damage) {
         actPause = itr.calcPause(actPause);
       } else if (itr.kind == Itr.Kind.PICK) {
         // You always perform the action even if picking failed.
-        nextAct = confirmPicking(tuple.first).isHeavy() ? ACT_PICK_HEAVY : ACT_PICK_LIGHT;
+        nextAct = confirmPicking(tuple.first);
       } else if (itr.kind == Itr.Kind.ROLL_PICK) {
         confirmPicking(tuple.first);
       } else if (itr.kind == Itr.Kind.GRAB_DOP || itr.kind == Itr.Kind.GRAB_BDY) {
@@ -217,7 +232,7 @@ class BaseHero extends AbstractObject implements Hero {
     }
     sendItrList.clear();
 
-    for (Tuple<Observable, Itr> tuple: recvItrList) {
+    for (Tuple<Observable, Itr> tuple : recvItrList) {
       Itr itr = tuple.second;
       switch (itr.kind) {
         case FORCE_ACT:
@@ -232,10 +247,10 @@ class BaseHero extends AbstractObject implements Hero {
         default:
           System.out.println("NotImplemented Effect: " + itr.kind);
       }
-      if (!kind.damage) {
+      if (!itr.kind.damage) {
         continue;
       }
-      actPause = itr.calcLag(actPause);
+      actPause = itr.calcPause(actPause);
       double dvx = itr.calcDvx(px, tuple.first.getFacing());
       boolean face2face = faceRight == (dvx < 0.0);
       if (frame.state == State.DEFEND && face2face) {
@@ -243,11 +258,11 @@ class BaseHero extends AbstractObject implements Hero {
         vx += dvx * DEFEND_DVX_REDUCTION;
         dp += itr.bdefend;
         if (hp <= 0.0) {
-          nextAct = ACT_FORWARD_FALL1;
+          nextAct = Action.HERO_FORWARD_FALL1;
         } else if (dp > 30) {
-          transitFrame(ACT_BROKEN_DEF);
-        } else if (frame.curr == ACT_DEFEND) {
-          transitFrame(ACT_DEFEND_HIT);
+          transitFrame(Action.HERO_BROKEN_DEF);
+        } else if (frame.curr == Action.HERO_DEFEND.index) {
+          transitFrame(Action.HERO_DEFEND_HIT);
         }
       } else {
         hpLost(itr.injury, false);
@@ -256,13 +271,13 @@ class BaseHero extends AbstractObject implements Hero {
         fp = (fp + itr.fall + 19) / 20 * 20;
         if (frame.state == State.ICE || fp > 60 || (fp > 20 && py < 0.0) || hp <= 0.0) {
           vy += itr.dvy;
-          nextAct = face2face ? ACT_BACKWARD_FALL1 : ACT_FORWARD_FALL1;
+          nextAct = face2face ? Action.HERO_BACKWARD_FALL1 : Action.HERO_FORWARD_FALL1;
         } else if (fp > 40) {
-          nextAct = ACT_DOP;
+          nextAct = Action.HERO_DOP;
         } else if (fp > 20) {
-          nextAct = face2face ? ACT_INJURE3 : ACT_INJURE2;
+          nextAct = face2face ? Action.HERO_INJURE3 : Action.HERO_INJURE2;
         } else if (fp >= 0) {
-          nextAct = ACT_INJURE1;
+          nextAct = Action.HERO_INJURE1;
         } else {
           // Negative fp causes nothing.
         }
@@ -273,7 +288,7 @@ class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  protected int updateAction(int nextAct) {
+  protected Action updateAction(Action nextAct) {
     switch (frame.state) {
       case STAND:       nextAct = moveStand(nextAct);      break;
       case WALK:        nextAct = moveWalk(nextAct);       break;
@@ -300,173 +315,142 @@ class BaseHero extends AbstractObject implements Hero {
         System.err.println("Unexpected state: " + frame);
     }
     // You can change facing in this action number.
-    if (frame.curr == ACT_DEFEND && input.do_F) {
-      faceRight = input.do_R;
+    if (frame.curr == Action.HERO_DEFEND.index && controller.pressX()) {
+      faceRight = controller.press_R();
     }
     return nextAct;
   }
 
-  private int moveStand(int nextAct) {
-    if (input.do_a) {
-      if (weapon == null) {
-        nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ? ACT_SUPER_PUNCH :
-                  Util.randomBool() ? ACT_PUNCH1 : ACT_PUNCH2;
-      } else if (weapon.isLight()) {
-        nextAct = Util.randomBool() ? ACT_WEAPON_ATK1 : ACT_WEAPON_ATK2;
-      } else if (weapon.isSmall()) {
-        nextAct = ACT_LIGHT_WEAPON_THROW;
-      } else if (weapon.isDrink()) {
-        nextAct = ACT_DRINK;
-      } else {
-        weapon.release();
-        weapon = null;
-      }
-    } else if (input.do_j) {
-      nextAct = ACT_JUMP;
-    } else if (input.do_d) {
-      nextAct = ACT_DEFEND;
-    } else if (input.do_RR | input.do_LL)  {
-      nextAct = ACT_RUNNING + runningIndexer.reset();
-      faceRight = input.do_RR;
-    } else if (input.do_F | input.do_Z) {
-      nextAct = ACT_WALKING + walkingIndexer.reset();
-      faceRight = input.do_F ? input.do_R : faceRight;
+  private Action moveStandWalkPressA(Action nextAct) {
+    if (weapon == null) {
+      nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ? Action.HERO_SUPER_PUNCH :
+                Util.randomBool() ? Action.HERO_PUNCH1 : Action.HERO_PUNCH2;
+    } else if (weapon.isLight()) {
+      nextAct = Util.randomBool() ? Action.HERO_WEAPON_ATK1 : Action.HERO_WEAPON_ATK2;
+    } else if (weapon.isSmall()) {
+      nextAct = Action.HERO_LIGHT_WEAPON_THROW;
+    } else if (weapon.isDrink()) {
+      nextAct = Action.HERO_DRINK;
+    } else {
+      weapon.release();
+      weapon = null;
     }
     return nextAct;
   }
 
-  private int moveWalk(int nextAct) {
-    if (input.do_a) {
-      if (weapon == null) {
-        nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ? ACT_SUPER_PUNCH :
-                  Util.randomBool() ? ACT_PUNCH1 : ACT_PUNCH2;
-      } else if (weapon.isLight()) {
-        nextAct = Util.randomBool() ? ACT_WEAPON_ATK1 : ACT_WEAPON_ATK2;
-      } else if (weapon.isSmall()) {
-        nextAct = ACT_LIGHT_WEAPON_THROW;
-      } else if (weapon.isDrink()) {
-        nextAct = ACT_DRINK;
-      } else {
-        weapon.release();
-        weapon = null;
-      }
-    } else if (input.do_j) {
-      nextAct = ACT_JUMP;
-    } else if (input.do_d) {
-      nextAct = ACT_DEFEND;
-    } else if (input.do_RR | input.do_LL)  {
-      nextAct = ACT_RUNNING + runningIndexer.reset();
-      faceRight = input.do_RR;
-    } else if (input.do_F | input.do_Z) {
-      if (input.do_R) {
-        vx = Value_walking_speed;
-        faceRight = true;
-      } else if (input.do_L) {
-        vx = -Value_walking_speed;
-        faceRight = false;
-      }
-      if (input.do_D) {
-        vz = Value_walking_speedz;
-      } else if (input.do_U) {
-        vz = -Value_walking_speedz;
-      }
-      if (transition == 0) {
-        nextAct = ACT_WALKING + walkingIndexer.next();
-      }
+  private Action moveStand(Action nextAct) {
+    if (controller.press_a()) {
+      nextAct = moveStandWalkPressA(nextAct);
+    } else if (controller.press_j()) {
+      nextAct = Action.HERO_JUMP;
+    } else if (controller.press_d()) {
+      nextAct = Action.HERO_DEFEND;
+    } else if (controller.pressRun())  {
+      nextAct = Action.HERO_RUNNING.shifts(runningIndexer.reset());
+      faceRight = controller.getFacing(faceRight);
+    } else if (controller.pressWalk()) {
+      nextAct = Action.HERO_WALKING.shifts(walkingIndexer.reset());
+      faceRight = controller.getFacing(faceRight);
     }
     return nextAct;
   }
 
-  private int moveHeavyWalk(int nextAct) {
-    if (input.do_a) {
-      nextAct = ACT_HEAVY_WEAPON_THROW;
-    } else if (input.do_RR | input.do_LL)  {
-      nextAct = ACT_HEAVY_RUN + runningIndexer.reset();
-      faceRight = input.do_RR;
-    } else if (input.do_F | input.do_Z) {
-      if (input.do_R) {
-        vx = Value_heavy_walking_speed;
-        faceRight = true;
-      } else if (input.do_L) {
-        vx = -Value_heavy_walking_speed;
-        faceRight = false;
+  private Action moveWalk(Action nextAct) {
+    if (controller.press_a()) {
+      nextAct = moveStandWalkPressA(nextAct);
+    } else if (controller.press_j()) {
+      nextAct = Action.HERO_JUMP;
+    } else if (controller.press_d()) {
+      nextAct = Action.HERO_DEFEND;
+    } else if (controller.pressRun())  {
+      nextAct = Action.HERO_RUNNING.shifts(runningIndexer.reset());
+      faceRight = controller.getFacing(faceRight);
+    } else if (controller.pressWalk()) {
+      if (isFirstTimeunit()) {
+        nextAct = Action.HERO_WALKING.shifts(walkingIndexer.next());
       }
-      if (input.do_D) {
-        vz = Value_heavy_walking_speedz;
-      } else if (input.do_U) {
-        vz = -Value_heavy_walking_speedz;
-      }
-      if (transition == 0) {
-        nextAct = ACT_HEAVY_WALK + walkingIndexer.next();
-      }
+      faceRight = controller.getFacing(faceRight);
+      vx = controller.valueX() * Value_walking_speed;
+      vz = controller.valueZ() * Value_walking_speedz;
     }
     return nextAct;
   }
 
-  private int moveRun(int nextAct) {
+  private Action moveHeavyWalk(Action nextAct) {
+    if (controller.press_a()) {
+      nextAct = Action.HERO_HEAVY_WEAPON_THROW;
+    } else if (controller.pressRun())  {
+      nextAct = Action.HERO_HEAVY_RUN.shifts(runningIndexer.reset());
+      faceRight = controller.getFacing(faceRight);
+    } else if (controller.pressWalk()) {
+      if (isFirstTimeunit()) {
+        nextAct = Action.HERO_HEAVY_WALK.shifts(walkingIndexer.next());
+      }
+      faceRight = controller.getFacing(faceRight);
+      vx = controller.valueX() * Value_heavy_walking_speed;
+      vz = controller.valueZ() * Value_heavy_walking_speedz;
+    }
+    return nextAct;
+  }
+
+  private Action moveRun(Action nextAct) {
     vx = faceRight ? Value_running_speed : -Value_running_speed;
-    if (input.do_Z) {
-      vz = input.do_D ? Value_running_speedz : -Value_running_speedz;
-    }
-    if (input.do_a) {
+    vz = controller.valueZ() * Value_running_speedz;
+    if (controller.press_a()) {
       if (weapon == null) {
-        nextAct = ACT_RUN_ATK;
+        nextAct = Action.HERO_RUN_ATK;
       } else if (weapon.isLight()) {
-        nextAct = input.do_F ? ACT_LIGHT_WEAPON_THROW : ACT_RUN_WEAPON_ATK;
+        nextAct = controller.pressWalk() ?
+                  Action.HERO_LIGHT_WEAPON_THROW : Action.HERO_RUN_WEAPON_ATK;
       } else if (weapon.isSmall()) {
-        nextAct = ACT_LIGHT_WEAPON_THROW;
+        nextAct = Action.HERO_LIGHT_WEAPON_THROW;
       } else if (weapon.isDrink()) {
-        nextAct = input.do_F ? ACT_LIGHT_WEAPON_THROW : ACT_DRINK;
+        nextAct = controller.pressWalk() ? Action.HERO_LIGHT_WEAPON_THROW : Action.HERO_DRINK;
       } else {
         weapon.release();
         weapon = null;
       }
-    } else if (input.do_j) {
-      nextAct = ACT_DASH1;
-    } else if (input.do_d) {
-      nextAct = ACT_ROLLING;
-    } else if ((faceRight && input.do_L) || (!faceRight && input.do_R)) {
-      nextAct = ACT_STOPRUN;
-    } else if (transition == 0) {
-      nextAct = ACT_RUNNING + runningIndexer.next();
+    } else if (controller.press_j()) {
+      nextAct = Action.HERO_DASH1;
+    } else if (controller.press_d()) {
+      nextAct = Action.HERO_ROLLING;
+    } else if (controller.reverseFacing(faceRight)) {
+      nextAct = Action.HERO_STOPRUN;
+    } else if (isFirstTimeunit()) {
+      nextAct = Action.HERO_RUNNING.shifts(runningIndexer.next());
     }
     return nextAct;
   }
 
-  private int moveHeavyRun(int nextAct) {
+  private Action moveHeavyRun(Action nextAct) {
     vx = faceRight ? Value_heavy_running_speed : -Value_heavy_running_speed;
-    if (input.do_Z) {
-      vz = input.do_D ? Value_heavy_running_speedz : -Value_heavy_running_speedz;
-    }
-    if (input.do_a) {
-      nextAct = ACT_HEAVY_WEAPON_THROW;
-    } else if ((faceRight && input.do_L) || (!faceRight && input.do_R)) {
-      nextAct = ACT_HEAVY_STOP_RUN;
-    } else if (transition == 0) {
-      nextAct = ACT_HEAVY_RUN + runningIndexer.next();
+    vz = controller.valueZ() * Value_heavy_running_speedz;
+    if (controller.press_a()) {
+      nextAct = Action.HERO_HEAVY_WEAPON_THROW;
+    } else if (controller.reverseFacing(faceRight)) {
+      nextAct = Action.HERO_HEAVY_STOP_RUN;
+    } else if (isFirstTimeunit()) {
+      nextAct = Action.HERO_HEAVY_RUN.shifts(runningIndexer.next());
     }
     return nextAct;
   }
 
-  private int moveJump(int nextAct) {
-    if (frame.curr == ACT_JUMPAIR && isRealFirstTimeunit()) {
+  private Action moveJump(Action nextAct) {
+    if (frame.curr == Action.HERO_JUMPAIR.index && isActionFirstTimeunit()) {
       // dvx is applied after friction reduction.
       vx += Math.copySign(Value_jump_distance, vx);
       vy += Value_jump_height;
-      if (input.do_Z) {
-        vz = input.do_D ? Value_jump_distancez : -Value_jump_distancez;
-      }
+      vz = controller.valueZ() * Value_jump_distancez;
     } else {
-      if (input.do_F) {
-        faceRight = input.do_R;
-      }
-      if (input.do_a) {
+      faceRight = controller.getFacing(faceRight);
+      if (controller.press_a()) {
         if (weapon == null) {
-          nextAct = ACT_JUMP_ATK;
+          nextAct = Action.HERO_JUMP_ATK;
         } else if (weapon.isLight()) {
-          nextAct = input.do_F ? ACT_SKY_WEAPON_THROW : ACT_JUMP_WEAPON_ATK;
+          nextAct = controller.pressWalk() ?
+                    Action.HERO_SKY_WEAPON_THROW : Action.HERO_JUMP_WEAPON_ATK;
         } else if (weapon.isSmall() || weapon.isDrink()) {
-          nextAct = ACT_SKY_WEAPON_THROW;
+          nextAct = Action.HERO_SKY_WEAPON_THROW;
         } else {
           weapon.release();
           weapon = null;
@@ -476,26 +460,24 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int moveDash(int nextAct) {
-    if (frame.curr == ACT_DASH1 && isRealFirstTimeunit()) {
+  private Action moveDash(Action nextAct) {
+    if (frame.curr == Action.HERO_DASH1.index && isActionFirstTimeunit()) {
       vx = Math.copySign(Value_dash_distance, vx);
       vy += Value_dash_height;
-      if (input.do_Z) {
-        vz = input.do_D ? Value_dash_distancez : -Value_dash_distancez;
-      }
+      vz = controller.valueZ() * Value_dash_distancez;
       return nextAct;
     }
-    if (input.do_F && (faceRight != input.do_R)) {  // turn facing
-      faceRight = input.do_R;
-      nextAct = faceRight == (vx >= 0.0) ? ACT_DASH1 : ACT_DASH2;
+    if (controller.reverseFacing(faceRight)) {  // turn facing
+      faceRight = controller.press_R();
+      nextAct = faceRight == (vx >= 0.0) ? Action.HERO_DASH1 : Action.HERO_DASH2;
     }
-    if (input.do_a && (faceRight == (vx >= 0.0))) {
+    if (controller.press_a() && (faceRight == (vx >= 0.0))) {
       if (weapon == null) {
-        nextAct = ACT_DASH_ATK;
+        nextAct = Action.HERO_DASH_ATK;
       } else if (weapon.isLight()) {
-        nextAct = ACT_DASH_WEAPON_ATK;
+        nextAct = Action.HERO_DASH_WEAPON_ATK;
       } else if (weapon.isSmall() || weapon.isDrink()) {
-        nextAct = ACT_SKY_WEAPON_THROW;
+        nextAct = Action.HERO_SKY_WEAPON_THROW;
       } else {
         weapon.release();
         weapon = null;
@@ -504,109 +486,76 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int moveLanding(int nextAct) {
-    if (input.do_j) {
-      if (input.do_F) {
-        faceRight = input.do_R;
-        nextAct = ACT_DASH1;
+  private Action moveLanding(Action nextAct) {
+    if (controller.press_j()) {
+      if (controller.pressX()) {
+        faceRight = controller.press_R();
+        nextAct = Action.HERO_DASH1;
       } else if (Math.abs(vx) > 0.1) {
-        nextAct = faceRight == (vx >= 0.0) ? ACT_DASH1 : ACT_DASH2;
-      } else if (transition < 2) {  // TODO: Why 2?
-        nextAct = ACT_JUMP;
+        nextAct = faceRight == (vx >= 0.0) ? Action.HERO_DASH1 : Action.HERO_DASH2;
+      } else if (!isFirstTimeunit()) {  // TODO: transition < 2 ?
+        nextAct = Action.HERO_JUMP;
       }
       return nextAct;
     }
-    if (input.do_F | input.do_Z) {
-      if (input.do_Z) {
-        vz = input.do_D ? Value_walking_speedz : -Value_walking_speedz;
+    if (controller.pressWalk()) {
+      vz = controller.valueZ() * Value_walking_speedz;
+      if (!isFirstTimeunit()) {
+        nextAct = Action.HERO_WALKING.shifts(walkingIndexer.reset());
       }
-      if (transition < 2) {
-        nextAct = ACT_WALKING + walkingIndexer.reset();
-      }
-    } else if (input.do_d) {
-      nextAct = ACT_ROLLING;
+    } else if (controller.press_d()) {
+      nextAct = Action.HERO_ROLLING;
     }
     return nextAct;
   }
 
-  private int moveFall(int nextAct) {
-    if (ACT_BACKWARD_FALLR >= frame.curr && frame.curr >= ACT_BACKWARD_FALL1) {
-      if (frame.curr == ACT_BACKWARD_FALLR) {
+  private Action moveFall(Action nextAct) {
+    if (Action.HERO_BACKWARD_FALL.includes(frame.curr)) {
+      if (Action.HERO_BACKWARD_FALLR.index == frame.curr) {
         // Can do nothing
       } else if (vy < -10.0) {
-        if (frame.curr != ACT_BACKWARD_FALL1) {
-          nextAct = ACT_BACKWARD_FALL1;
-        }
+        nextAct = Action.HERO_BACKWARD_FALL1;
       } else if (vy < 0.0) {
-        if (frame.curr != ACT_BACKWARD_FALL2) {
-          nextAct = ACT_BACKWARD_FALL2;
-        }
+        nextAct = Action.HERO_BACKWARD_FALL2;
       } else if (vy < 6.0) {
         // TODO: Check buff.containsKey(Effect.SONATA)
-        if (input.do_j) {
-          nextAct = ACT_FLIP2;
-        } else
-        if (frame.curr != ACT_BACKWARD_FALL3) {
-          nextAct = ACT_BACKWARD_FALL3;
-        }
+        nextAct = controller.press_j() ? Action.HERO_FLIP2 :
+                  Action.HERO_BACKWARD_FALL3;
       } else {
-        if (frame.curr != ACT_BACKWARD_FALL4) {
-          nextAct = ACT_BACKWARD_FALL4;
-        }
+        nextAct = Action.HERO_BACKWARD_FALL4;
       }
     } else {
-      if (frame.curr == ACT_FORWARD_FALLR) {
+      if (Action.HERO_FORWARD_FALLR.index == frame.curr) {
         // Can do nothing
       } else if (vy < -10.0) {
-        if (frame.curr != ACT_FORWARD_FALL1) {
-          nextAct = ACT_FORWARD_FALL1;
-        }
+        nextAct = Action.HERO_FORWARD_FALL1;
       } else if (vy < 0.0) {
-        if (frame.curr != ACT_FORWARD_FALL2) {
-          nextAct = ACT_FORWARD_FALL2;
-        }
+        nextAct = Action.HERO_FORWARD_FALL2;
       } else if (vy < 6.0) {
-        if (input.do_j) {
-          nextAct = ACT_FLIP1;
-        } else
-        if (frame.curr != ACT_FORWARD_FALL3) {
-          nextAct = ACT_FORWARD_FALL3;
-        }
+        nextAct = controller.press_j() ? Action.HERO_FLIP1 :
+                  Action.HERO_FORWARD_FALL3;
       } else {
-        if (frame.curr != ACT_FORWARD_FALL4) {
-          nextAct = ACT_FORWARD_FALL4;
-        }
+        nextAct = Action.HERO_FORWARD_FALL4;
       }
     }
     return nextAct;
   }
 
-  private int moveDrink(int nextAct) {
-    List<Double> regen = weapon == null ? null : weapon.consume();
-    if (regen != null) {
-      mp += regen.get(0);
-      hp += regen.get(1);
-      hp2nd = Math.max(hp, hp2nd + regen.get(2));
-    }
+  private Action moveDrink(Action nextAct) {
+    List<Double> regen = weapon == null ? Weapon.OTHERS_REGENERATION : weapon.consume();
+    mp = Math.min(mpMax, mp + regen.get(0));
+    hp = Math.min(hpMax, hp + regen.get(1));
+    hp2nd = Math.max(hp, hp2nd + regen.get(2));
     // You can be forced into these actions without holding anything.
     return nextAct;
   }
 
-  private int moveFire(int nextAct) {
-    if (vy < 0.0) {
-      if (frame.curr == ACT_DOWNWARD_FIRE || frame.curr == ACT_DOWNWARD_FIRE + 1) {
-        nextAct = ACT_UPWARD_FIRE;
-      }
-    } else {
-      if (frame.curr == ACT_UPWARD_FIRE || frame.curr == ACT_UPWARD_FIRE + 1) {
-        nextAct = ACT_DOWNWARD_FIRE;
-      }
-    }
-    return nextAct;
+  private Action moveFire(Action nextAct) {
+    return vy < 0.0 ? Action.HERO_UPWARD_FIRE : Action.HERO_DOWNWARD_FIRE;
   }
 
-  private int moveFlip(int nextAct) {
-    if (isRealFirstTimeunit()) {
+  private Action moveFlip(Action nextAct) {
+    if (isActionFirstTimeunit()) {
       vy = Value_rowing_height;
       vx = Math.copySign(Value_rowing_distance, vx);
     }
@@ -614,30 +563,28 @@ class BaseHero extends AbstractObject implements Hero {
     return nextAct;
   }
 
-  private int moveLying(int nextAct) {
+  private Action moveLying(Action nextAct) {
     if (0.0 >= hp) {
-      nextAct = frame.curr;
+      nextAct = Action.REPEAT;
     }
     return nextAct;
   }
 
-  private int landing(boolean reboundable, boolean faceForward, double damage) {
-    int nextAct = Const.TBA;
+  private Action landing(boolean reboundable, boolean faceForward, double damage) {
     if (reboundable && (vx > 10.0 || vx < -10.0 || vy > 1.0)) {
       vy = FALLING_BOUNCE_VY;
-      nextAct = faceForward ? ACT_FORWARD_FALLR : ACT_BACKWARD_FALLR;
       hpLost(damage, false);
+      return faceForward ? Action.HERO_FORWARD_FALLR : Action.HERO_BACKWARD_FALLR;
     } else {
       vy = 0.0;
-      nextAct = faceForward ? ACT_LYING1 : ACT_LYING2;
+      return faceForward ? Action.HERO_LYING1 : Action.HERO_LYING2;
     }
-    return nextAct;
   }
 
   @Override
-  protected int updateKinetic(int nextAct) {
+  protected Action updateKinetic(Action nextAct) {
     if (actPause != 0) {
-      return Const.TBA;
+      return Action.UNASSIGNED;
     }
 
     if (frame.dvx == Frame.RESET_VELOCITY) {
@@ -650,12 +597,12 @@ class BaseHero extends AbstractObject implements Hero {
     } else {
       // In LF2 even the frame with dvy = -1 causes the character flying for a while,
       // so dvy takes effect before the calculation of gravity.
-      vy += frame.dvy;
+      vy = frame.dvy;
     }
     if (frame.dvz == Frame.RESET_VELOCITY) {
       vz = 0.0;
     } else {
-      vz += input.do_Z ? (input.do_D ? frame.dvz : -frame.dvz) : 0.0;
+      vz = controller.valueZ() * frame.dvz;
     }
     if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
       px += vx;
@@ -669,66 +616,49 @@ class BaseHero extends AbstractObject implements Hero {
 
     py = 0.0;  // You are on the ground.
     if (frame.state == State.FALL) {
-      boolean reboundable = frame.curr != ACT_FORWARD_FALLR && frame.curr != ACT_FORWARD_FALL1;
-      boolean faceForward = ACT_FORWARD_FALLR >= frame.curr && frame.curr >= ACT_FORWARD_FALL1;
-      nextAct = landing(reboundable, forward, 0.0);
+      boolean reboundable = frame.curr != Action.HERO_FORWARD_FALLR.index &&
+                            frame.curr != Action.HERO_FORWARD_FALL1.index;
+      boolean faceForward = frame.curr <= Action.HERO_FORWARD_FALLR.index &&
+                            frame.curr >= Action.HERO_FORWARD_FALL1.index;
+      nextAct = landing(reboundable, faceForward, 0.0);
     } else if (frame.state == State.FIRE) {
       nextAct = landing(true, false, 0.0);
     } else if (frame.state == State.ICE) {
       // TODO: not break for small fall
       nextAct = landing(true, false, ICED_FALLDOWN_DAMAGE);
     } else if (frame.state == State.JUMP || frame.state == State.FLIP) {
-      nextAct = ACT_CROUCH1;
+      nextAct = Action.HERO_CROUCH1;
       vy = 0.0;
     } else {
-      nextAct = ACT_CROUCH2;
+      nextAct = Action.HERO_CROUCH2;
       vy = 0.0;
     }
     vx = env.applyFriction(vx * LANDING_VELOCITY_REMAIN);
     vz = env.applyFriction(vz * LANDING_VELOCITY_REMAIN);
 
     if (buff.containsKey(Effect.LANDING_ACT)) {
-      nextAct = buff.remove(Effect.LANDING_ACT).intValue;
+      // TODO: Action from int
+      nextAct = new Action(buff.remove(Effect.LANDING_ACT).intValue);
     }
     if (buff.containsKey(Effect.LANDING_INJURY)) {
       hpLost(buff.remove(Effect.LANDING_INJURY).intValue, true);
-    }
-    if (buff.remove(Effect.SONATA) != null) {
-      hpLost(SONATA_FALLDOWN_DAMAGE, false);
     }
     return nextAct;
   }
 
   @Override
-  protected int updateStamina(int nextAct) {
+  protected Action updateStamina(Action nextAct) {
     if (hp <= 0.0) {
-      return py < 0.0 ? nextAct : vx >= 0.0 ? ACT_LYING1 : ACT_LYING2;
+      return py < 0.0 ? nextAct : vx >= 0.0 ? Action.HERO_LYING1 : Action.HERO_LYING2;
     }
-    hp = Math.min(hp2nd, hp + hpReg);
     double bonus = hpMax > hp ? (hpMax - hp) / 300.0 : 0.0;
+    hp = Math.min(hp2nd, hp + hpReg);
     mp = Math.min(mpMax, mp + mpReg + bonus);
     if (actPause < 0) {  // TODO: or another counter
-      if (dp > 0)  --dp;
-      if (fp > 0)  --fp;
+      dp = dp > 0 ? dp - 1 : dp;
+      fp = fp > 0 ? fp - 1 : dp;
     }
-    return Const.TBA;
-  }
-
-  @Override
-  protected int getNextActNumber() {
-    Frame nextFrame = getFrame(frame.next);
-    double[] hpmp = pseudoCast(nextFrame, false);
-    if (hpmp == null) {  // no cost
-      return frame.next;
-    }
-    Integer spare = frame.combo.get(Input.Combo.hit_d);
-    if (hpmp[1] >= 0.0 || spare == null) {
-      hp = hpmp[0];
-      mp = hpmp[1];
-      return frame.next;
-    } else {
-      return spare.intValue();
-    }
+    return nextAct;
   }
 
   @Override
@@ -740,14 +670,14 @@ class BaseHero extends AbstractObject implements Hero {
     return true;
   }
 
-  @Override
-  protected void updateItrs() {
-    super.updateItrs();
-    if (weapon != null) {
-      itrList.addAll(weapon.getStrengthItrs(frame.wpoint.usage));
-    }
-    return;
-  }
+  // @Override
+  // protected void updateItrs() {
+  //   super.updateItrs();
+  //   if (weapon != null) {
+  //     itrList.addAll(weapon.getStrengthItrs(frame.wpoint.usage));
+  //   }
+  //   return;
+  // }
 
   @Override
   public ImageCell getPortrait() {
@@ -767,13 +697,9 @@ class BaseHero extends AbstractObject implements Hero {
   @Override
   public void updateViewer(Viewer viewer) {
     if (hp > 0.0) {
-      viewer.mpRatio = mp / mpMax;
-      viewer.hpRatio = hp / hpMax;
-      viewer.hp2ndRatio = hp2nd / hpMax;
+      // TODO
     } else {
-      viewer.mpRatio = 0.0;
-      viewer.hpRatio = 0.0;
-      viewer.hp2ndRatio = 0.0;
+      // TODO
     }
     return;
   }
