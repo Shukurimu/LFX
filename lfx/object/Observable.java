@@ -15,6 +15,7 @@ public interface Observable {
   Observable makeClone();
   String getIdentifier();
   int getTeamId();
+  double getPosX();
   boolean getFacing();
   boolean isFirstTimeunit();
   boolean isActionFirstTimeunit();
@@ -53,7 +54,7 @@ public interface Observable {
   int getScopeView(int targetTeamId);
   /** Check all ItrArea happened in current timeunit.
       Store the interactable ones into pending list. */
-  void spreadItrs(List<Observable> everything);
+  void spreadItrs(Iterable<Observable> everything);
 
   void receiveItr(Observable source, Itr itr);
 
@@ -62,6 +63,8 @@ public interface Observable {
 
   /** Do actions & update status. */
   void act();
+
+  List<Observable> getSpawnedObjectList();
 
   boolean exists();
 

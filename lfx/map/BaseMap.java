@@ -1,43 +1,40 @@
 package lfx.map;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javafx.scene.layout.Pane;
 import javafx.scene.Node;
 import lfx.map.Field;
+import lfx.object.Energy;
 import lfx.object.Hero;
 import lfx.object.Observable;
-import lfx.util.Const;
-import lfx.util.Point;
-import lfx.util.Util;
+import lfx.object.Weapon;
+import lfx.util.UnionReadOnlyIterable;
 
 public class BaseMap implements Field {
-  public final double boundWidth;
-  public final double boundTop;
-  public final double boundBottom;
+  protected final double boundWidth;
+  protected final double boundTop;
+  protected final double boundBottom;
+  private final Pane visualNodePane = new Pane();
+  private final List<Node> visualNodeList = visualNodePane.getChildren();
   private final List<Observable>    heroList = new ArrayList<>(64);
   private final List<Observable>  weaponList = new ArrayList<>(128);
   private final List<Observable>  energyList = new ArrayList<>(512);
   private final List<Observable>   heroQueue = new ArrayList<>(8);
   private final List<Observable> weaponQueue = new ArrayList<>(16);
   private final List<Observable> energyQueue = new ArrayList<>(64);
-  private final List<Observable>    heroView = Collections.unmodifiableList(heroList);
-  private final List<Observable>  weaponView = Collections.unmodifiableList(weaponList);
-  private final List<Observable>  energyView = Collections.unmodifiableList(energyList);
-  private int independentTeamId = -Const.TEAM_NUM;  // reserve for manual selection
-  protected boolean unlimitedMode = false;
+  private final Iterable<Observable> heroView = new UnionReadOnlyIterable<>(heroList);
+  private final Iterable<Observable> everything = new UnionReadOnlyIterable<>(
+      heroList, weaponList, energyList
+  );
+  private int independentTeamId = 16;  // Reserve for pre-defined teams.
+  private boolean unlimitedMode = false;
   protected double friction = 1.0;
   protected double gravity = 1.7;
   protected int timestamp = 0;
-  protected final List<Double> zBound;
-  protected final List<Double> heroXBound;
-  protected final List<Double> itemXBound;
-  protected final List<Node> fxNodeList;
-  protected final Pane screenPane = new Pane();
+  protected List<Double> zBound;
+  protected List<Double> heroXBound;
+  protected List<Double> itemXBound;
 
   public BaseMap(double boundWidth, double boundTop, double boundBottom) {
     this.boundWidth = boundWidth;
@@ -46,22 +43,21 @@ public class BaseMap implements Field {
     zBound = List.of(boundBottom, boundTop);
     heroXBound = List.of(boundWidth, 0.0);
     itemXBound = List.of(boundWidth + ITEM_ADDITIONAL_WIDTH, -ITEM_ADDITIONAL_WIDTH);
-
-    Pane fxNodeLayer = new Pane();
-    fxNodeList = fxNodeLayer.getChildren();
-    screenPane.setMaxSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
-    screenPane.setMinSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
-    screenPane.getChildren().add(fxNodeLayer);
   }
 
   @Override
-  public Pane getScreenPane() {
-    return screenPane;
+  public double getBoundWidth() {
+    return boundWidth;
   }
 
   @Override
-  public List<Node> getFxNodeList() {
-    return fxNodeList;
+  public Pane getVisualNodePane() {
+    return visualNodePane;
+  }
+
+  @Override
+  public int getObjectCount() {
+    return visualNodeList.size();
   }
 
   @Override
@@ -82,7 +78,7 @@ public class BaseMap implements Field {
 
   @Override
   public int requestIndependentTeamId() {
-    return --independentTeamId;
+    return ++independentTeamId;
   }
 
   @Override
@@ -105,28 +101,16 @@ public class BaseMap implements Field {
     return itemXBound;
   }
 
-  public List<Observable> getHeroView() {
-    return heroView;
-  }
-
-  public void spawnHero(List<Observable> objectList) {
-    synchronized (heroQueue) {
-      heroQueue.addAll(objectList);
+  public void spawnObject(Observable object) {
+    if (object instanceof Energy) {
+      energyQueue.add(object);
+      return;
     }
-    return;
-  }
-
-  public void spawnWeapon(List<Observable> objectList) {
-    synchronized (weaponQueue) {
-      weaponQueue.addAll(objectList);
+    if (object instanceof Weapon) {
+      weaponQueue.add(object);
+      return;
     }
-    return;
-  }
-
-  public void spawnEnergy(List<Observable> objectList) {
-    synchronized (energyQueue) {
-      energyQueue.addAll(objectList);
-    }
+    heroQueue.add(object);
     return;
   }
 
@@ -164,7 +148,7 @@ public class BaseMap implements Field {
     targetList.forEach(o -> o.act());
     targetList.removeIf(o -> !o.exists());
     targetList.addAll(targetQueue);
-    targetQueue.forEach(o -> fxNodeList.add(o.getViewer().getFxNode()));
+    targetQueue.forEach(o -> visualNodeList.add(o.getViewer().getFxNode()));
     targetQueue.clear();
     return;
   }
@@ -172,40 +156,28 @@ public class BaseMap implements Field {
   @Override
   public void stepOneFrame() {
     ++timestamp;
-    if (Util.randomBounds(0.0, 1.0) >= DROP_PROBABILITY) {
-      System.out.println("Drop a random weapon.");
-    }
-    List<Observable> everything = Stream.of(heroList, weaponList, energyList)
-                                        .flatMap(Collection::stream)
-                                        .collect(Collectors.toUnmodifiableList());
     /** Hero has higher privilege to spread itrs, or you cannot rebound energys
         without getting hurt, since energys can hit you at the same time. */
-    heroList.parallelStream().forEach(o -> o.spreadItrs(everything));
-    weaponList.parallelStream().forEach(o -> o.spreadItrs(everything));
-    energyList.parallelStream().forEach(o -> o.spreadItrs(everything));
-    everything.parallelStream().forEach(o -> o.react());
+    heroList.forEach(o -> o.spreadItrs(everything));
+    weaponList.forEach(o -> o.react());
+    energyList.forEach(o -> o.react());
+
+    weaponList.forEach(o -> o.spreadItrs(everything));
+    energyList.forEach(o -> o.spreadItrs(everything));
+
+    for (Observable o : everything) {
+      o.react();
+      o.act();
+      for (Observable s : o.getSpawnedObjectList()) {
+        spawnObject(s);
+      }
+    }
 
     updateObservableList(heroList, heroQueue);
     updateObservableList(weaponList, weaponQueue);
     updateObservableList(energyList, energyQueue);
-    fxNodeList.removeIf(o -> !o.isVisible());
+    visualNodeList.removeIf(o -> !o.isVisible());
     return;
-  }
-
-  @Override
-  public double calculateViewpoint(List<Hero> tracingList, double origin) {
-    // Camera movement policy is modified from F.LF.
-    double position = 0.0;
-    int weight = 0;
-    for (Hero hero : tracingList) {
-      Point point = hero.getViewpoint();
-      position += point.x;
-      weight += point.y;
-    }
-    position = weight * Const.WIDTH_DIV24 + position / tracingList.size() - Const.WIDTH_DIV2;
-    position = Util.clamp(position, boundWidth - Const.FIELD_WIDTH, 0.0);
-    double speed = (position - origin) * Const.CAMERA_SPEED_FACTOR;
-    return Math.abs(speed) < Const.CAMERA_SPEED_THRESHOLD ? position : (origin + speed);
   }
 
 }

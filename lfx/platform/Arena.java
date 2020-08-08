@@ -56,6 +56,9 @@ public final class Arena extends GridPane {
     GridPane.setHalignment(middleText2, HPos.RIGHT);
     this.add(middleText2, 2, 1, 2, 1);
 
+    screenPane.setMaxSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
+    screenPane.setMinSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
+    screenPane.getChildren().add(fxNodeLayer);
     // Currently support native background only.
     field.getScreenPane().getChildren().addAll(
         (new Layer("NativeBase", 0, 0, xwidth)).pic,

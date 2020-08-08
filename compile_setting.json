@@ -17,6 +17,7 @@
         "lfx/util/Const.java",
         "lfx/util/Point.java",
         "lfx/util/Tuple.java",
+        "lfx/util/UnionReadOnlyIterable.java",
         "lfx/util/Util.java"
       ]
     },

@@ -26,7 +26,7 @@ import lfx.util.Util;
 public abstract class AbstractObject implements Observable {
   public final String identifier;
   protected final List<Frame> frameList;  // shared between same objects
-  protected final List<Observable> opointObjectList = new ArrayList<>(16);
+  protected final List<Observable> spawnedObjectList = new ArrayList<>(16);
   protected final List<Tuple<Observable, Itr>> sendItrList = new ArrayList<>(16);
   protected final List<Tuple<Observable, Itr>> recvItrList = new ArrayList<>(16);
   protected final List<Tuple<Bdy, Area>> bdyList = new ArrayList<>(8);
@@ -86,6 +86,11 @@ public abstract class AbstractObject implements Observable {
   @Override
   public int getTeamId() {
     return teamId;
+  }
+
+  @Override
+  public double getPosX() {
+    return px;
   }
 
   @Override
@@ -239,7 +244,7 @@ public abstract class AbstractObject implements Observable {
   protected abstract void addRaceCondition(Observable competitor);
 
   @Override
-  public void spreadItrs(List<Observable> everything) {
+  public void spreadItrs(Iterable<Observable> everything) {
     int timestamp = env.getTimestamp();
     if (arest > timestamp) {
       return;
@@ -353,7 +358,7 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public void act() {
-    opointObjectList.clear();
+    spawnedObjectList.clear();
     // Opoint is triggered only at the first timeunit.
     if (isFirstTimeunit()) {
       frame.opointList.forEach(opoint -> opointify(opoint));
@@ -383,6 +388,11 @@ public abstract class AbstractObject implements Observable {
       existence = false;
     }
     return;
+  }
+
+  @Override
+  public List<Observable> getSpawnedObjectList() {
+    return spawnedObjectList;
   }
 
   @Override
@@ -418,7 +428,7 @@ public abstract class AbstractObject implements Observable {
       clone.setPosition(basePosition, Point.ORIGIN, Point.Z_OFFSET);
       ++index;
     }
-    opointObjectList.addAll(cloneList);
+    spawnedObjectList.addAll(cloneList);
     // TODO: Several weapons should immune to each other (shurikens, arrows)
     return;
   }
@@ -438,7 +448,7 @@ public abstract class AbstractObject implements Observable {
       clone.setPosition(basePosition, Point.ORIGIN, Point.Z_OFFSET);
       ++index;
     }
-    opointObjectList.addAll(cloneList);
+    spawnedObjectList.addAll(cloneList);
     return;
   }
 

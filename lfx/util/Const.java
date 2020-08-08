@@ -29,18 +29,12 @@ public final class Const {
 
   public static final double CONFIG_BUTTON_WIDTH = 120;
   public static final double DEFAULT_FPS = 30.0;
-  public static final double FIELD_WIDTH = 794;
-  public static final double FIELD_HEIGHT = 550 - 128;
-  public static final double WIDTH_DIV2 = FIELD_WIDTH / 2.0;
-  public static final double WIDTH_DIV24 = FIELD_WIDTH / 24.0;
-  public static final double CANVAS_WIDTH = FIELD_WIDTH / PLAYER_NUM;
+  public static final double CANVAS_WIDTH = 794 / PLAYER_NUM;
   public static final double CANVAS_HEIGHT = 60;
   public static final double TEXTLABEL_HEIGHT = 20;
-  public static final double WINDOW_WIDTH = FIELD_WIDTH;
-  public static final double WINDOW_HEIGHT = FIELD_HEIGHT + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
+  public static final double WINDOW_WIDTH = 794;
+  public static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
   public static final double PORTRAIT_SIZE = 180;
-  public static final double CAMERA_SPEED_FACTOR = 1.0 / 18.0;
-  public static final double CAMERA_SPEED_THRESHOLD = 0.05;
   public static final long VALID_KEY_INTERVAL = 200L;
 
   private Const() {}
