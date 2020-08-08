@@ -1,25 +1,27 @@
 package lfx.component;
 
+import lfx.base.Action;
 import lfx.util.Point;
 
 public class Wpoint extends Point {
 
   public enum Usage {
-    NONE,
+    THROW,
+    JUST_HOLD,
     NORMAL,
     JUMP,
     RUN,
     DASH;
   }
 
-  public final int weaponact;
+  public final Action weaponact;
   public final int dvx;
   public final int dvy;
   public final int dvz;
   public final Usage usage;
   public final double zOffset;
 
-  private Wpoint(int x, int y, int weaponact, int cover,
+  private Wpoint(int x, int y, Action weaponact, int cover,
                  int dvx, int dvy, int dvz, Usage usage) {
     super(x, y);
     this.weaponact = weaponact;
@@ -31,18 +33,18 @@ public class Wpoint extends Point {
   }
 
   // Holding
-  public Wpoint(int x, int y, int weaponact, int cover) {
-    this(x, y, weaponact, cover, 0, 0, 0, Usage.NONE);
+  public Wpoint(int x, int y, Action weaponact, int cover) {
+    this(x, y, weaponact, cover, 0, 0, 0, Usage.JUST_HOLD);
   }
 
   // Attacking.Drop
-  public Wpoint(int x, int y, int weaponact, int cover, Usage usage) {
+  public Wpoint(int x, int y, Action weaponact, int cover, Usage usage) {
     this(x, y, weaponact, cover, 0, 0, 0, usage);
   }
 
   // Throw
-  public Wpoint(int x, int y, int weaponact, int cover, int dvx, int dvy, int dvz) {
-    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.NONE);
+  public Wpoint(int x, int y, Action weaponact, int cover, int dvx, int dvy, int dvz) {
+    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.THROW);
   }
 
 }

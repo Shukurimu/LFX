@@ -23,6 +23,10 @@ public final class Util {
     return ThreadLocalRandom.current().nextBoolean();
   }
 
+  public static <T> T getRandomElement(T[] targetArray) {
+    return targetArray[ThreadLocalRandom.current().nextInt(targetArray.length)];
+  }
+
   public static <T> T getRandomElement(List<T> targetList) {
     return targetList.get(ThreadLocalRandom.current().nextInt(targetList.size()));
   }

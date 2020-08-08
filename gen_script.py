@@ -44,12 +44,11 @@ def main(args):
 
 def _parse_args():
     parser = argparse.ArgumentParser(description='Generate compile script for different os.')
-    parser.add_argument('--os', type=str, default=platform.system(),
-                        choices=['Linux', 'Windows', 'Darwin'], help='Target OS.')
+    parser.add_argument('--os', type=str, default=platform.system(), choices=['Linux', 'Windows'])
     parser.add_argument('--setting', type=str, default='compile_setting.json',
-                        help='The path of script setting file in json format.')
+                        help='path of script setting file in json format')
     parser.add_argument('--output', type=str, default='compile_script',
-                        help='Filename of generated script.')
+                        help='filename of generated script')
     return parser.parse_args()
 
 

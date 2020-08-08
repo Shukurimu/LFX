@@ -1,10 +1,9 @@
 package lfx.object;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import lfx.base.Action;
 import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
@@ -14,53 +13,24 @@ import lfx.component.Wpoint;
 import lfx.object.AbstractObject;
 import lfx.object.Weapon;
 import lfx.util.Area;
-import lfx.util.Const;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
 class BaseWeapon extends AbstractObject implements Weapon {
-
-  protected enum Subtype {
-    SMALL(0.500,  9.0, 0.6, -0.4),
-    DRINK(0.667,  9.0, 0.6, -0.4),
-    HEAVY(1.000, 10.0, 0.3, -0.2),
-    LIGHT(1.000, 10.0, 0.6, -0.4);
-
-    public final double gravityRatio;
-    public final double threshold;
-    public final double vxLast;
-    public final double vyLast;
-
-    private Subtype(double gravityRatio, double threshold, double vxLast, double vyLast) {
-      this.gravityRatio = gravityRatio;
-      this.threshold = threshold;
-      this.vxLast = vxLast;
-      this.vyLast = vyLast;
-    }
-
-  }
-
   public final Subtype subtype;
-  public final boolean isHeavy;
-  public final double gravityRatio;
   public final double dropHurt;
   public final String soundHit;
   public final String soundDrop;
   public final String soundBroken;
   public final Map<Wpoint.Usage, Itr> strengthMap;
-  public final Set<Weapon> immune = new HashSet<>();
   private Hero holder = null;
 
   protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
                        Map<String, String> stamina, Map<Wpoint.Usage, Itr> strengthMap) {
     super(identifier, frameList, Scope.WEAPON);
     this.subtype = subtype;
-    isHeavy = subtype == Subtype.HEAVY;
-    gravityRatio = subtype.gravityRatio;
-
-    mp = SPECIAL_MP.getOrDefault(identifier, INITIAL_MP);
+    mp = identifier.equals("Milk") ? INITIAL_MILK_MP : INITIAL_MP;
     hp = Double.valueOf(stamina.get(Key_hp));
-
     dropHurt = Double.valueOf(stamina.get(Key_drop_hurt));
     soundHit = stamina.get(Key_hit_sound);
     soundDrop = stamina.get(Key_drop_sound);
@@ -68,11 +38,9 @@ class BaseWeapon extends AbstractObject implements Weapon {
     this.strengthMap = Map.copyOf(strengthMap);
   }
 
-  protected BaseWeapon(BaseWeapon base) {
+  private BaseWeapon(BaseWeapon base) {
     super(base);
     subtype = base.subtype;
-    isHeavy = base.isHeavy;
-    gravityRatio = base.gravityRatio;
     mp = base.mp;
     hp = base.hp;
     dropHurt = base.dropHurt;
@@ -83,10 +51,8 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  public BaseWeapon makeClone(int teamId) {
-    BaseWeapon clone = new BaseWeapon((BaseWeapon) weaponMapping.get(identifier));
-    clone.teamId = teamId;
-    return clone;
+  public BaseWeapon makeClone() {
+    return new BaseWeapon(this);
   }
 
   @Override
@@ -97,19 +63,16 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected Action getDefaultAct() {
-    if (isHeavy) {
-      return py < 0.0 ? Util.randomBounds(0, HEAVY_RANGE) : HEAVY_STABLE_ON_GROUND;
+    if (isHeavy()) {
+      return py < 0.0 ? Action.HEAVY_IN_THE_SKY.shifts(0) : Action.HEAVY_STABLE_ON_GROUND;
     } else {
-      return py < 0.0 ? Util.randomBounds(0, ACT_RANGE) : ACT_STABLE_ON_GROUND;
+      return py < 0.0 ? Action.LIGHT_IN_THE_SKY.shifts(0) : Action.LIGHT_STABLE_ON_GROUND;
     }
   }
 
   @Override
-  protected abstract void transitNextFrame();
-
-  @Override
   public boolean isHeavy() {
-    return isHeavy;
+    return subtype == Subtype.HEAVY;
   }
 
   @Override
@@ -140,6 +103,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
     return;
   }
 
+  @Override
   public Observable getHolder() {
     return holder;
   }
@@ -152,42 +116,31 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   public List<Double> consume() {
-    if (0.0 >= mp) {
-      hp = 0.0;
-      return null;
-    }
-    if (identifier == "Milk") {
+    if (identifier.equals("Milk")) {
       mp -= MILK_REGENERATION.get(0);
       return MILK_REGENERATION;
-    } else if (identifier == "Beer") {
+    }
+    if (identifier.equals("Beer")) {
       mp -= BEER_REGENERATION.get(0);
       return BEER_REGENERATION;
     }
-    System.out.println("Unknown consume: " + identifier);
-    return null;
-  }
-
-  @Override
-  protected void itrCallback() {
-    System.out.println("itrCallback NotImplemented");
-    return;
+    System.out.println("Unknown consume: " + this.toString());
+    return OTHERS_REGENERATION;
   }
 
   @Override
   public void react() {
-    RESULT_LOOP:
-    for (Tuple<Observable, Itr> tuple: recvItrList) {
-      final Observable that = tuple.first;
-      final Itr itr = tuple.second;
+    for (Tuple<Observable, Itr> tuple : recvItrList) {
+      Itr itr = tuple.second;
       hp -= itr.injury;
-      vx += itr.calcDvx(vx, faceRight).first;
+      vx += itr.calcDvx(vx, faceRight);
       vy += itr.dvy;
       if (itr.fall >= 0) {
         // nextAct = subtype.hitAct(fall, vx);
         // if (nextAct != Const.TBA) {
           // transitFrame(nextAct);
         // }
-        if (isHeavy) {
+        if (isHeavy()) {
           faceRight ^= true;
           vx *= -subtype.vxLast;
           vz *=  subtype.vxLast;
@@ -203,82 +156,92 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected Action updateAction(Action nextAct) {
-    return holder == null ? moveFree(nextAct) : moveHeld(nextAct);
-  }
-
-  private int landing() {
-    int nextAct = Const.TBA;
-    if (vy < subtype.threshold) {
-      nextAct = 0;
-      vy = 0.0;
-    } else {
-      nextAct = 0;
-      vy *= subtype.vyLast;
-    }
-    hp -= dropHurt;
-    // It seems that if WeaponA has applied itr on WeaponB in State.THROWING, then
-    // WeaponA will immune to WeaponB until WeaponA goes into a State.ON_GROUND frame.
-    immune.clear();
-    return nextAct;
-  }
-
-  private int moveFree(int nextAct) {
-    if (actPause == 0) {
-      return nextAct;
-    }
-    vx = frame.calcVX(vx, faceRight);
-    px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
-    vy = frame.calcVY(vy);
-    if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Frame.RESET_VELOCITY) {
-      vz = 0.0;
-    } else {
-      pz += vz;
-    }
-    if (py + vy >= 0.0) {
-      nextAct = landing();
-      vx = env.applyFriction(vx * subtype.vxLast);
-      vz = env.applyFriction(vz * subtype.vxLast);
-      py = 0.0;
-    } else {
-      py += vy;
-      vy = env.applyGravity(vy) * gravityRatio;
-    }
-    return nextAct;
-  }
-
-  private int moveHeld(int nextAct) {
-    teamId = holder.getTeamId();
-    Wpoint wpoint = holder.getWpoint();
-    // there is no wpoint in the first frame of picking weapon (Act_punch)
-    if (wpoint != null) {
-      setPosition(holder.getBasePosition(wpoint), frame.wpoint, wpoint.zOffset);
-      if (wpoint.usage == 0) {
-        vx = faceRight ? wpoint.dvx : -wpoint.dvx;
-        vy = wpoint.dvy;
-        vz = holder.getInputZ() * wpoint.dvz;
-        nextAct = wpoint.weaponact + (isHeavy ? HEAVY_RANGE : ACT_RANGE);
-        holder = null;
-        // TODO: hero-side release weapon reference
+    // case IN_THE_SKY:
+    // case ON_HAND:
+    // case THROWING:
+    // case ON_GROUND:
+    // case JUST_ON_GROUND:
+    if (frame.state == State.ON_HAND) {
+      teamId = holder.getTeamId();
+      Wpoint wpoint = holder.getWpoint();
+      // There is no wpoint in the first frame of picking weapon (Act_punch).
+      if (wpoint != null) {
+        setPosition(holder.getBasePosition(wpoint), frame.wpoint, wpoint.zOffset);
+        if (wpoint.usage == Wpoint.Usage.THROW) {
+          vx = faceRight ? wpoint.dvx : -wpoint.dvx;
+          vy = wpoint.dvy;
+          vz = holder.getInputZ() * wpoint.dvz;
+          nextAct = isHeavy() ? Action.HEAVY_THROWING.shifts(wpoint.weaponact.index)
+                              : Action.LIGHT_THROWING.shifts(wpoint.weaponact.index);
+          release();
+          // TODO: hero-side release weapon reference
+        } else {
+          vx = vy = vz = 0.0;
+          nextAct = wpoint.weaponact;
+        }
       } else {
-        nextAct = wpoint.weaponact;
+        vx = vy = vz = 0.0;
+        nextAct = isHeavy() ? Action.HEAVY_ON_HAND.shifts(frame.curr)
+                            : Action.LIGHT_ON_HAND.shifts(frame.curr);
+        release();
       }
     }
     return nextAct;
   }
 
+  private Action landing() {
+    hp -= dropHurt;
+    if (vy < subtype.threshold) {
+      vy = 0.0;
+      return isHeavy() ? Action.HEAVY_ON_GROUND : Action.LIGHT_ON_HAND;
+    } else {
+      vy *= subtype.vyLast;
+      return isHeavy() ? Action.HEAVY_IN_THE_SKY.shifts(0) : Action.LIGHT_IN_THE_SKY.shifts(0);
+    }
+    // TODO: It seems that if WeaponA has applied itr on WeaponB in State.THROWING, then
+    // WeaponA will immune to WeaponB until WeaponA goes into a State.ON_GROUND frame.
+  }
+
   @Override
   protected Action updateKinetic(Action nextAct) {
-    return Const.TBA;
+    if (actPause != 0) {
+      return Action.UNASSIGNED;
+    }
+    if (holder == null) {
+      return nextAct;
+    }
+    if (frame.dvx == Frame.RESET_VELOCITY) {
+      vx = 0.0;
+    } else {
+      vx = frame.calcVX(vx, faceRight);
+    }
+    if (frame.dvy == Frame.RESET_VELOCITY) {
+      vy = 0.0;
+    } else {
+      vy = frame.dvy;
+    }
+    if (frame.dvz == Frame.RESET_VELOCITY) {
+      vz = 0.0;
+    }
+    if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
+      px += vx;
+      py += vy;
+      pz += vz;
+    }
+    if (py < 0.0) {
+      vy = env.applyGravity(vy) * subtype.gravityRatio;
+    } else {
+      nextAct = landing();
+      vy = py = 0.0;
+      vx = env.applyFriction(vx * subtype.vxLast);
+      vz = env.applyFriction(vz * subtype.vxLast);
+    }
+    return nextAct;
   }
 
   @Override
   protected Action updateStamina(Action nextAct) {
-    return hp >= 0.0 && mp >= 0.0 ? Const.TBA : Const.TBA;
-  }
-
-  @Override
-  protected int getNextActNumber() {
-    return Const.TBA;
+    return hp >= 0.0 && mp >= 0.0 ? nextAct : Action.REMOVAL;
   }
 
   @Override
@@ -294,33 +257,17 @@ class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  protected void updateBdys() {
+  protected List<Tuple<Itr, Area>> getCurrentItrs() {
     if (holder == null) {
-      bdyList.clear();
-    } else {
-      super.updateBdys();
+      return super.getCurrentItrs();
     }
-    return;
-  }
-
-  @Override
-  protected void updateItrs() {
-    if (holder == null) {
-      super.updateItrs();
-    } else {
-      bdyList.clear();
-    }
-    return;
-  }
-
-  @Override
-  public List<Tuple<Itr, Area>> getStrengthItrs(int wusage) {
-    Itr strengthItr = strengthMap.get(wusage);
+    Wpoint wpoint = holder.getWpoint();
+    Itr strengthItr = strengthMap.get(wpoint.usage);
     if (strengthItr == null) {
       return List.of();
     }
     List<Tuple<Itr, Area>> result = new ArrayList<>(4);
-    for (Itr itr: frame.itrList) {
+    for (Itr itr : frame.itrList) {
       result.add(new Tuple<>(strengthItr, makeArea(itr.box)));
     }
     return result;

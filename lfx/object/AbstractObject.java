@@ -71,27 +71,12 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public abstract AbstractObject makeClone(int teamId);
+  public abstract AbstractObject makeClone();
 
   /**
    * Call once after base object is constructed.
    */
   protected abstract void registerLibrary();
-
-  // TODO: Change to factory method
-  @Override
-  public void initialize(Environment env, double px, double py, double pz,
-                         double hp, double mp, int teamId, int actNumber) {
-    this.env = env;
-    this.px = px;
-    this.py = py;
-    this.pz = pz;
-    this.hp = hp;
-    this.mp = mp;
-    this.teamId = teamId;
-    transitFrame(new Action(actNumber));
-    return;
-  }
 
   @Override
   public String getIdentifier() {
@@ -189,10 +174,26 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public void setPosition(double px, double py, double pz) {
+    this.px = px;
+    this.py = py;
+    this.pz = pz;
+    return;
+  }
+
+  @Override
   public void setVelocity(double vx, double vy, double vz) {
     this.vx = vx;
     this.vy = vy;
     this.vz = vz;
+    return;
+  }
+
+  @Override
+  public void setProperty(Environment env, int teamId, boolean faceRight) {
+    this.env = env;
+    this.teamId = teamId;
+    this.faceRight = faceRight;
     return;
   }
 
@@ -330,7 +331,7 @@ public abstract class AbstractObject implements Observable {
   }
 
   protected List<Tuple<Bdy, Area>> getCurrentBdys() {
-    List<Tuple<Bdy, Area>> result = new ArrayList<>();
+    List<Tuple<Bdy, Area>> result = new ArrayList<>(4);
     for (Bdy bdy : frame.bdyList) {
       result.add(new Tuple<>(bdy, makeArea(bdy.box)));
     }
@@ -338,7 +339,7 @@ public abstract class AbstractObject implements Observable {
   }
 
   protected List<Tuple<Itr, Area>> getCurrentItrs() {
-    List<Tuple<Itr, Area>> result = new ArrayList<>();
+    List<Tuple<Itr, Area>> result = new ArrayList<>(4);
     for (Itr itr : frame.itrList) {
       result.add(new Tuple<>(itr, makeArea(itr.box)));
     }
@@ -346,7 +347,7 @@ public abstract class AbstractObject implements Observable {
   }
 
   public void updateViewer() {
-    // viewer.updateImage(anchorX, anchorY, pz, frame.pic.get(faceRight)); TODO image module
+    viewer.update(faceRight, anchorX, anchorY, pz, frame.pic);
     return;
   }
 
@@ -404,12 +405,13 @@ public abstract class AbstractObject implements Observable {
     double zStep = singleShot ? 0.0 : (2.0 * Opoint.Z_RANGE / (opoint.amount - 1));
     double orderVz = Opoint.Z_RANGE * getInputZ();
     List<Double> basePosition = getBasePosition(opoint);
-    List<Observable> cloneList = Library.instance().getCloneList(opoint.oid, teamId, opoint.amount);
+    List<Observable> cloneList = Library.instance().getCloneList(opoint.oid, opoint.amount);
     int index = 0;
     for (Observable clone : cloneList) {
       double cloneVz = singleShot ? 0.0 : (index * zStep - Opoint.Z_RANGE);
-      // clone.faceRight = opoint.direction.getFacing(faceRight);  TODO: public interface
-      clone.setVelocity(clone.getFacing() ? opoint.dvx : -opoint.dvx,
+      boolean facing = opoint.direction.getFacing(faceRight);
+      clone.setProperty(env, teamId, facing);
+      clone.setVelocity(facing ? opoint.dvx : -opoint.dvx,
                         opoint.dvy,
                         orderVz + cloneVz
       );
@@ -425,10 +427,10 @@ public abstract class AbstractObject implements Observable {
     List<Double> basePosition = getBasePosition(Point.ORIGIN);
     double[] rvx = {1.0, 1.0, -1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
     double[] rvz = {1.0, -1.0, 1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
-    List<Observable> cloneList = Library.instance().getArmourSetList(teamId);
+    List<Observable> cloneList = Library.instance().getArmourSetList();
     int index = 0;
     for (Observable clone : cloneList) {
-      // clone.faceRight = Util.randomBool();
+      clone.setProperty(env, teamId, Util.randomBool());
       clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * rvx[index],
                         (Util.randomBounds(0.0, 3.0) - 8.0),
                         (Util.randomBounds(0.0, 4.0) + 3.0) * rvz[index]

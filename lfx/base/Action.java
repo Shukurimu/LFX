@@ -1,5 +1,7 @@
 package lfx.base;
 
+import lfx.util.Util;
+
 public class Action {
   public static final Action UNASSIGNED = new Action("UNASSIGNED");
   public static final Action DEFAULT = new Action("DEFAULT");
@@ -8,7 +10,7 @@ public class Action {
   public static final Action JOHN_CHASE = new Action("JOHN_CHASE");
   public static final Action DENNIS_CHASE = new Action("DENNIS_CHASE");
 
-  public final int index;
+  public final int index;  // positive
   public final boolean changeFacing;
   private final String actionName;
   private final int indexTo;  // exclusive
@@ -43,7 +45,7 @@ public class Action {
   }
 
   public Action shifts(int delta) {
-    throw new UnsupportedOperationException("For pre-defined walking and running Actions only.");
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -149,17 +151,47 @@ public class Action {
   public static final Action HERO_THROW_LYING_MAN = new Action(232, 3);
   public static final Action HERO_TRANSFORM_BACK = new Action(245, 0);
 
-  // public static final Action LIGHT_RANGE = 16;
-  public static final Action LIGHT_IN_THE_SKY = new Action(0, 16);
-  public static final Action LIGHT_ON_HAND = new Action(20, 16);
-  public static final Action LIGHT_THROWING = new Action(40, 16);
-  public static final Action LIGHT_ON_GROUND = new Action(60, 14);
+  public static final Action LIGHT_IN_THE_SKY = new Action(0, 16) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int delta) {
+      return Util.getRandomElement(innerStates);
+    }
+  };
+  public static final Action LIGHT_ON_HAND = new Action(20, 16) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int onHandActNumber) {
+      return innerStates[onHandActNumber - 20];  // drop
+    }
+  };
+  public static final Action LIGHT_THROWING = new Action(40, 16) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int onHandActNumber) {
+      return innerStates[onHandActNumber + 20];  // throw
+    }
+  };
+  public static final Action LIGHT_ON_GROUND = new Action(60, 5);
   public static final Action LIGHT_STABLE_ON_GROUND = new Action(64, 1);
-  public static final Action LIGHT_JUST_ON_GROUND = new Action(70, 1);
+  public static final Action LIGHT_JUST_ON_GROUND = new Action(70, 3);
   // public static final Action LIGHT_BOUNCING_NORMAL = 0;
   // public static final Action LIGHT_BOUNCING_LIGHT = 7;
-  // public static final Action HEAVY_RANGE = new Action(6, 1);
-  public static final Action HEAVY_IN_THE_SKY = new Action(10, 1);
+  public static final Action HEAVY_IN_THE_SKY = new Action(0, 6) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int delta) {
+      return Util.getRandomElement(innerStates);
+    }
+  };
+  public static final Action HEAVY_ON_HAND = new Action(10, 1) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int onHandActNumber) {
+      return innerStates[onHandActNumber - 10];  // drop
+    }
+  };
+  public static final Action HEAVY_THROWING = new Action(0, 6) {
+    final Action[] innerStates = generateInnerStates(this);
+    @Override public Action shifts(int onHandActNumber) {
+      return innerStates[onHandActNumber];  // throw
+    }
+  };
   public static final Action HEAVY_ON_GROUND = new Action(20, 1);
   public static final Action HEAVY_STABLE_ON_GROUND = new Action(20, 1);
   public static final Action HEAVY_JUST_ON_GROUND = new Action(21, 1);

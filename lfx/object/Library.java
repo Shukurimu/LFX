@@ -58,40 +58,40 @@ public class Library {
     return DUMMY;
   }
 
-  public Observable getClone(String identifier, int teamId) {
-    return getOrigin(identifier).makeClone(teamId);
+  public Observable getClone(String identifier) {
+    return getOrigin(identifier).makeClone();
   }
 
-  public List<Observable> getCloneList(String identifier, int teamId, int amount) {
+  public List<Observable> getCloneList(String identifier, int amount) {
     Observable origin = getOrigin(identifier);
     List<Observable> cloneList = new ArrayList<>(amount);
     for (int i = 0; i < amount; ++i) {
-      cloneList.add(origin.makeClone(teamId));
+      cloneList.add(origin.makeClone());
     }
     return cloneList;
   }
 
   public Observable getRandomWeapon() {
-    return Util.getRandomElement(droppableWeaponOriginList).makeClone(-1);
+    return Util.getRandomElement(droppableWeaponOriginList).makeClone();
   }
 
   public List<Observable> getDroppableWeaponList() {
     List<Observable> cloneList = new ArrayList<>(droppableWeaponOriginList.size());
     for (Weapon origin : droppableWeaponOriginList) {
-      cloneList.add(origin.makeClone(-1));
+      cloneList.add(origin.makeClone());
     }
     return cloneList;
   }
 
-  public List<Observable> getArmourSetList(int teamId) {
+  public List<Observable> getArmourSetList() {
     Observable armour1 = weaponMapping.getOrDefault("LouisArmour1", DUMMY);
     Observable armour2 = weaponMapping.getOrDefault("LouisArmour2", DUMMY);
     return List.of(
-        armour1.makeClone(teamId),
-        armour1.makeClone(teamId),
-        armour1.makeClone(teamId),
-        armour1.makeClone(teamId),
-        armour2.makeClone(teamId)
+        armour1.makeClone(),
+        armour1.makeClone(),
+        armour1.makeClone(),
+        armour1.makeClone(),
+        armour2.makeClone()
     );
   }
 

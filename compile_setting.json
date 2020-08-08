@@ -15,7 +15,6 @@
       "pathes": [
         "lfx/util/Area.java",
         "lfx/util/Const.java",
-        "lfx/util/Looper.java",
         "lfx/util/Point.java",
         "lfx/util/Tuple.java",
         "lfx/util/Util.java"
@@ -85,32 +84,26 @@
       ]
     },
     {
-      "target": "library",
+      "target": "object library",
       "pathes": [
         "lfx/object/Library.java"
       ]
     },
     {
-      "target": "tools",
-      "pathes": [
-        "lfx/tool/Parser.java"
-      ]
-    },
-    {
-      "target": "base classes",
+      "target": "root object",
       "pathes": [
         "lfx/object/AbstractObject.java"
       ]
     },
     {
-      "target": "base image-class",
+      "target": "base map",
       "modules": ["javafx.graphics"],
       "pathes": [
         "lfx/map/BaseMap.java"
       ]
     },
     {
-      "target": "concrete classes",
+      "target": "base objects",
       "pathes": [
         "lfx/object/BaseHero.java",
         "lfx/object/BaseWeapon.java",
@@ -136,9 +129,15 @@
     },
     {
       "target": "main",
-      "modules": ["javafx.graphics,javafx.controls"],
+      "modules": ["javafx.graphics", "javafx.controls"],
       "pathes": [
         "lfx/platform/Main.java"
+      ]
+    },
+    {
+      "target": "tools",
+      "pathes": [
+        "lfx/tool/Parser.java"
       ]
     }
   ]

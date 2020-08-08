@@ -12,11 +12,7 @@ import lfx.util.Tuple;
 
 public interface Observable {
 
-  Observable makeClone(int teamId);
-
-  void initialize(Environment env, double px, double py, double pz,
-                  double hp, double mp, int actNumber, int teamId);
-
+  Observable makeClone();
   String getIdentifier();
   int getTeamId();
   boolean getFacing();
@@ -41,8 +37,10 @@ public interface Observable {
   List<Double> getBasePosition(Point point);
   /** Set position of Xpoint relative to base position. */
   void setPosition(List<Double> basePosition, Point point, double zOffect);
+  void setPosition(double px, double py, double pz);
   /** Used in Opoint. */
   void setVelocity(double vx, double vy, double vz);
+  void setProperty(Environment env, int teamId, boolean faceRight);
 
   List<Tuple<Bdy, Area>> getBdys();
 

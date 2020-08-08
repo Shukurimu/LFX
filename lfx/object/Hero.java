@@ -43,6 +43,28 @@ public interface Hero extends Observable, Playable {
   String Key_hp_reg = "hp_reg";
   String Key_mp_reg = "mp_reg";
 
+  class Indexer {
+    private int index = -1;
+    private final int[] data;
+
+    @SafeVarargs
+    public Indexer(int... data) {
+      this.data = data;
+    }
+
+    public int next() {
+      if (++index == data.length) {
+        index = 0;
+      }
+      return data[index];
+    }
+
+    public int reset() {
+      return data[index = 0];
+    }
+
+  }
+
 }
 
 // https://lf-empire.de/lf2-empire/data-changing/types/167-effect-0-characters
