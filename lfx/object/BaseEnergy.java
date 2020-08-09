@@ -1,19 +1,18 @@
 package lfx.object;
 
 import java.util.List;
-import lfx.base.Input;
+import lfx.base.Order;
 import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.object.AbstractObject;
 import lfx.object.Hero;
 import lfx.object.Observable;
-import lfx.util.Const;
 import lfx.util.Point;
 import lfx.util.Util;
 
 class BaseEnergy extends AbstractObject implements Energy {
-  private final String soundHit;
+  public final String soundHit;
   private int lifetime = DESTROY_TIME;
   private Hero focus = null;
   private Observable creator = null;
@@ -23,16 +22,14 @@ class BaseEnergy extends AbstractObject implements Energy {
     this.soundHit = soundHit;
   }
 
-  protected BaseEnergy(BaseEnergy base) {
+  private BaseEnergy(BaseEnergy base) {
     super(base);
     soundHit = base.soundHit;
   }
 
   @Override
-  public BaseEnergy makeClone(int teamId) {
-    BaseEnergy clone = new BaseEnergy((BaseEnergy) energyMapping.get(identifier));
-    clone.teamId = teamId;
-    return clone;
+  public BaseEnergy makeClone() {
+    return new BaseEnergy(this);
   }
 
   @Override
@@ -43,11 +40,8 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected Action getDefaultAct() {
-    return ACT_FLYING;
+    return Action.ENERGY_FLYING;
   }
-
-  @Override
-  protected abstract void transitNextFrame();
 
   @Override
   public void rebound() {
@@ -62,12 +56,6 @@ class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected void itrCallback() {
-    System.out.println("itrCallback NotImplemented");
-    return;
-  }
-
-  @Override
   public void react() {
     System.out.println("react NotImplemented");
     return;
@@ -75,21 +63,20 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected void addRaceCondition(Observable competitor) {
-    throw RuntimeException();
-    return;
+    throw new RuntimeException();
   }
 
   @Override
   protected Action updateAction(Action nextAct) {
-    switch (frame.combo.getOrDefault(Input.Combo.hit_Ra, 0)) {
-      case FA_DENNIS_CHASE:
-        nextAct = moveDennisChase(nextAct);
-        break;
-      case FA_JOHN_DISK_CHASE:
+    switch (frame.combo.getOrDefault(Order.hit_Ra, Action.UNASSIGNED)) {
+      case Action.JOHN_CHASE:
         nextAct = moveJohnChase(nextAct);
         break;
-      case FA_JOHN_DISK_FAST:
-        nextAct = moveJohn2(nextAct);
+      case Action.JOHN_CHASE_FAST:
+        nextAct = moveJohnChaseFast(nextAct);
+        break;
+      case Action.DENNIS_CHASE:
+        nextAct = moveDennisChase(nextAct);
         break;
     }
     return nextAct;
@@ -102,74 +89,91 @@ class BaseEnergy extends AbstractObject implements Energy {
     return null;
   }
 
-  private int moveDennisChase(int nextAct) {
-    if (hp > 0.0) {
-      return moveJohnChase(nextAct);
-    }
+  private void updateChasingVelocity(List<Double> pos) {
+    vx = pos.get(0) >= px ? Math.min( CHASE_VXMAX, vx + CHASE_AX)
+                          : Math.max(-CHASE_VXMAX, vx - CHASE_AX);
+    vy = pos.get(1) >= py ? CHASE_VY : -CHASE_VY;
+    vz = pos.get(2) >= pz ? Math.min( CHASE_VZMAX, vz + CHASE_AZ)
+                          : Math.max(-CHASE_VZMAX, vz - CHASE_AZ);
+    faceRight = vx >= 0.0;
+    return;
+  }
 
-    if (frame.curr != 5 && frame.curr != 6) {
-      nextAct = 5;
-    }
-    vx = vx >= 0.0 ? Math.min( CHASE_VXOUT, vx + CHASE_AX)
-                   : Math.max(-CHASE_VXOUT, vx - CHASE_AX);
-    vy = 0.0;
+  private Action moveJohnChase(Action nextAct) {
+    updateChasingVelocity(focus.getBasePosition());
     return nextAct;
   }
 
-  private int moveJohnChase(int nextAct) {
-    Point point = focus.getChasingPoint();
-    if (((point.x - px) >= 0.0) == (vx >= 0.0)) {
+  private Action moveJohnFast(Action nextAct) {
+    vx = vx >= 0.0 ? CHASE_VXOUT : -CHASE_VXOUT;
+    return nextAct;
+  }
+
+  private Action moveDennisChase(Action nextAct) {
+    if (hp <= 0.0) {
+      if (!Action.DENNIS_CHASE_AWAY.includes(frame.curr)) {
+        nextAct = Action.DENNIS_CHASE_AWAY;
+      }
+      vx = vx >= 0.0 ? Math.min( CHASE_VXOUT, vx + CHASE_AX)
+                     : Math.max(-CHASE_VXOUT, vx - CHASE_AX);
+      return nextAct;
+    }
+
+    List<Double> pos = focus.getBasePosition();
+    if (((pos.get(0) - px) >= 0.0) == (vx >= 0.0)) {
+      // TODO: set every timeunit or condition
       // straight
-      if (frame.curr != 3 && frame.curr != 4) {
-        nextAct = 3;
+      if (!Action.DENNIS_CHASE_CHANGEDIR.includes(frame.curr)) {
+        nextAct = Action.DENNIS_CHASE_CHANGEDIR;
       }
     } else {
       // changedir
-      if (frame.curr == 3 || frame.curr == 4) {
-        nextAct = 1;
+      if (Action.DENNIS_CHASE_CHANGEDIR.includes(frame.curr)) {
+        nextAct = Action.DENNIS_CHASE_STRAIGHT;
       }
     }
-    py += Math.copySign(CHASE_VY, point.y - py);
-    vx = point.x >= px ? Math.min( CHASE_VXMAX, vx + CHASE_AX)
-                       : Math.max(-CHASE_VXMAX, vx - CHASE_AX);
-    vz = point.x >= pz ? Math.min( CHASE_VZMAX, vz + CHASE_AZ)
-                       : Math.max(-CHASE_VZMAX, vz - CHASE_AZ);
-    faceRight = vx >= 0.0;
-
-    return nextAct;
-  }
-
-  private int moveJohn2(int nextAct) {
-    vx = vx >= 0.0 ? CHASE_VXOUT : -CHASE_VXOUT;
-    vz = 0.0;
+    updateChasingVelocity(pos);
     return nextAct;
   }
 
   @Override
   protected Action updateKinetic(Action nextAct) {
-    if (actPause == 0) {
+    if (actPause != 0) {
+      return Action.UNASSIGNED;
+    }
+    if (frame.dvx == Frame.RESET_VELOCITY) {
+      vx = 0.0;
+    } else {
       vx = frame.calcVX(vx, faceRight);
-      px = buff.containsKey(Effect.MOVE_BLOCKING) ? px : (px + vx);
-      vy = frame.calcVY(vy);
-      if (buff.containsKey(Effect.MOVE_BLOCKING) || frame.dvz == Frame.RESET_VELOCITY) {
-        vz = 0.0;
-      } else {
-        pz += vz + frame.combo.getOrDefault(Input.Combo.hit_j, 0);
-      }
+    }
+    if (frame.dvy == Frame.RESET_VELOCITY) {
+      vy = 0.0;
+    } else {
+      vy = frame.dvy;
+    }
+    if (frame.dvz == Frame.RESET_VELOCITY) {
+      vz = 0.0;
+    }
+    if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
+      px += vx;
+      py += vy;
+      pz += vz;
     }
     return nextAct;
   }
 
   @Override
   protected Action updateStamina(Action nextAct) {
-    hp -= frame.combo.getOrDefault(Input.Combo.hit_a, 0);
+    hp -= frame.cost.hp;
     return nextAct;
   }
 
   @Override
-  protected int getNextActNumber() {
-    return hp > 0.0 ? frame.next
-                    : frame.combo.getOrDefault(Input.Combo.hit_d, frame.next);
+  protected void transitNextFrame() {
+    transitFrame(hp > 0.0 ? frame.next
+                          : frame.combo.getOrDefault(Action.hit_d, frame.next)
+    );
+    return;
   }
 
   @Override

@@ -34,12 +34,19 @@ public interface Observable {
    */
   void revive();
 
-  /** For Xpoint to set correct position. */
+  /**
+   * For Xpoint to set correct position.
+   */
+  List<Double> getBasePosition();
   List<Double> getBasePosition(Point point);
-  /** Set position of Xpoint relative to base position. */
+  /**
+   * Set position of Xpoint relative to base position.
+   */
   void setPosition(List<Double> basePosition, Point point, double zOffect);
   void setPosition(double px, double py, double pz);
-  /** Used in Opoint. */
+  /**
+   * Mainly used in Opoint.
+   */
   void setVelocity(double vx, double vy, double vz);
   void setProperty(Environment env, int teamId, boolean faceRight);
 
@@ -52,16 +59,22 @@ public interface Observable {
    * It is mainly used while checking interaction.
    */
   int getScopeView(int targetTeamId);
-  /** Check all ItrArea happened in current timeunit.
-      Store the interactable ones into pending list. */
+  /**
+   * Check all ItrArea happened in current timeunit.
+   * Store the interactable ones into pending list.
+   */
   void spreadItrs(Iterable<Observable> everything);
 
   void receiveItr(Observable source, Itr itr);
 
-  /** React to the received ItrArea. Postback actLag. */
+  /**
+   * React to the received ItrArea.
+   */
   void react();
 
-  /** Do actions & update status. */
+  /**
+   * Do actions & update status.
+   */
   void act();
 
   List<Observable> getSpawnedObjectList();
@@ -69,6 +82,8 @@ public interface Observable {
   boolean exists();
 
   Viewer getViewer();
+
+  double[] getStamina();
 
 }
 

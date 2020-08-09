@@ -8,6 +8,7 @@ public class Action {
   public static final Action REPEAT = new Action("REPEAT");
   public static final Action REMOVAL = new Action("REMOVAL");
   public static final Action JOHN_CHASE = new Action("JOHN_CHASE");
+  public static final Action JOHN_CHASE_FAST = new Action("JOHN_CHASE_FAST");
   public static final Action DENNIS_CHASE = new Action("DENNIS_CHASE");
 
   public final int index;  // positive
@@ -153,7 +154,7 @@ public class Action {
 
   public static final Action LIGHT_IN_THE_SKY = new Action(0, 16) {
     final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
+    @Override public Action shifts(int noNeed) {
       return Util.getRandomElement(innerStates);
     }
   };
@@ -166,7 +167,7 @@ public class Action {
   public static final Action LIGHT_THROWING = new Action(40, 16) {
     final Action[] innerStates = generateInnerStates(this);
     @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber + 20];  // throw
+      return innerStates[onHandActNumber - 20];  // throw
     }
   };
   public static final Action LIGHT_ON_GROUND = new Action(60, 5);
@@ -176,7 +177,7 @@ public class Action {
   // public static final Action LIGHT_BOUNCING_LIGHT = 7;
   public static final Action HEAVY_IN_THE_SKY = new Action(0, 6) {
     final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
+    @Override public Action shifts(int noNeed) {
       return Util.getRandomElement(innerStates);
     }
   };
@@ -189,7 +190,7 @@ public class Action {
   public static final Action HEAVY_THROWING = new Action(0, 6) {
     final Action[] innerStates = generateInnerStates(this);
     @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber];  // throw
+      return innerStates[onHandActNumber - 10];  // throw
     }
   };
   public static final Action HEAVY_ON_GROUND = new Action(20, 1);
@@ -201,5 +202,9 @@ public class Action {
   public static final Action ENERGY_HIT = new Action(20, 0);
   public static final Action ENERGY_REBOUND = new Action(30, 0);
   public static final Action ENERGY_DISAPPEAR = new Action(40, 0);
+
+  public static final Action DENNIS_CHASE_STRAIGHT = new Action(1, 2);
+  public static final Action DENNIS_CHASE_CHANGEDIR = new Action(3, 2);
+  public static final Action DENNIS_CHASE_AWAY = new Action(5, 2);
 
 }

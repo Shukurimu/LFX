@@ -14,7 +14,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.util.Duration;
 import lfx.map.Field;
@@ -25,76 +24,73 @@ import lfx.platform.KeyboardController;
 import lfx.util.Const;
 
 public final class Arena extends GridPane {
+  public static final double MSPF = 1000.0 / Const.DEFAULT_FPS;
   private final Field field;
-  private final List<Node> fxNodeList;
-  private final List<Hero> tracingList = new ArrayList<>(4);
-  private final List<StatusBoard> boardList = new ArrayList<>(4);
-  private final Label middleText1 = new Label();
-  private final Label middleText2 = new Label();
-  private final Label bottomText1 = new Label();
-  private final Label bottomText2 = new Label();
-  private final ScrollPane scrollPane = new ScrollPane();
-  private final Consumer<String> pickingSceneBridge;
+  private final List<Hero> tracingList;
+  private final List<StatusBoard> boardList;
+  private final ScrollPane scrollPane;
+  private final Consumer<String> gobackLink;
   private final Timeline render;
-  private double viewpoint = 0.0;
+  private final Label middleText1 = makeLabel(Color.AQUA, HPos.LEFT);
+  private final Label middleText2 = makeLabel(Color.VIOLET, HPos.RIGHT);
+  private final Label bottomText1 = makeLabel(Color.GOLD, HPos.LEFT);
+  private final Label bottomText2 = makeLabel(Color.LIME, HPos.RIGHT);
+  private double cameraPosition = 0.0;
 
-  public Arena(Field field, Consumer<String> pickingSceneBridge) {
+  private Arena(Field field, List<Hero> tracingList, List<StatusBoard> boardList,
+                ScrollPane scrollPane, Consumer<String> gobackLink) {
     this.field = field;
-    this.pickingSceneBridge = pickingSceneBridge;
-    fxNodeList = field.getFxNodeList();
-    render = new Timeline(new KeyFrame(new Duration(1000.0 / Const.DEFAULT_FPS), this::keyFrameHandler));
-    double xwidth = field.getHeroXBound().get(0);
-    viewpoint = xwidth / 2.0;
-
-    middleText1.setTextFill(Color.AQUA);
-    middleText1.setMinHeight(Const.TEXTLABEL_HEIGHT);
-    GridPane.setHalignment(middleText1, HPos.LEFT);
+    this.tracingList = tracingList;
+    this.boardList = boardList;
+    this.scrollPane = scrollPane;
+    this.gobackLink = gobackLink;
+    render = new Timeline(new KeyFrame(new Duration(MSPF), this::keyFrameHandler));
+    for (StatusBoard board : boardList) {
+      this.addRow(0, board.getFxNode());
+    }
     this.add(middleText1, 0, 1, 2, 1);
-
-    middleText2.setTextFill(Color.VIOLET);
-    middleText2.setMinHeight(Const.TEXTLABEL_HEIGHT);
-    GridPane.setHalignment(middleText2, HPos.RIGHT);
     this.add(middleText2, 2, 1, 2, 1);
+    this.add(scrollPane,  0, 2, 4, 1);
+    this.add(bottomText1, 0, 3, 2, 1);
+    this.add(bottomText2, 2, 3, 2, 1);
+  }
 
-    screenPane.setMaxSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
-    screenPane.setMinSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
-    screenPane.getChildren().add(fxNodeLayer);
-    // Currently support native background only.
-    field.getScreenPane().getChildren().addAll(
+  private static Label makeLabel(Color color, HPos hPos) {
+    Label label = new Label();
+    label.setTextFill(color);
+    label.setMinHeight(Const.TEXTLABEL_HEIGHT);
+    GridPane.setHalignment(label, hPos);
+    return label;
+  }
+
+  public static Arena build(Field field, List<Hero> heroList, Consumer<String> gobackLink) {
+    List<Hero> tracingList = new ArrayList<>(4);
+    List<StatusBoard> boardList = new ArrayList<>(4);
+    for (Hero hero : heroList) {
+      if (hero != null) {
+        field.spawnObject(hero);
+        tracingList.add(hero);
+        boardList.add(new StatusBoard(hero));
+      }
+    }
+
+    double xwidth = field.getBoundWidth();
+    Pane screen = new Pane(
+        field.getVisualNodePane(),
+        // Currently support native background only.
         (new Layer("NativeBase", 0, 0, xwidth)).pic,
         (new Layer("NativePath", 0, 0, xwidth)).pic
     );
+    screen.setMaxSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
+    screen.setMinSize(Const.FIELD_WIDTH, Const.FIELD_HEIGHT);
 
-    scrollPane.setContent(field.getScreenPane());
+    ScrollPane scrollPane = new ScrollPane(screen);
     scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     scrollPane.setHmax(xwidth - Const.FIELD_WIDTH);
     scrollPane.setVmax(0.0);
-    this.add(scrollPane, 0, 2, 4, 1);
 
-    bottomText1.setTextFill(Color.GOLD);
-    bottomText1.setMinHeight(Const.TEXTLABEL_HEIGHT);
-    GridPane.setHalignment(bottomText1, HPos.LEFT);
-    this.add(bottomText1, 0, 3, 2, 1);
-
-    bottomText2.setTextFill(Color.LIME);
-    bottomText2.setMinHeight(Const.TEXTLABEL_HEIGHT);
-    GridPane.setHalignment(bottomText2, HPos.RIGHT);
-    this.add(bottomText2, 2, 3, 2, 1);
-  }
-
-  public void setPlayers(List<Hero> heroList) {
-    for (Hero hero : heroList) {
-      StatusBoard board = new StatusBoard(hero, hero.getPortrait());
-      this.addRow(0, board);
-      if (hero != null) {
-        // TODO: initialization
-        tracingList.add(hero);
-        boardList.add(board);
-        field.spawnHero(List.of(hero));
-      }
-    }
-    return;
+    return new Arena(field, tracingList, boardList, scrollPane, gobackLink);
   }
 
   public Scene makeScene() {
@@ -108,16 +104,18 @@ public final class Arena extends GridPane {
 
   private void keyFrameHandler(ActionEvent event) {
     field.stepOneFrame();
-
+    cameraPosition = Field.calcCameraPos(tracingList, cameraPosition);
     boardList.forEach(board -> board.draw());
-    viewpoint = field.calculateViewpoint(tracingList, viewpoint);
-    scrollPane.setHvalue(viewpoint);
+    scrollPane.setHvalue(cameraPosition);
 
     middleText1.setText("MapTime: " + field.getTimestamp());
     bottomText1.setText("FxNode: " + fxNodeList.size());
-    bottomText2.setText(String.format("ThreadName: %s   FxThread: %s",
-                                      Thread.currentThread().getName(),
-                                      javafx.application.Platform.isFxApplicationThread()));
+    bottomText2.setText(
+          String.format("ThreadName: %s   FxThread: %s",
+                        Thread.currentThread().getName(),
+                        javafx.application.Platform.isFxApplicationThread()
+          )
+    );
     return;
   }
 
@@ -147,7 +145,7 @@ public final class Arena extends GridPane {
         break;
       case F4:
         render.stop();
-        pickingSceneBridge.accept("Finished");
+        gobackLink.accept("Go Back by pressing F4.");
         break;
       case F5:
         if (render.getCurrentRate() != 0.0) {

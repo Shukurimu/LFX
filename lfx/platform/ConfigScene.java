@@ -7,6 +7,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.List;
+import java.util.ListIterator;
+import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
@@ -21,54 +24,84 @@ import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import lfx.setting.Keyboard;
 import lfx.util.Const;
 
-class ConfigScene extends GridPane {
-  public static final String IDLE_STRING = "Click on a button to set key.";
-  public static final String WAITING_STRING = "Press ESC to cancel.";
+public class ConfigScene extends Application {
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
   public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
   public static final Charset CHARSET = Charset.forName("utf-8");
-  private final Text tooltipsText = new Text(IDLE_STRING);
-  private final List<ToggleButton> listeningList = new ArrayList<>(28);
+
+  private final GridPane pane;
+  private final List<ToggleButton> keyButtonList;
   private ToggleButton focusing = null;
 
-  public ConfigScene(Consumer<String> mainSceneBridge) {
-    for (int i = 0, index = 1; i < Const.PLAYER_NUM; ++i, ++index) {
-      this.add(new Text(Const.DEFAULT_PLAYER_NAME.get(i)), index, 0);
-    }
-    for (int i = 0, index = 1; i < Const.KEY_NUM; ++i, ++index) {
-      this.add(new Text(Const.KEY_NAMES.get(i)), 0, index);
-    }
-    this.getChildren().forEach(text -> GridPane.setHalignment(text, HPos.CENTER));
-
-    List<String[]> controlStringArrayList = loadControlStringArrayList();
-    int colIndex = 0;
-    for (String[] controlStringArray: controlStringArrayList) {
-      ++colIndex;
-      int rowIndex = 0;
-      for (String keyString: controlStringArray) {
-        ToggleButton button = new ToggleButton(keyString);
-        button.setPrefSize(Const.CONFIG_BUTTON_WIDTH, 30);
-        button.setOnAction(this::clickBindingHandler);
-        listeningList.add(button);
-        this.add(button, colIndex, ++rowIndex);
-      }
-    }
-
-    GridPane.setHalignment(tooltipsText, HPos.RIGHT);
-    this.add(tooltipsText, 0, 9, Const.PLAYER_NUM + 1, 1);
-    this.setAlignment(Pos.CENTER);
-    this.setHgap(9.0);
-    this.setVgap(6.0);
-
-    this.add(makeActionButton("Update", event -> mainSceneBridge.accept(this.save())),
-             Const.PLAYER_NUM - 1, 12);
-    this.add(makeActionButton("Cancel", event -> mainSceneBridge.accept("Cancelled")),
-             Const.PLAYER_NUM - 0, 12);
+  public ConfigScene() {
+    pane = null;
+    keyButtonList = null;
   }
 
-  private Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
+  public ConfigScene(List<String[]> keyArrayList, Consumer<String> finishFunction) {
+    pane = new GridPane();
+    for (ListIterator<String> it = Const.DEFAULT_PLAYER_NAME.listIterator(); it.hasNext(); ) {
+      pane.add(makeNameText(it.next()), it.nextIndex(), 0);
+    }
+    for (ListIterator<String> it = Keyboard.NAMES.listIterator(); it.hasNext(); ) {
+      pane.add(makeNameText(it.next()), 0, it.nextIndex());
+    }
+
+    keyButtonList = new ArrayList<>(28);
+    for (int colIndex = 1; colIndex <= 4; ++colIndex) {
+      for (int rowIndex = 1; rowIndex <= 7; ++rowIndex) {
+        ToggleButton button = new ToggleButton();
+        button.setPrefSize(Const.CONFIG_BUTTON_WIDTH, 30);
+        button.setOnAction(this::clickBindingHandler);
+        keyButtonList.add(button);
+        pane.add(button, colIndex, rowIndex);
+      }
+    }
+    setButtonText(keyArrayList);
+
+    pane.add(makeActionButton("Default", event -> setButtonText(Keyboard.loadDefault())), 2, 12);
+    pane.add(makeActionButton("Save", event -> finishFunction.accept(this.save())), 3, 12);
+    pane.add(makeActionButton("Cancel", event -> finishFunction.accept("Cancelled")), 4, 12);
+    pane.setAlignment(Pos.CENTER);
+    pane.setHgap(9.0);
+    pane.setVgap(6.0);
+    pane.getChildren().forEach(fxNode -> fxNode.setFocusTraversable(false));
+  }
+
+  List<String[]> getButtonText() {
+    List<String[]> keyArrayList = new ArrayList<>(4);
+    for (int i = 0; i < 4; ++i) {
+      String[] keyArray = new String[7];
+      for (int j = 0; j < 7; ++j) {
+        keyArray[j] = keyButtonList.get(i * 7 + j).getText();
+      }
+      keyArrayList.add(keyArray);
+    }
+    return keyArrayList;
+  }
+
+  void setButtonText(List<String[]> textArrayList) {
+    int index = 0;
+    for (String[] textArray : textArrayList) {
+      for (String text : textArray) {
+        keyButtonList.get(index).setText(text);
+        ++index;
+      }
+    }
+    return;
+  }
+
+  static Text makeNameText(String text) {
+    Text node = new Text(text);
+    GridPane.setHalignment(node, HPos.CENTER);
+    return node;
+  }
+
+  static Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
     Button button = new Button(text);
     button.setOnAction(handler);
     button.setPrefWidth(Const.CONFIG_BUTTON_WIDTH);
@@ -81,12 +114,11 @@ class ConfigScene extends GridPane {
     if (focusing != null && focusing.isSelected()) {
       KeyCode code = event.getCode();
       if (code == KeyCode.UNDEFINED || code.isFunctionKey() || code.isMediaKey()) {
-        tooltipsText.setText("Invalid KeyCode: " + code);
+        focusing.setText(KeyCode.UNDEFINED.toString());
       } else if (code == KeyCode.ESCAPE) {
-        tooltipsText.setText(IDLE_STRING);
+        // cancel
       } else {
-        tooltipsText.setText(IDLE_STRING);
-        focusing.setText(code.toString());
+        focusing.setText(code.name());
       }
       focusing.setTextFill(UNFOCUSED_TEXT_FILL);
       focusing.setSelected(false);
@@ -94,19 +126,9 @@ class ConfigScene extends GridPane {
     return;
   }
 
-  public Scene makeScene() {
-    Scene scene = new Scene(this, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
-    scene.setOnKeyPressed(this::keyPressHandler);
-    this.requestFocus();
-    return scene;
-  }
-
   private void clickBindingHandler(ActionEvent event) {
-    tooltipsText.setText(WAITING_STRING);
-    /** Allow keys with the ability of clicking (SPACE) or traversing (arrows) can be bound. */
-    this.requestFocus();
     focusing = (ToggleButton) event.getSource();
-    for (ToggleButton button : listeningList) {
+    for (ToggleButton button : keyButtonList) {
       if (button == focusing) {
         button.setTextFill(FOCUSED_TEXT_FILL);
         button.setSelected(true);
@@ -118,58 +140,49 @@ class ConfigScene extends GridPane {
     return;
   }
 
-  private static List<String> load() {
+  public Scene makeScene() {
+    Scene scene = new Scene(pane, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
+    scene.setOnKeyPressed(this::keyPressHandler);
+    return scene;
+  }
+
+  private static List<String[]> load() {
     List<String> fileLines = new ArrayList<>();
     try (FileReader fileReader = new FileReader(Const.CONFIG_PATH, CHARSET);
          BufferedReader reader = new BufferedReader(fileReader)) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        fileLines.add(line);
-      }
+      return Keyboard.load(reader);
     } catch (Exception ex) {
       System.err.println("Exception happened while loading settings.");
     }
-    return fileLines;
-  }
-
-  public static List<String[]> loadControlStringArrayList() {
-    List<String> fileLines = load();
-    List<String[]> result = new ArrayList<>(Const.PLAYER_NUM);
-    for (int i = 0; i < Const.PLAYER_NUM; ++i) {
-      String stringLine = null;
-      try {
-        stringLine = fileLines.get(i);
-      } catch (Exception ex) {
-        stringLine = Const.DEFAULT_KEY_SETTING.get(i);
-        System.err.println("Exception happened while parsing settings.");
-      } finally {
-        result.add(stringLine.split(Const.CONFIG_SEPARATOR));
-      }
-    }
-    return result;
-  }
-
-  private List<String> dumpsControlLines() {
-    List<String> controlLines = new ArrayList<>(Const.PLAYER_NUM);
-    for (int i = 0, index = 0; i < Const.PLAYER_NUM; ++i) {
-      List<String> controlString = new ArrayList<>();
-      for (int j = 0; j < Const.KEY_NUM; ++j, ++index) {
-        controlString.add(listeningList.get(index).getText());
-      }
-      controlLines.add(String.join(Const.CONFIG_SEPARATOR, controlString));
-    }
-    return controlLines;
+    return Keyboard.load(null);
   }
 
   private String save() {
-    List<String> controlLines = dumpsControlLines();
     try (PrintWriter writer = new PrintWriter(Const.CONFIG_PATH, CHARSET)) {
-      controlLines.forEach(writer::println);
+      Keyboard.save(writer, getButtonText());
       return "Saved";
     } catch (Exception ex) {
       System.err.println("Exception happened while saving settings.");
       return "Failed";
     }
+  }
+
+  @Override
+  public void start(Stage primaryStage) {
+    ConfigScene configScene = new ConfigScene(load(), (String result) -> {
+      System.out.println(result);
+      Platform.exit();
+    });
+    primaryStage.setScene(configScene.makeScene());
+    primaryStage.setTitle("Little Fighter X - Setting");
+    primaryStage.setX(600.0);
+    primaryStage.show();
+    return;
+  }
+
+  public static void main(String[] args) {
+    Application.launch(args);
+    return;
   }
 
 }

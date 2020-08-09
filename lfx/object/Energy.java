@@ -15,11 +15,6 @@ public interface Energy extends Observable {
       e.g., Bouncing ball between two John's shields. */
   int REFLECT_VREST = 8;
 
-  /** Frame Attributes (TODO: use enum) */
-  int FA_DENNIS_CHASE = 2;
-  int FA_JOHN_DISK_CHASE = 1;
-  int FA_JOHN_DISK_FAST = 10;
-
   void rebound();
   void disperse();
 

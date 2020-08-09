@@ -14,12 +14,11 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.TextAlignment;
-import lfx.base.Viewer;
 import lfx.object.Hero;
 import lfx.util.Const;
 import lfx.util.Tuple;
 
-public class StatusBoard extends Canvas {
+public class StatusBoard {
   private static final double PADDING = 5.0;
   private static final double ICON_SIZE = Const.CANVAS_HEIGHT - PADDING * 2.0;
   private static final double BAR_BEGIN = ICON_SIZE + PADDING * 2.0;
@@ -38,8 +37,9 @@ public class StatusBoard extends Canvas {
   private static final LinearGradient MP_BAR_BASE;
   private static final LinearGradient MP_BAR_CURR;
   private static final LinearGradient BAR_3D_LOOK;
-  private final Viewer viewer = new Viewer();
-  private final Hero hero;
+
+  private final Hero target;
+  private final Canvas fxNode;
   private final GraphicsContext gc;
 
   static {
@@ -86,11 +86,11 @@ public class StatusBoard extends Canvas {
     );
   }
 
-  public StatusBoard(Hero hero, Image icon) {
-    super(Const.CANVAS_WIDTH, Const.CANVAS_HEIGHT);
-    this.hero = hero;
-    gc = this.getGraphicsContext2D();
-    gc.drawImage(icon, PADDING, PADDING, ICON_SIZE, ICON_SIZE);
+  public StatusBoard(Hero target) {
+    this.target = target;
+    fxNode = new Canvas(Const.CANVAS_WIDTH, Const.CANVAS_HEIGHT);
+    gc = fxNode.getGraphicsContext2D();
+    gc.drawImage(target.getPortrait().get(), PADDING, PADDING, ICON_SIZE, ICON_SIZE);
     gc.setFill(BACKGROUND_COLOR);
     gc.fillRect(0, 0, Const.CANVAS_WIDTH, Const.CANVAS_HEIGHT);
     gc.setLineWidth(1.0);
@@ -102,22 +102,26 @@ public class StatusBoard extends Canvas {
     gc.setTextAlign(TextAlignment.RIGHT);
   }
 
+  public Canvas getFxNode() {
+    return fxNode;
+  }
+
   public void draw() {
-    hero.updateViewer(viewer);
+    double stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(HP_BAR_BASE);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, viewer.hp2ndRatio, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[0], BAR_HEIGHT);
     gc.setFill(HP_BAR_CURR);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, viewer.hpRatio, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[1], BAR_HEIGHT);
     gc.setFill(MP_BAR_BASE);
     gc.fillRect(BAR_BEGIN, MP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(MP_BAR_CURR);
-    gc.fillRect(BAR_BEGIN, MP_FILL_Y, viewer.mpRatio, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, stamina[2], BAR_HEIGHT);
     gc.setGlobalBlendMode(BlendMode.HARD_LIGHT);
     gc.setFill(BAR_3D_LOOK);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, viewer.hpRatio, BAR_HEIGHT);
-    gc.fillRect(BAR_BEGIN, MP_FILL_Y, viewer.mpRatio, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[1], BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, stamina[2], BAR_HEIGHT);
     gc.setGlobalBlendMode(BlendMode.SRC_OVER);
     // gc.strokeText(String.format("%.0f", hero.hp), TEXT_X, HP_TEXT_Y);
     // gc.strokeText(String.format("%.0f", hero.mp), TEXT_X, MP_TEXT_Y);

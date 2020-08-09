@@ -112,6 +112,12 @@
       ]
     },
     {
+      "target": "keyboard",
+      "pathes": [
+        "lfx/setting/Keyboard.java"
+      ]
+    },
+    {
       "target": "UIs",
       "modules": ["javafx.graphics"],
       "pathes": [

@@ -5,9 +5,6 @@ import java.util.List;
 public final class Const {
   public static final List<String> KEY_SYMBOLS = List.of("U", "D", "L", "R", "a", "j", "d");
   public static final int KEY_NUM = KEY_SYMBOLS.size();
-  public static final List<String> KEY_NAMES = List.of(
-      "Up", "Down", "Left", "Right", "Attack", "Jump", "Defend"
-  );
 
   public static final List<String> TEAM_NAMES = List.of(
       "Independent", "Team1", "Team2", "Team3", "Team4"
@@ -15,13 +12,6 @@ public final class Const {
   public static final int TEAM_NUM = TEAM_NAMES.size();
 
   public static final String CONFIG_PATH = "setting.txt";
-  public static final String CONFIG_SEPARATOR = " ";
-  public static final List<String> DEFAULT_KEY_SETTING = List.of(
-      "NUMPAD8 NUMPAD2 NUMPAD4 NUMPAD6 NUMPAD5 NUMPAD0 ADD",
-      "W X A D S TAB BACK_QUOTE",
-      "UP DOWN LEFT RIGHT ENTER SHIFT CONTROL",
-      "I COMMA J L K SPACE PERIOD"
-  );
   public static final List<String> DEFAULT_PLAYER_NAME = List.of(
       "Player1", "Player2", "Player3", "Player4"
   );

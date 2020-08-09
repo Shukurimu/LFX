@@ -161,6 +161,11 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public List<Double> getBasePosition() {
+    return List.of(px, py, pz);
+  }
+
+  @Override
   public List<Double> getBasePosition(Point point) {
     return List.of(anchorX + (faceRight ? point.x : -point.x),
                    anchorY + point.y,
@@ -405,6 +410,11 @@ public abstract class AbstractObject implements Observable {
     return viewer;
   }
 
+  @Override
+  public double[] getStamina() {
+    return {hp2nd / hpMax, hp / hpMax, mp / mpMax};
+  }
+
   protected void opointify(Opoint opoint) {
     if (!opoint.release) {
       System.out.println("NotImplemented: Holding Opoint");
@@ -434,7 +444,7 @@ public abstract class AbstractObject implements Observable {
   }
 
   protected void createArmours() {
-    List<Double> basePosition = getBasePosition(Point.ORIGIN);
+    List<Double> basePosition = getBasePosition();
     double[] rvx = {1.0, 1.0, -1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
     double[] rvz = {1.0, -1.0, 1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
     List<Observable> cloneList = Library.instance().getArmourSetList();

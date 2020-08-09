@@ -18,6 +18,7 @@ public class UnionReadOnlyIterable<E> implements Iterable<E> {
     targetList = List.of(e1, e2, e3);
   }
 
+  @Override
   public Iterator<E> iterator() {
     return new Iterator<>() {
       private Iterator<Iterable<E>> outer = targetList.iterator();

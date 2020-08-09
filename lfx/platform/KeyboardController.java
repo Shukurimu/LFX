@@ -29,7 +29,7 @@ public class KeyboardController implements Controller {
       }
       mapping.putIfAbsent(code, new KeyMonitor());
       KeyMonitor monitor = mapping.get(code);
-      keyList.add(Tuple.of(monitor, Const.KEY_SYMBOLS.get(i)));
+      keyList.add(new Tuple<>(monitor, Const.KEY_SYMBOLS.get(i)));
       monitorArray[i] = monitor;
     }
     return;
@@ -154,7 +154,7 @@ public class KeyboardController implements Controller {
     }
   }
 
-  public static class KeyMonitor {
+  static class KeyMonitor {
     private int pressCount = 0;
     private long pressTime = 0L;
     private boolean doublePress = false;
