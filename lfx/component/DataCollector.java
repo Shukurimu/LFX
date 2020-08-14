@@ -61,9 +61,10 @@ public class DataCollector {
       throw new IllegalArgumentException("Invalid Frame.next: " + next.toString());
     }
     Map<Order, Action> combo = new EnumMap<>(Order.class);
-    List<Bdy> bdyList = new ArrayList<>();
-    List<Itr> itrList = new ArrayList<>();
-    List<Opoint> opointList = new ArrayList<>();
+    List<Effect.Value> effect = new ArrayList<>(4);
+    List<Bdy> bdyList = new ArrayList<>(4);
+    List<Itr> itrList = new ArrayList<>(4);
+    List<Opoint> opointList = new ArrayList<>(4);
     Cost cost = Cost.FREE;
     Wpoint wpoint = null;
     Cpoint cpoint = null;
@@ -73,6 +74,8 @@ public class DataCollector {
         @SuppressWarnings("unchecked")
         Tuple<Order, Action> kv = (Tuple<Order, Action>) e;
         kv.first.insert(combo, kv.second);
+      } else if (e instanceof Effect.Value) {
+        effect.add((Effect.Value) e);
       } else if (e instanceof Bdy) {
         bdyList.add((Bdy) e);
       } else if (e instanceof Itr) {
@@ -97,7 +100,7 @@ public class DataCollector {
         new Frame(imageList.get(pic), centerx, centery,
                   state, curr, wait, next,
                   dvx, dvy, dvz, cost,
-                  combo, Map.of(),
+                  combo, effect,
                   bdyList, itrList, opointList,
                   cpoint, wpoint, sound
     ));

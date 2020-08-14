@@ -233,13 +233,13 @@ class BaseHero extends AbstractObject implements Hero {
       Itr itr = tuple.second;
       switch (itr.kind) {
         case FORCE_ACT:
-          buff.put(Effect.ATTACK_SPUNCH, Effect.Value.once());
+          buff.put(Effect.FORCE_ACT, Effect.FORCE_ACT.of());
           break;
         case BLOCK:
-          buff.put(Effect.MOVE_BLOCKING, Effect.Value.once());
+          buff.put(Effect.MOVE_BLOCKING, Effect.MOVE_BLOCKING.of());
           break;
         case HEAL:
-          buff.put(Effect.HEALING, Effect.Value.last(itr.dvy, (double) itr.injury / itr.dvy));
+          buff.put(Effect.HEALING, Effect.HEALING.of());
           break;
         default:
           System.out.println("NotImplemented Effect: " + itr.kind);
@@ -320,7 +320,7 @@ class BaseHero extends AbstractObject implements Hero {
 
   private Action moveStandWalkPressA(Action nextAct) {
     if (weapon == null) {
-      nextAct = buff.containsKey(Effect.ATTACK_SPUNCH) ? Action.HERO_SUPER_PUNCH :
+      nextAct = buff.containsKey(Effect.FORCE_ACT) ? Action.HERO_SUPER_PUNCH :
                 Util.randomBool() ? Action.HERO_PUNCH1 : Action.HERO_PUNCH2;
     } else if (weapon.isLight()) {
       nextAct = Util.randomBool() ? Action.HERO_WEAPON_ATK1 : Action.HERO_WEAPON_ATK2;
@@ -693,9 +693,6 @@ class BaseHero extends AbstractObject implements Hero {
 
   @Override
   public void updateViewer(Viewer viewer) {
-    viewer.mp = mp;
-    viewer.hp = hp;
-    viewer.hp2nd = hp2nd;
     return;
   }
 

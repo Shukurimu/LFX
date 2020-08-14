@@ -113,10 +113,10 @@ public class ConfigScene extends Application {
     event.consume();
     if (focusing != null && focusing.isSelected()) {
       KeyCode code = event.getCode();
-      if (code == KeyCode.UNDEFINED || code.isFunctionKey() || code.isMediaKey()) {
-        focusing.setText(KeyCode.UNDEFINED.toString());
-      } else if (code == KeyCode.ESCAPE) {
+      if (code == KeyCode.ESCAPE) {
         // cancel
+      } else if (code == KeyCode.UNDEFINED || code.isFunctionKey() || code.isMediaKey()) {
+        focusing.setText(KeyCode.UNDEFINED.name());
       } else {
         focusing.setText(code.name());
       }

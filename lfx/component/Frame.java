@@ -30,7 +30,7 @@ public class Frame {
   public final int dvz;
   public final Cost cost;
   public final Map<Order, Action> combo;
-  public final Map<Effect, Effect.Value> effect;
+  public final List<Effect.Value> effect;
   public final List<Bdy> bdyList;
   public final List<Itr> itrList;
   public final List<Opoint> opointList;
@@ -41,7 +41,7 @@ public class Frame {
   Frame(ImageCell pic, int centerx, int centery,
         State state, int curr, int wait, Action next,
         int dvx, int dvy, int dvz, Cost cost,
-        Map<Order, Action> combo, Map<Effect, Effect.Value> effect,
+        Map<Order, Action> combo, List<Effect.Value> effect,
         List<Bdy> bdyList, List<Itr> itrList, List<Opoint> opointList,
         Cpoint cpoint, Wpoint wpoint, String sound) {
     this.pic = pic;
@@ -56,7 +56,7 @@ public class Frame {
     this.dvz = dvz;
     this.cost = cost;
     this.combo = Map.copyOf(combo);
-    this.effect = Map.copyOf(effect);
+    this.effect = List.copyOf(effect);
     this.bdyList = List.copyOf(bdyList);
     this.itrList = List.copyOf(itrList);
     this.opointList = List.copyOf(opointList);
@@ -74,7 +74,7 @@ public class Frame {
     dvx = dvy = dvz = RESET_VELOCITY;
     cost = Cost.FREE;
     combo = Map.of();
-    effect = Map.of();
+    effect = List.of();
     bdyList = List.of();
     itrList = List.of();
     opointList = List.of();

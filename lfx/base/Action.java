@@ -5,6 +5,7 @@ import lfx.util.Util;
 public class Action {
   public static final Action UNASSIGNED = new Action("UNASSIGNED");
   public static final Action DEFAULT = new Action("DEFAULT");
+  public static final Action DEFAULT_REVERSE = new Action("DEFAULT_REVERSE");
   public static final Action REPEAT = new Action("REPEAT");
   public static final Action REMOVAL = new Action("REMOVAL");
   public static final Action JOHN_CHASE = new Action("JOHN_CHASE");

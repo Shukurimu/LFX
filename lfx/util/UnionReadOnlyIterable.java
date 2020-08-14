@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class UnionReadOnlyIterable<E> implements Iterable<E> {
+  private final List<E> EMPTY_LIST = List.of();
   private final List<Iterable<E>> targetList;
 
   public UnionReadOnlyIterable(Iterable<E> e1) {
@@ -22,7 +23,7 @@ public class UnionReadOnlyIterable<E> implements Iterable<E> {
   public Iterator<E> iterator() {
     return new Iterator<>() {
       private Iterator<Iterable<E>> outer = targetList.iterator();
-      private Iterator<E> inner = outer.next().iterator();
+      private Iterator<E> inner = EMPTY_LIST.iterator();
       @Override public boolean hasNext() {
         while (!inner.hasNext()) {
           if (outer.hasNext()) {

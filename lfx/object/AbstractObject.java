@@ -141,12 +141,15 @@ public abstract class AbstractObject implements Observable {
       newAction = true;
       if (action == Action.DEFAULT) {
         action = getDefaultAct();
+      } else if (action == Action.DEFAULT_REVERSE) {
+        action = getDefaultAct();
+        faceRight ^= true;
       }
       frame = frameList.get(action.index);
       faceRight ^= action.changeFacing;
     }
     transition = frame.wait;
-    frame.effect.forEach((key, value) -> buff.compute(key, value::stack));
+    frame.effect.forEach((Effect.Value value) -> value.stack(buff));
     return;
   }
 

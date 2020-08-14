@@ -1,40 +1,95 @@
 package lfx.component;
 
+import java.util.Map;
+
 /**
  * Apparently there are several functionalities which can take effect over time.
  * For instance, healing effect keeps regenerating target hero in 100 timeunits.
  * This class substitutes for specialized `state` and `next` as well.
  */
 public enum Effect {
-  MOVE_BLOCKING,
-  ATTACK_SPUNCH,
-  CREATE_ARMOUR,
-  LANDING_ACT,
+  MOVE_BLOCKING {
+    @Override public Value of() {
+      return new Value(this, 0, 0, 0.0);
+    }
+  },
+  FORCE_ACT {
+    @Override public Value of() {  // SuperPunch
+      return new Value(this, 0, 70, 0.0);
+    }
+    @Override public Value of(int actNumber) {
+      return new Value(this, 0, actNumber, 0.0);
+    }
+  },
+  CREATE_ARMOUR {
+    @Override public Value of() {
+      return new Value(this, 0, 0, 0.0);
+    }
+  },
   TRANSFORM_INTO,
   TRANSFORM_BACK,
-  TELEPORT_ENEMY,
-  TELEPORT_TEAM,
-  HEALING,
-  INVISIBILITY,
-  UNFLIPPABLE,  // sonata
-  LANDING_INJURY;
+  TELEPORT_ENEMY {
+    @Override public Value of() {
+      return new Value(this, 0, 0, 120.0);
+    }
+  },
+  TELEPORT_TEAM {
+    @Override public Value of() {
+      return new Value(this, 0, 0, 60.0);
+    }
+  },
+  HEALING {
+    @Override public Value of(int healAmount) {
+      return new Value(this, 100, 0, healAmount / 100.0);
+    }
+    @Override public Value of(double healAmount, int overTimeunit) {
+      return new Value(this, overTimeunit, 0, healAmount / overTimeunit);
+    }
+  },
+  INVISIBLE {
+    @Override public Value of(int invisibleTime) {
+      return new Value(this, invisibleTime, 0, 0.0);
+    }
+  },
+  UNFLIPPABLE {  // sonata
+    @Override public Value of() {
+      return new Value(this, Integer.MAX_VALUE, 0, 0.0);
+    }
+  },
+  LANDING_ACT {
+    @Override public Value of(int actNumber) {
+      return new Value(this, Integer.MAX_VALUE, actNumber, 0.0);
+    }
+  },
+  LANDING_INJURY {
+    @Override public Value of(int injury) {
+      return new Value(this, Integer.MAX_VALUE, injury, 0.0);
+    }
+  };
 
-  @Override
-  public String toString() {
-    return String.format("Effect.%s", name());
+  public Value of() {
+    throw new UnsupportedOperationException();
   }
 
-  public static class Value {
-    private int effectiveTime;
+  public Value of(int someValue) {
+    throw new UnsupportedOperationException();
+  }
+
+  public Value of(double someValue, int moreValue) {
+    throw new UnsupportedOperationException();
+  }
+
+  public static class Value implements Cloneable {
+    public final Effect effect;
     public final int intValue;
     public final double doubleValue;
-    public final String stringValue;
+    private int effectiveTime;
 
-    private Value(int effectiveTime, int intValue, double doubleValue, String stringValue) {
-      this.effectiveTime = effectiveTime;
+    public Value(Effect effect, int effectiveTime, int intValue, double doubleValue) {
+      this.effect = effect;
       this.intValue = intValue;
       this.doubleValue = doubleValue;
-      this.stringValue = stringValue;
+      this.effectiveTime = effectiveTime;
     }
 
     /**
@@ -50,50 +105,26 @@ public enum Effect {
      * Calculates proper state of this Value.
      * It is usually used in frame transition, applying innate Effect.
      *
-     * @param effect the target Effect of this Value
-     * @param oldValue current Value, or null if not under specified Effect
-     * @return final Value
+     * @param effectStatus the target map would like to be updated
      */
-    public Value stack(Effect effect, Value oldValue) {
+    public void stack(Map<Effect, Value> effectStatus) {
+      Value oldValue = effectStatus.get(effect);
       if (oldValue == null) {
-        return new Value(effectiveTime, intValue, doubleValue, stringValue);
-      }
-      if (oldValue.effectiveTime < effectiveTime) {
+        effectStatus.put(effect, this.clone());
+      } else if (oldValue.effectiveTime < effectiveTime) {
         oldValue.effectiveTime = effectiveTime;
       }
-      return oldValue;
+      return;
     }
 
-    public static Value once() {
-      return new Value(1, 0, 0.0, null);
-    }
-
-    public static Value once(int intValue) {
-      return new Value(1, intValue, 0.0, null);
-    }
-
-    // TELEPORT_xxx
-    public static Value once(double doubleValue) {
-      return new Value(1, 0, doubleValue, null);
-    }
-
-    public static Value once(String stringValue) {
-      return new Value(1, 0, 0.0, stringValue);
-    }
-
-    // INVISIBILITY
-    public static Value last(int timeunit) {
-      return new Value(timeunit, 0, 0.0, null);
-    }
-
-    // HEALING
-    public static Value last(int timeunit, double doubleValue) {
-      return new Value(timeunit, 0, doubleValue, null);
-    }
-
-    // LANDING_ACT
-    public static Value until(int intValue) {
-      return new Value(Integer.MAX_VALUE, intValue, 0.0, null);
+    @Override
+    public Value clone() {
+      try {
+        return (Value) super.clone();
+      } catch (CloneNotSupportedException ex) {
+        ex.printStackTrace();
+        return null;
+      }
     }
 
   }

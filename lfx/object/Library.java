@@ -48,7 +48,7 @@ public class Library {
   }
 
   Observable getOrigin(String identifier) {
-    for (Map<String, ? extends Observable> mapping: searchOrderList) {
+    for (Map<String, ? extends Observable> mapping : searchOrderList) {
       Observable origin = mapping.get(identifier);
       if (origin != null) {
         return origin;
