@@ -3,6 +3,7 @@
 *.sh
 *.class
 classes/
+data/
 rawdata/
 sprite/
 sprite.zip

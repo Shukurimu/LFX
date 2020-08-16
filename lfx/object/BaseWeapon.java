@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import lfx.base.Action;
 import lfx.base.Scope;
+import lfx.base.Type;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -17,7 +18,7 @@ import lfx.util.Tuple;
 import lfx.util.Util;
 
 class BaseWeapon extends AbstractObject implements Weapon {
-  public final Subtype subtype;
+  public final Type type;
   public final double dropHurt;
   public final String soundHit;
   public final String soundDrop;
@@ -25,10 +26,10 @@ class BaseWeapon extends AbstractObject implements Weapon {
   public final Map<Wpoint.Usage, Itr> strengthMap;
   private Hero holder = null;
 
-  protected BaseWeapon(String identifier, List<Frame> frameList, Subtype subtype,
-                       Map<String, String> stamina, Map<Wpoint.Usage, Itr> strengthMap) {
+  protected BaseWeapon(String identifier, List<Frame> frameList, Map<String, String> stamina,
+                       Type type, Map<Wpoint.Usage, Itr> strengthMap) {
     super(identifier, frameList, Scope.WEAPON);
-    this.subtype = subtype;
+    this.type = type;
     mp = identifier.equals("Milk") ? INITIAL_MILK_MP : INITIAL_MP;
     hp = Double.valueOf(stamina.get(Key_hp));
     dropHurt = Double.valueOf(stamina.get(Key_drop_hurt));
@@ -40,7 +41,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   private BaseWeapon(BaseWeapon base) {
     super(base);
-    subtype = base.subtype;
+    type = base.type;
     mp = base.mp;
     hp = base.hp;
     dropHurt = base.dropHurt;
@@ -72,22 +73,22 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   public boolean isHeavy() {
-    return subtype == Subtype.HEAVY;
+    return type == Type.HEAVY;
   }
 
   @Override
   public boolean isDrink() {
-    return subtype == Subtype.DRINK;
+    return type == Type.DRINK;
   }
 
   @Override
   public boolean isLight() {
-    return subtype == Subtype.LIGHT;
+    return type == Type.LIGHT;
   }
 
   @Override
   public boolean isSmall() {
-    return subtype == Subtype.SMALL;
+    return type == Type.SMALL;
   }
 
   @Override
@@ -136,14 +137,14 @@ class BaseWeapon extends AbstractObject implements Weapon {
       vx += itr.calcDvx(vx, faceRight);
       vy += itr.dvy;
       if (itr.fall >= 0) {
-        // nextAct = subtype.hitAct(fall, vx);
+        // nextAct = type.hitAct(fall, vx);
         // if (nextAct != Const.TBA) {
           // transitFrame(nextAct);
         // }
         if (isHeavy()) {
           faceRight ^= true;
-          vx *= -subtype.vxLast;
-          vz *=  subtype.vxLast;
+          vx *= -type.vxLast;
+          vz *=  type.vxLast;
         }
       }
       if (itr.bdefend >= 100) {
@@ -191,11 +192,11 @@ class BaseWeapon extends AbstractObject implements Weapon {
 
   private Action landing() {
     hp -= dropHurt;
-    if (vy < subtype.threshold) {
+    if (vy < type.threshold) {
       vy = 0.0;
       return isHeavy() ? Action.HEAVY_ON_GROUND : Action.LIGHT_ON_HAND;
     } else {
-      vy *= subtype.vyLast;
+      vy *= type.vyLast;
       return isHeavy() ? Action.HEAVY_IN_THE_SKY.shifts(0) : Action.LIGHT_IN_THE_SKY.shifts(0);
     }
     // TODO: It seems that if WeaponA has applied itr on WeaponB in State.THROWING, then
@@ -229,12 +230,12 @@ class BaseWeapon extends AbstractObject implements Weapon {
       pz += vz;
     }
     if (py < 0.0) {
-      vy = env.applyGravity(vy) * subtype.gravityRatio;
+      vy = env.applyGravity(vy) * type.gravityRatio;
     } else {
       nextAct = landing();
       vy = py = 0.0;
-      vx = env.applyFriction(vx * subtype.vxLast);
-      vz = env.applyFriction(vz * subtype.vxLast);
+      vx = env.applyFriction(vx * type.vxLast);
+      vz = env.applyFriction(vz * type.vxLast);
     }
     return nextAct;
   }

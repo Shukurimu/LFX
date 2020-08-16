@@ -44,7 +44,7 @@ public class Cpoint extends Point {
     frontHurtAction = backHurtAction = Action.UNASSIGNED;
   }
 
-  public Cpoint(int x, int y, Action frontHurtAction, Action backHurtAction) {
+  private Cpoint(int x, int y, Action frontHurtAction, Action backHurtAction) {
     super(x, y);
     this.frontHurtAction = frontHurtAction;
     this.backHurtAction = backHurtAction;
@@ -53,8 +53,20 @@ public class Cpoint extends Point {
     dircontrol = transform = face2face = cover = hurtable = throwing = false;
   }
 
-  public Cpoint(int x, int y, int fronthurtact, int backhurtact) {
-    this(x, y, new Action(fronthurtact), new Action(backhurtact));
+  public static Cpoint grabee(int x, int y, Action frontHurtAction, Action backHurtAction) {
+    return new Cpoint(x, y, frontHurtAction, backHurtAction);
+  }
+
+  public static Cpoint grabee(int x, int y, int fronthurtact, int backhurtact) {
+    return new Cpoint(x, y, new Action(fronthurtact), new Action(backhurtact));
+  }
+
+  public static Builder graber(int x, int y, Action vAction, int decrease) {
+    return new Builder(x, y, vAction, decrease);
+  }
+
+  public static Builder graber(int x, int y, int vaction, int decrease) {
+    return new Builder(x, y, new Action(vaction), decrease);
   }
 
   public static class Builder {
@@ -76,15 +88,11 @@ public class Cpoint extends Point {
     private boolean hurtable;
     private boolean throwing;
 
-    public Builder(int x, int y, Action vAction, int decrease) {
+    private Builder(int x, int y, Action vAction, int decrease) {
       this.x = x;
       this.y = y;
       this.vAction = vAction;
       this.decrease = decrease;
-    }
-
-    public Builder(int x, int y, int vaction, int decrease) {
-      this(x, y, new Action(vaction), decrease);
     }
 
     public Builder taction(Action tAction) {
@@ -138,17 +146,17 @@ public class Cpoint extends Point {
       return this;
     }
 
-    public Builder transform() {
-      transform = true;
-      return this;
-    }
-
     public Builder hurtable() {
       hurtable = true;
       return this;
     }
 
-    public Cpoint build() {
+    public Builder transform() {
+      transform = true;
+      return this;
+    }
+
+    Cpoint build() {
       return new Cpoint(this);
     }
 

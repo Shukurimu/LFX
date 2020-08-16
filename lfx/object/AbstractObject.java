@@ -415,7 +415,7 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public double[] getStamina() {
-    return {hp2nd / hpMax, hp / hpMax, mp / mpMax};
+    return new double[] { hp2nd / hpMax, hp / hpMax, mp / mpMax };
   }
 
   protected void opointify(Opoint opoint) {

@@ -37,7 +37,8 @@
         "lfx/base/Cost.java",
         "lfx/base/Direction.java",
         "lfx/base/Order.java",
-        "lfx/base/Scope.java"
+        "lfx/base/Scope.java",
+        "lfx/base/Type.java"
       ]
     },
     {
@@ -142,8 +143,25 @@
       ]
     },
     {
+      "target": "base tools",
+      "pathes": [
+        "lfx/tool/Extractor.java"
+      ]
+    },
+    {
+      "target": "component tools",
+      "pathes": [
+        "lfx/tool/BdyExtractor.java",
+        "lfx/tool/CpointExtractor.java",
+        "lfx/tool/ItrExtractor.java",
+        "lfx/tool/OpointExtractor.java",
+        "lfx/tool/WpointExtractor.java"
+      ]
+    },
+    {
       "target": "tools",
       "pathes": [
+        "lfx/tool/FrameExtractor.java",
         "lfx/tool/Parser.java"
       ]
     }

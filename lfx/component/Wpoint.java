@@ -7,6 +7,7 @@ public class Wpoint extends Point {
 
   public enum Usage {
     THROW,
+    DROP,
     JUST_HOLD,
     NORMAL,
     JUMP,
@@ -32,19 +33,18 @@ public class Wpoint extends Point {
     this.zOffset = cover == 0 ? Z_OFFSET : -Z_OFFSET;
   }
 
-  // Holding
-  public Wpoint(int x, int y, Action weaponact, int cover) {
-    this(x, y, weaponact, cover, 0, 0, 0, Usage.JUST_HOLD);
+  public static Wpoint hold(int x, int y, Action weaponact, int cover) {
+    return new Wpoint(x, y, weaponact, cover, 0, 0, 0, Usage.JUST_HOLD);
   }
 
-  // Attacking.Drop
-  public Wpoint(int x, int y, Action weaponact, int cover, Usage usage) {
-    this(x, y, weaponact, cover, 0, 0, 0, usage);
+  public static Wpoint attack(int x, int y, Action weaponact, int cover, Usage usage) {
+    return new Wpoint(x, y, weaponact, cover, 0, 0, 0, usage);
   }
 
-  // Throw
-  public Wpoint(int x, int y, Action weaponact, int cover, int dvx, int dvy, int dvz) {
-    this(x, y, weaponact, cover, dvx, dvy, dvz, Usage.THROW);
+  public static Wpoint release(int x, int y, Action weaponact, int cover,
+                               boolean throwing, int dvx, int dvy, int dvz) {
+    return new Wpoint(x, y, weaponact, cover, dvx, dvy, dvz,
+                      throwing ? Usage.THROW : Usage.DROP);
   }
 
 }

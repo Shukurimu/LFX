@@ -25,24 +25,4 @@ public interface Weapon extends Observable {
   Observable getHolder();
   List<Double> consume();
 
-  enum Subtype {
-    SMALL(0.500,  9.0, 0.6, -0.4),
-    DRINK(0.667,  9.0, 0.6, -0.4),
-    HEAVY(1.000, 10.0, 0.3, -0.2),
-    LIGHT(1.000, 10.0, 0.6, -0.4);
-
-    public final double gravityRatio;
-    public final double threshold;
-    public final double vxLast;
-    public final double vyLast;
-
-    private Subtype(double gravityRatio, double threshold, double vxLast, double vyLast) {
-      this.gravityRatio = gravityRatio;
-      this.threshold = threshold;
-      this.vxLast = vxLast;
-      this.vyLast = vyLast;
-    }
-
-  }
-
 }
