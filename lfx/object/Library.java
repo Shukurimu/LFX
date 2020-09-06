@@ -2,13 +2,13 @@ package lfx.object;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lfx.object.Energy;
 import lfx.object.Hero;
 import lfx.object.Observable;
+import lfx.object.Playable;
 import lfx.object.Weapon;
 import lfx.util.Util;
 
@@ -16,7 +16,7 @@ public class Library {
   private static final Library singleton = new Library();
   private final Weapon DUMMY = null;  // TODO: fake Weapon
 
-  private final Map<String, Hero> heroMapping = new LinkedHashMap<>(32);
+  private final Map<String, Hero> heroMapping = new HashMap<>(32);
   private final Map<String, Weapon> weaponMapping = new HashMap<>(16);
   private final Map<String, Energy> energyMapping = new HashMap<>(64);
   private final List<Map<String, ? extends Observable>> searchOrderList = List.of(
@@ -45,6 +45,10 @@ public class Library {
   void register(Energy origin) {
     assertSingleton(energyMapping.putIfAbsent(origin.getIdentifier(), origin));
     return;
+  }
+
+  public Hero getClone(Playable playable) {
+    return heroMapping.get(playable.getName()).makeClone();
   }
 
   Observable getOrigin(String identifier) {

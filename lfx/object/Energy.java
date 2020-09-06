@@ -15,6 +15,7 @@ public interface Energy extends Observable {
       e.g., Bouncing ball between two John's shields. */
   int REFLECT_VREST = 8;
 
+  @Override Energy makeClone();
   void rebound();
   void disperse();
 

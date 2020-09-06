@@ -119,6 +119,19 @@
       ]
     },
     {
+      "target": "selector base",
+      "pathes": [
+        "lfx/util/Selectable.java",
+        "lfx/util/ElementSelector.java"
+      ]
+    },
+    {
+      "target": "selector functional",
+      "pathes": [
+        "lfx/platform/PlayableSelector.java"
+      ]
+    },
+    {
       "target": "UIs",
       "modules": ["javafx.graphics"],
       "pathes": [
@@ -130,8 +143,11 @@
       "target": "scenes",
       "modules": ["javafx.graphics", "javafx.controls"],
       "pathes": [
+        "lfx/platform/GuiScene.java",
         "lfx/platform/ConfigScene.java",
-        "lfx/platform/Arena.java",
+        "lfx/platform/VersusArena.java",
+        "lfx/platform/PlayerCard.java",
+        "lfx/platform/PickingPhase.java",
         "lfx/platform/PickingScene.java"
       ]
     },

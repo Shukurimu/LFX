@@ -1,5 +1,6 @@
 package lfx.base;
 
+import java.util.List;
 import java.util.Map;
 import lfx.base.Action;
 import lfx.base.Direction;
@@ -35,11 +36,13 @@ public enum Order {
     }
   };
 
-  public final String keySquence;
+  // Avoid copying on every call.
+  public static final List<Order> ORDER_LIST = List.of(Order.values());
+  public final String keySequence;
   public final Direction direction;
 
-  private Order(String keySquence, Direction direction) {
-    this.keySquence = keySquence;
+  private Order(String keySequence, Direction direction) {
+    this.keySequence = keySequence;
     this.direction = direction;
   }
 

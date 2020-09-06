@@ -17,6 +17,7 @@ public interface Hero extends Observable, Playable {
   double ICED_FALLDOWN_DAMAGE = 10.0;
   double SONATA_FALLDOWN_DAMAGE = 10.0;
 
+  @Override Hero makeClone();
   Wpoint getWpoint();
   boolean isAlive();
   Point getChasingPoint();

@@ -4,14 +4,22 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.WritablePixelFormat;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 
 public class ImageCell {
   static final WritablePixelFormat<IntBuffer> pixelFormat = PixelFormat.getIntArgbPreInstance();
+  public static final ImageCell SELECTION_IDLE_IMAGE;
+  public static final ImageCell SELECTION_RANDOM_IMAGE;
 
   public final Image normal;
   public final Image mirror;
@@ -92,6 +100,21 @@ public class ImageCell {
       }
     }
     return pictureList;
+  }
+
+  static {
+    double width = 180.0;
+    Canvas canvas = new Canvas(width, width);
+    GraphicsContext gc = canvas.getGraphicsContext2D();
+    SELECTION_IDLE_IMAGE = new ImageCell(canvas.snapshot(null, null));
+
+    gc.setFill(Color.BLACK);
+    gc.fillRect(0.0, 0.0, width, width);
+    gc.setFill(Color.WHITE);
+    gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
+    gc.setTextAlign(TextAlignment.CENTER);
+    gc.fillText("?", width / 2.0, width / 2.0);
+    SELECTION_RANDOM_IMAGE = new ImageCell(canvas.snapshot(null, null));
   }
 
 }

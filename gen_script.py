@@ -6,36 +6,40 @@ def main(args):
     with open(args.setting) as fp:
         setting = json.load(fp)
 
-    output_lines = []
     if args.os == 'Windows':
         entry = setting['Windows']
-        output_lines.append('@echo off')
-        output_lines.append('set PATH_TO_FX="{}"'.format(entry['path_to_fx']))
-        output_lines.append('set DESTINATION="{}"'.format(setting['destination']))
-        command_base = ('javac --source-path {} '.format(setting['root']) +
-                        '--class-path %DESTINATION% -d %DESTINATION% {modules} {pathes}')
-        modules_base = '--module-path %PATH_TO_FX% --add-modules {}'
+        output_lines = ['@echo off',
+                        'set PATH_TO_FX="{}"'.format(entry['path_to_fx']),
+                        'set DESTINATION="{}"'.format(setting['destination']),
+        ]
+        destination_var = '%DESTINATION%'
+        path_to_fx_var = '%PATH_TO_FX%'
         filename_extension = '.bat'
-    else:
+    else:  # including Linux & Darwin
         entry = setting['Linux']
-        output_lines.append('export PATH="{}"'.format(entry['path']))
-        output_lines.append('export PATH_TO_FX="{}"'.format(entry['path_to_fx']))
-        output_lines.append('DESTINATION="{}"'.format(setting['destination']))
-        command_base = ('javac --source-path {} '.format(setting['root']) +
-                        '--class-path ${{DESTINATION}} -d ${{DESTINATION}} {modules} {pathes}')
-        modules_base = '--module-path ${{PATH_TO_FX}} --add-modules {}'
+        output_lines = ['export PATH="{}"'.format(entry['path']),
+                        'export PATH_TO_FX="{}"'.format(entry['path_to_fx']),
+                        'DESTINATION="{}"'.format(setting['destination']),
+        ]
+        destination_var = '${DESTINATION}'
+        path_to_fx_var = '${PATH_TO_FX}'
         filename_extension = '.sh'
 
     output_lines.append('javac --version')
 
     for step_dict in setting['steps']:
-        output_lines.append('')
-        output_lines.append('echo "Compile {}"'.format(step_dict['target']))
+        command_args = ['javac',
+                        '-sourcepath', setting['root'],
+                        '-classpath', destination_var,
+                        '-d', destination_var,
+        ]
         modules = step_dict.get('modules')
-        modules_str = modules_base.format(','.join(modules)) if modules else ''
-        pathes_str = ' '.join(step_dict['pathes'])
-        command = command_base.format(modules=modules_str, pathes=pathes_str)
-        output_lines.append(command)
+        if modules:
+            command_args += ['--module-path', path_to_fx_var, '--add-modules', ','.join(modules)]
+        output_lines += ['',
+                         'echo ' + step_dict['target'],
+                         ' '.join(command_args + step_dict['pathes']),
+        ]
 
     with open(args.output + filename_extension, 'w') as fp:
         for line in output_lines:

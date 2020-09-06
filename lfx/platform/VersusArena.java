@@ -23,7 +23,7 @@ import lfx.object.Hero;
 import lfx.platform.KeyboardController;
 import lfx.util.Const;
 
-public final class Arena extends GridPane {
+public class VersusArena extends GridPane {
   public static final double MSPF = 1000.0 / Const.DEFAULT_FPS;
   private final Field field;
   private final List<Hero> tracingList;
@@ -166,10 +166,6 @@ public final class Arena extends GridPane {
         break;
       case F10:
         field.disperseEnergies();
-        break;
-      case ESCAPE:
-        render.stop();
-        javafx.application.Platform.exit();
         break;
     }
     return;

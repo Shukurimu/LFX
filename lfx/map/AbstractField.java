@@ -11,7 +11,7 @@ import lfx.object.Observable;
 import lfx.object.Weapon;
 import lfx.util.UnionReadOnlyIterable;
 
-public class BaseMap implements Field {
+public class AbstractField implements Field {
   protected final double boundWidth;
   protected final double boundTop;
   protected final double boundBottom;
@@ -36,7 +36,7 @@ public class BaseMap implements Field {
   protected List<Double> heroXBound;
   protected List<Double> itemXBound;
 
-  public BaseMap(double boundWidth, double boundTop, double boundBottom) {
+  public AbstractField(double boundWidth, double boundTop, double boundBottom) {
     this.boundWidth = boundWidth;
     this.boundTop = boundTop;
     this.boundBottom = boundBottom;

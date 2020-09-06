@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
+import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import lfx.base.Controller;
 import lfx.base.Direction;
@@ -12,12 +14,43 @@ import lfx.util.Const;
 import lfx.util.Tuple;
 
 public class KeyboardController implements Controller {
+  private static final long VALID_KEY_INTERVAL = 200L;
   private static final Map<KeyCode, KeyMonitor> mapping = new EnumMap<>(KeyCode.class);
+  private static class KeyMonitor implements Comparable<KeyMonitor> {
+    int pressCount = 0;
+    Instant pressInstant = Instant.EPOCH;
+    boolean doublePress = false;
+
+    void setPressed() {
+      if (++pressCount == 1) {  // > 1 means holding.
+        Instant now = Instant.now();
+        doublePress = pressInstant.plusMillis(VALID_KEY_INTERVAL).isAfter(now);
+        pressInstant = now;
+      }
+      return;
+    }
+
+    void setReleased() {
+      pressCount = 0;
+      return;
+    }
+
+    boolean pressedBefore(Instant instant) {
+      return pressInstant.isBefore(instant);
+    }
+
+    @Override
+    public int compareTo(KeyMonitor o) {
+      return pressInstant.compareTo(o.pressInstant);
+    }
+
+  }
+
   private final List<Tuple<KeyMonitor, String>> keyList = new ArrayList<>(Const.KEY_NUM);
   private final KeyMonitor[] monitorArray = new KeyMonitor[Const.KEY_NUM];
   private final StringBuilder sequence = new StringBuilder(8);
-  private long updatedTime =
-  private long consumedTime = 0L;
+  private Instant validInstant = Instant.EPOCH;
+  private Instant consumeInstant = Instant.EPOCH;
 
   public KeyboardController(String[] stringArray) {
     for (int i = 0; i < Const.KEY_NUM; ++i) {
@@ -37,21 +70,21 @@ public class KeyboardController implements Controller {
 
   @Override
   public void update() {
-    sequence.setLength​(0);
-    keyList.sort((m1, m2) -> Long.compare(m1.first.pressTime, m2.first.pressTime));
+    sequence.setLength(0);
+    keyList.sort((e1, e2) -> e1.first.compareTo(e2.first));
     for (Tuple<KeyMonitor, String> tuple : keyList) {
-      if (tuple.first.pressTime > consumedTime) {
+      if (tuple.first.pressedBefore(consumeInstant)) {
         break;
       }
       sequence.append(tuple.second);
     }
-    updatedTime = System.currentTimeMillis();
+    validInstant = Instant.now().plusMillis(VALID_KEY_INTERVAL);
     return;
   }
 
   @Override
   public void consumeKeys() {
-    consumedTime = System.currentTimeMillis();
+    consumeInstant = Instant.now();
     return;
   }
 
@@ -77,35 +110,36 @@ public class KeyboardController implements Controller {
 
   @Override
   public boolean press_a() {
-    return monitorArray[4].isValid(currentTime);
+    return monitorArray[4].pressedBefore(validInstant);
   }
 
   @Override
   public boolean press_j() {
-    return monitorArray[5].isValid(currentTime);
+    return monitorArray[5].pressedBefore(validInstant);
   }
 
   @Override
   public boolean press_d() {
-    return monitorArray[6].isValid(currentTime);
+    return monitorArray[6].pressedBefore(validInstant);
   }
 
-  @Override
   public boolean pressRunL() {
-    return monitorArray[2].doublePress && monitorArray[2].isValid(currentTime);
+    return monitorArray[2].doublePress && monitorArray[2].pressedBefore(validInstant);
+  }
+
+  public boolean pressRunR() {
+    return monitorArray[3].doublePress && monitorArray[3].pressedBefore(validInstant);
   }
 
   @Override
-  public boolean pressRunL() {
-    return monitorArray[3].doublePress && monitorArray[3].isValid(currentTime);
+  public boolean pressRun() {
+    return pressRunL() ^ pressRunR();
   }
 
-  @Override
   public boolean pressWalkX() {
     return press_L() ^ press_R();
   }
 
-  @Override
   public boolean pressWalkZ() {
     return press_U() ^ press_D();
   }
@@ -115,7 +149,6 @@ public class KeyboardController implements Controller {
     return pressWalkX() | pressWalkZ();
   }
 
-  @Override
   public Direction getDirection() {
     if (press_L()) {
       return press_R() ? Direction.SAME : Direction.LEFT;
@@ -126,8 +159,8 @@ public class KeyboardController implements Controller {
 
   @Override
   public Order getOrder() {
-    for (Order order : Order.values()) {
-      if (sequence.indexOf(order.keySquence) >= 0) {
+    for (Order order : Order.ORDER_LIST) {
+      if (sequence.indexOf(order.keySequence) >= 0) {
         return order;
       }
     }
@@ -135,6 +168,10 @@ public class KeyboardController implements Controller {
   }
 
   public static boolean press(KeyCode code) {
+    if (code == KeyCode.ESCAPE) {
+      Platform.exit();
+      return false;
+    }
     KeyMonitor monitor = mapping.get(code);
     if (monitor == null) {
       return false;
@@ -152,31 +189,6 @@ public class KeyboardController implements Controller {
       monitor.setReleased();
       return true;
     }
-  }
-
-  static class KeyMonitor {
-    private int pressCount = 0;
-    private long pressTime = 0L;
-    private boolean doublePress = false;
-
-    public void setPressed() {
-      if (++pressCount == 1) {
-        long current = System.currentTimeMillis();
-        doublePress = isValid(current);
-        pressTime = current;
-      }
-      return;
-    }
-
-    public void setReleased() {
-      pressCount = 0;
-      return;
-    }
-
-    public boolean isValid(long basedTime) {
-      return pressTime + Const.VALID_KEY_INTERVAL > basedTime;
-    }
-
   }
 
 }
