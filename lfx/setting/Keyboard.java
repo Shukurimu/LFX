@@ -6,20 +6,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
-public class Keyboard {
-  public static final List<String> NAMES = List.of(
-      "Up", "Down", "Left", "Right", "Attack", "Jump", "Defend"
-  );
-  static final List<String> DEFAULT_LINES = List.of(
+public enum Keyboard {
+  Up    ("U"),
+  Down  ("D"),
+  Left  ("L"),
+  Right ("R"),
+  Attack("a"),
+  Jump  ("j"),
+  Defend("d");
+
+  public static final long VALID_KEY_INTERVAL = 200L;
+  public static final String CHAR_SEPARATOR = " ";
+  public static final List<String> DEFAULT_LINES = List.of(
       "NUMPAD8 NUMPAD2 NUMPAD4 NUMPAD6 NUMPAD5 NUMPAD0 ADD",
       "W X A D S TAB BACK_QUOTE",
       "UP DOWN LEFT RIGHT ENTER SHIFT CONTROL",
       "I COMMA J L K SPACE PERIOD"
   );
-  static final String CHAR_SEPARATOR = " ";
 
-  private Keyboard() {
-    // No Instantiation
+  public final String symbol;
+
+  private Keyboard(String symbol) {
+    this.symbol = symbol;
   }
 
   public static List<String[]> loadDefault() {

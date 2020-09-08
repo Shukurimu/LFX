@@ -20,7 +20,6 @@ import lfx.map.Field;
 import lfx.map.Layer;
 import lfx.map.StatusBoard;
 import lfx.object.Hero;
-import lfx.platform.KeyboardController;
 import lfx.util.Const;
 
 public class VersusArena extends GridPane {

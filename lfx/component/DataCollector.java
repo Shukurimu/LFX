@@ -8,13 +8,6 @@ import java.util.Map;
 import lfx.base.Action;
 import lfx.base.Cost;
 import lfx.base.Order;
-import lfx.component.Bdy;
-import lfx.component.Cpoint;
-import lfx.component.Frame;
-import lfx.component.Itr;
-import lfx.component.Opoint;
-import lfx.component.State;
-import lfx.component.Wpoint;
 import lfx.util.ImageCell;
 import lfx.util.Tuple;
 

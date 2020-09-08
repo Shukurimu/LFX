@@ -15,7 +15,9 @@
       "pathes": [
         "lfx/util/Area.java",
         "lfx/util/Const.java",
+        "lfx/util/ElementSelector.java",
         "lfx/util/Point.java",
+        "lfx/util/Selectable.java",
         "lfx/util/Tuple.java",
         "lfx/util/UnionReadOnlyIterable.java",
         "lfx/util/Util.java"
@@ -116,13 +118,6 @@
       "target": "keyboard",
       "pathes": [
         "lfx/setting/Keyboard.java"
-      ]
-    },
-    {
-      "target": "selector base",
-      "pathes": [
-        "lfx/util/Selectable.java",
-        "lfx/util/ElementSelector.java"
       ]
     },
     {

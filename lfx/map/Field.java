@@ -2,7 +2,6 @@ package lfx.map;
 
 import java.util.List;
 import javafx.scene.layout.Pane;
-import lfx.map.Environment;
 import lfx.object.Observable;
 import lfx.util.Util;
 
@@ -27,8 +26,8 @@ public interface Field extends Environment {
 
   void stepOneFrame();
 
-  default double calcCameraPos(List<Observable> tracingList, double currentPos) {
-    // Camera movement policy is modified from F.LF.
+  static double calcCameraPos(List<Observable> tracingList, double currentPos) {
+    // Camera moving policy is modified from F.LF.
     double position = 0.0;
     int weight = 0;
     for (Observable o : tracingList) {

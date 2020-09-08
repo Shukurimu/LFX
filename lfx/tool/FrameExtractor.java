@@ -9,12 +9,6 @@ import java.util.Set;
 import lfx.base.Action;
 import lfx.base.Type;
 import lfx.component.State;
-import lfx.tool.BdyExtractor;
-import lfx.tool.CpointExtractor;
-import lfx.tool.Extractor;
-import lfx.tool.ItrExtractor;
-import lfx.tool.OpointExtractor;
-import lfx.tool.WpointExtractor;
 
 class FrameExtractor extends Extractor {
   private static final List<? extends Extractor> extractorBaseList = List.of(

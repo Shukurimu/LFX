@@ -20,8 +20,6 @@ import javafx.scene.text.Text;
 import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import lfx.base.Controller;
-import lfx.platform.ConfigScene;
-import lfx.platform.KeyboardController;
 import lfx.util.Const;
 
 public final class Main extends Application {

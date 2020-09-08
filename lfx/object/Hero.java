@@ -3,8 +3,6 @@ package lfx.object;
 import lfx.base.Controller;
 import lfx.base.Viewer;
 import lfx.component.Wpoint;
-import lfx.object.Observable;
-import lfx.object.Playable;
 import lfx.util.Point;
 
 public interface Hero extends Observable, Playable {

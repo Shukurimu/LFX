@@ -9,12 +9,4 @@ public final class Tuple<T, U> {
     this.second = second;
   }
 
-  public static <T, U> Tuple<T, U> of(T first, U second) {
-    return new Tuple<>(first, second);
-  }
-
-  public static <T> Tuple<T, T> of(T single) {
-    return new Tuple<>(single, single);
-  }
-
 }

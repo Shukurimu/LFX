@@ -16,8 +16,6 @@ import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.Opoint;
 import lfx.map.Environment;
-import lfx.object.Library;
-import lfx.object.Observable;
 import lfx.util.Area;
 import lfx.util.Point;
 import lfx.util.Tuple;

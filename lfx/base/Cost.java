@@ -22,7 +22,7 @@ public class Cost {
 
   @Override
   public String toString() {
-    return String.format("Cost(%4d, %4d)", mp, hp);
+    return String.format("Cost(%d, %d)", mp, hp);
   }
 
 }

@@ -12,7 +12,7 @@ public interface Environment {
   /**
    * Returns valid bound of certain object.
    *
-   * @return List of high and low values
+   * @return  List of high and low values
    */
   List<Double> getZBound();
   List<Double> getHeroXBound();

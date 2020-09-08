@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Set;
 import lfx.base.Type;
-import lfx.tool.Extractor;
 import lfx.util.Tuple;
 
 class OpointExtractor extends Extractor {

@@ -5,9 +5,6 @@ import lfx.base.Order;
 import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
-import lfx.object.AbstractObject;
-import lfx.object.Hero;
-import lfx.object.Observable;
 import lfx.util.Point;
 import lfx.util.Util;
 

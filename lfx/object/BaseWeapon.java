@@ -11,8 +11,6 @@ import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.State;
 import lfx.component.Wpoint;
-import lfx.object.AbstractObject;
-import lfx.object.Weapon;
 import lfx.util.Area;
 import lfx.util.Tuple;
 import lfx.util.Util;

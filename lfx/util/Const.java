@@ -3,9 +3,6 @@ package lfx.util;
 import java.util.List;
 
 public final class Const {
-  public static final List<String> KEY_SYMBOLS = List.of("U", "D", "L", "R", "a", "j", "d");
-  public static final int KEY_NUM = KEY_SYMBOLS.size();
-
   public static final List<String> TEAM_NAMES = List.of(
       "Independent", "Team1", "Team2", "Team3", "Team4"
   );

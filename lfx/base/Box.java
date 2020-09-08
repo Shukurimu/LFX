@@ -1,11 +1,9 @@
 package lfx.base;
 
 /**
- * Indicate the coverage of Bdy and Itr.
+ * Indicates the coverage of Bdy and Itr.
  */
 public class Box {
-  public static final Box GLOBAL = new Box(-12345678, -12345678, 23456789, 23456789, 56789);
-  public static final Box HIDDEN = new Box(20, 654321, 1, 1, 1);  // pseudo-invulnerable
   public static final int Z_WIDTH = 12;
 
   public final int x;

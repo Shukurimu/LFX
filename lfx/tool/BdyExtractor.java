@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Set;
 import lfx.base.Type;
-import lfx.tool.Extractor;
 
 class BdyExtractor extends Extractor {
   static final Set<String> validKeys = Set.of(

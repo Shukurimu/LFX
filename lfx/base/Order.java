@@ -1,9 +1,9 @@
 package lfx.base;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import lfx.base.Action;
-import lfx.base.Direction;
+import java.util.stream.Collectors;
 import lfx.util.Tuple;
 
 public enum Order {
@@ -21,14 +21,14 @@ public enum Order {
   hit_j ("j",   Direction.SAME),
   hit_d ("d",   Direction.SAME),
 
-  hit_Fa("!", Direction.SAME) {
+  hit_Fa("", Direction.SAME) {
     @Override public void insert(Map<Order, Action> targetMap, Action action) {
       targetMap.putIfAbsent(hit_Ra, action);
       targetMap.putIfAbsent(hit_La, action);
       return;
     }
   },
-  hit_Fj("!", Direction.SAME) {
+  hit_Fj("", Direction.SAME) {
     @Override public void insert(Map<Order, Action> targetMap, Action action) {
       targetMap.putIfAbsent(hit_Rj, action);
       targetMap.putIfAbsent(hit_Lj, action);
@@ -36,8 +36,9 @@ public enum Order {
     }
   };
 
-  // Avoid copying on every call.
-  public static final List<Order> ORDER_LIST = List.of(Order.values());
+  public static final List<Order> ORDER_LIST = Arrays.stream(Order.values())
+                                                     .filter(o -> !o.keySequence.isEmpty())
+                                                     .collect(Collectors.toUnmodifiableList());
   public final String keySequence;
   public final Direction direction;
 

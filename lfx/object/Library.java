@@ -5,11 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lfx.object.Energy;
-import lfx.object.Hero;
-import lfx.object.Observable;
-import lfx.object.Playable;
-import lfx.object.Weapon;
 import lfx.util.Util;
 
 public class Library {

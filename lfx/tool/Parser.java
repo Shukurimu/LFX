@@ -12,10 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Set;
 import lfx.base.Type;
-import lfx.tool.Extractor;
-import lfx.tool.FrameExtractor;
-import lfx.tool.ItrExtractor;
-import lfx.tool.OpointExtractor;
 import lfx.util.Tuple;
 
 /**
@@ -134,48 +130,7 @@ public class Parser {
     return;
   }
 
-  public static void main(String[] args) {
-    if (args.length != 1) {
-      System.err.println("Input error.");
-      return;
-    }
-    Path sourcePath = Path.of(args[0]);
-    String fileName = sourcePath.getFileName().toString().split("\\.")[0];
-    Tuple<Type, String> info = OpointExtractor.getInfo(fileName);
-    if (info == null) {
-      System.err.println("File not supported: " + args[0]);
-      return;
-    }
-
-    String content = null;
-    try {
-      content = Files.readString(sourcePath);
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      System.err.println("Reading file error: " + args[0]);
-      return;
-    }
-
-    Parser parser = new Parser(info.first, info.second);
-    parser.doTask(info.first.isHero ? "BaseHero" :
-                  info.first.isWeapon ? "BaseWeapon": "BaseEnergy", content);
-
-    Path targetPath = Path.of("lfx", "data", fileName = info.second + ".java");
-    try {
-      Files.createDirectories(targetPath.getParent());
-      Files.write(targetPath, parser.lineList,
-                  StandardOpenOption.CREATE,
-                  StandardOpenOption.TRUNCATE_EXISTING,
-                  StandardOpenOption.WRITE
-      );
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      System.err.println("Writing file error: " + fileName);
-    }
-    return;
-  }
-
-  void doTask(String baseClass, String content) {
+  void parse(String baseClass, String content) {
     lineList.add("package lfx.data;");
     lineList.add("");
     lineList.add("import java.util.ArrayList;");
@@ -255,6 +210,47 @@ public class Parser {
     lineList.add("}");
     System.err.printf("Collect %d frames in %s. Remaining: %s%n",
                       frameCount, identifier, content.isEmpty() ? "(empty)" : content);
+    return;
+  }
+
+  public static void main(String[] args) {
+    if (args.length != 1) {
+      System.err.println("Input error.");
+      return;
+    }
+    Path sourcePath = Path.of(args[0]);
+    String fileName = sourcePath.getFileName().toString().split("\\.")[0];
+    Tuple<Type, String> info = OpointExtractor.getInfo(fileName);
+    if (info == null) {
+      System.err.println("File not supported: " + args[0]);
+      return;
+    }
+
+    String content = null;
+    try {
+      content = Files.readString(sourcePath);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      System.err.println("Reading file error: " + args[0]);
+      return;
+    }
+
+    Parser parser = new Parser(info.first, info.second);
+    parser.parse(info.first.isHero ? "BaseHero" :
+                 info.first.isWeapon ? "BaseWeapon": "BaseEnergy", content);
+
+    Path targetPath = Path.of("lfx", "data", fileName = info.second + ".java");
+    try {
+      Files.createDirectories(targetPath.getParent());
+      Files.write(targetPath, parser.lineList,
+                  StandardOpenOption.CREATE,
+                  StandardOpenOption.TRUNCATE_EXISTING,
+                  StandardOpenOption.WRITE
+      );
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      System.err.println("Writing file error: " + fileName);
+    }
     return;
   }
 

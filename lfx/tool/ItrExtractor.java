@@ -8,7 +8,6 @@ import java.util.Set;
 import lfx.base.Action;
 import lfx.base.Type;
 import lfx.component.Itr;
-import lfx.tool.Extractor;
 
 class ItrExtractor extends Extractor {
   static final Set<String> validKeys = Set.of(

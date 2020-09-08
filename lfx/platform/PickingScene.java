@@ -15,7 +15,6 @@ import javafx.scene.text.FontWeight;
 import lfx.base.Controller;
 // import lfx.map.BaseMap;
 import lfx.object.Playable;
-import lfx.platform.KeyboardController;
 
 public class PickingScene extends GuiScene {
   private final GridPane guiContainer;

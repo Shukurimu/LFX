@@ -3,19 +3,19 @@ package lfx.platform;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.time.Instant;
 import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import lfx.base.Controller;
-import lfx.base.Direction;
 import lfx.base.Order;
-import lfx.util.Const;
+import lfx.setting.Keyboard;
 import lfx.util.Tuple;
 
 public class KeyboardController implements Controller {
-  private static final long VALID_KEY_INTERVAL = 200L;
   private static final Map<KeyCode, KeyMonitor> mapping = new EnumMap<>(KeyCode.class);
+
   private static class KeyMonitor implements Comparable<KeyMonitor> {
     int pressCount = 0;
     Instant pressInstant = Instant.EPOCH;
@@ -24,7 +24,7 @@ public class KeyboardController implements Controller {
     void setPressed() {
       if (++pressCount == 1) {  // > 1 means holding.
         Instant now = Instant.now();
-        doublePress = pressInstant.plusMillis(VALID_KEY_INTERVAL).isAfter(now);
+        doublePress = pressInstant.plusMillis(Keyboard.VALID_KEY_INTERVAL).isAfter(now);
         pressInstant = now;
       }
       return;
@@ -46,24 +46,28 @@ public class KeyboardController implements Controller {
 
   }
 
-  private final List<Tuple<KeyMonitor, String>> keyList = new ArrayList<>(Const.KEY_NUM);
-  private final KeyMonitor[] monitorArray = new KeyMonitor[Const.KEY_NUM];
+  private final List<Tuple<KeyMonitor, String>> keyList = new ArrayList<>(8);
+  private final Map<Keyboard, KeyMonitor> monitorMap = new EnumMap<>(Keyboard.class);
   private final StringBuilder sequence = new StringBuilder(8);
   private Instant validInstant = Instant.EPOCH;
   private Instant consumeInstant = Instant.EPOCH;
 
   public KeyboardController(String[] stringArray) {
-    for (int i = 0; i < Const.KEY_NUM; ++i) {
+    for (Keyboard keyboard : Keyboard.values()) {
       KeyCode code = KeyCode.UNDEFINED;
       try {
-        code = KeyCode.valueOf(stringArray[i]);
+        code = KeyCode.valueOf(stringArray[keyboard.ordinal()]);
       } catch (Exception ex) {
-        System.err.println("Invalid KeyCode: " + stringArray[i]);
+        System.err.println("Invalid KeyCode: " + stringArray[keyboard.ordinal()]);
       }
-      mapping.putIfAbsent(code, new KeyMonitor());
+      // Several keys can be set to same physical key.
       KeyMonitor monitor = mapping.get(code);
-      keyList.add(new Tuple<>(monitor, Const.KEY_SYMBOLS.get(i)));
-      monitorArray[i] = monitor;
+      if (monitor == null) {
+        monitor = new KeyMonitor();
+        mapping.put(code, monitor);
+      }
+      monitorMap.put(keyboard, monitor);
+      keyList.add(new Tuple<>(monitor, keyboard.symbol));
     }
     return;
   }
@@ -78,7 +82,7 @@ public class KeyboardController implements Controller {
       }
       sequence.append(tuple.second);
     }
-    validInstant = Instant.now().plusMillis(VALID_KEY_INTERVAL);
+    validInstant = Instant.now().plusMillis(Keyboard.VALID_KEY_INTERVAL);
     return;
   }
 
@@ -89,75 +93,6 @@ public class KeyboardController implements Controller {
   }
 
   @Override
-  public boolean press_U() {
-    return monitorArray[0].pressCount > 0;
-  }
-
-  @Override
-  public boolean press_D() {
-    return monitorArray[1].pressCount > 0;
-  }
-
-  @Override
-  public boolean press_L() {
-    return monitorArray[2].pressCount > 0;
-  }
-
-  @Override
-  public boolean press_R() {
-    return monitorArray[3].pressCount > 0;
-  }
-
-  @Override
-  public boolean press_a() {
-    return monitorArray[4].pressedBefore(validInstant);
-  }
-
-  @Override
-  public boolean press_j() {
-    return monitorArray[5].pressedBefore(validInstant);
-  }
-
-  @Override
-  public boolean press_d() {
-    return monitorArray[6].pressedBefore(validInstant);
-  }
-
-  public boolean pressRunL() {
-    return monitorArray[2].doublePress && monitorArray[2].pressedBefore(validInstant);
-  }
-
-  public boolean pressRunR() {
-    return monitorArray[3].doublePress && monitorArray[3].pressedBefore(validInstant);
-  }
-
-  @Override
-  public boolean pressRun() {
-    return pressRunL() ^ pressRunR();
-  }
-
-  public boolean pressWalkX() {
-    return press_L() ^ press_R();
-  }
-
-  public boolean pressWalkZ() {
-    return press_U() ^ press_D();
-  }
-
-  @Override
-  public boolean pressWalk() {
-    return pressWalkX() | pressWalkZ();
-  }
-
-  public Direction getDirection() {
-    if (press_L()) {
-      return press_R() ? Direction.SAME : Direction.LEFT;
-    } else {
-      return press_R() ? Direction.RIGHT : Direction.SAME;
-    }
-  }
-
-  @Override
   public Order getOrder() {
     for (Order order : Order.ORDER_LIST) {
       if (sequence.indexOf(order.keySequence) >= 0) {
@@ -165,6 +100,56 @@ public class KeyboardController implements Controller {
       }
     }
     return null;
+  }
+
+  @Override
+  public boolean press_U() {
+    return monitorMap.get(Keyboard.Up).pressCount > 0;
+  }
+
+  @Override
+  public boolean press_D() {
+    return monitorMap.get(Keyboard.Down).pressCount > 0;
+  }
+
+  @Override
+  public boolean press_L() {
+    return monitorMap.get(Keyboard.Left).pressCount > 0;
+  }
+
+  @Override
+  public boolean press_R() {
+    return monitorMap.get(Keyboard.Right).pressCount > 0;
+  }
+
+  @Override
+  public boolean press_a() {
+    return monitorMap.get(Keyboard.Attack).pressedBefore(validInstant);
+  }
+
+  @Override
+  public boolean press_j() {
+    return monitorMap.get(Keyboard.Jump).pressedBefore(validInstant);
+  }
+
+  @Override
+  public boolean press_d() {
+    return monitorMap.get(Keyboard.Defend).pressedBefore(validInstant);
+  }
+
+  public boolean pressRunL() {
+    KeyMonitor monitor = monitorMap.get(Keyboard.Left);
+    return monitor.doublePress && monitor.pressedBefore(validInstant);
+  }
+
+  public boolean pressRunR() {
+    KeyMonitor monitor = monitorMap.get(Keyboard.Right);
+    return monitor.doublePress && monitor.pressedBefore(validInstant);
+  }
+
+  @Override
+  public boolean pressRun() {
+    return pressRunL() ^ pressRunR();
   }
 
   public static boolean press(KeyCode code) {

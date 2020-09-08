@@ -1,7 +1,5 @@
 package lfx.object;
 
-import lfx.object.Observable;
-
 public interface Energy extends Observable {
 
   double CHASE_AX = 0.7;

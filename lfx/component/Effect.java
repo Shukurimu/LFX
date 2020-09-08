@@ -95,7 +95,7 @@ public enum Effect {
     /**
      * Reduces the effective time by 1 and checks its existence.
      *
-     * @return true if no longer provide functionality
+     * @return  true if no longer provide functionality
      */
     public boolean elapse() {
       return 0 > --effectiveTime;
@@ -105,7 +105,8 @@ public enum Effect {
      * Calculates proper state of this Value.
      * It is usually used in frame transition, applying innate Effect.
      *
-     * @param effectStatus the target map would like to be updated
+     * @param   effectStatus
+     *          the target map would like to be updated
      */
     public void stack(Map<Effect, Value> effectStatus) {
       Value oldValue = effectStatus.get(effect);

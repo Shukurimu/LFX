@@ -47,8 +47,8 @@ public class ConfigScene extends Application {
     for (ListIterator<String> it = Const.DEFAULT_PLAYER_NAME.listIterator(); it.hasNext(); ) {
       pane.add(makeNameText(it.next()), it.nextIndex(), 0);
     }
-    for (ListIterator<String> it = Keyboard.NAMES.listIterator(); it.hasNext(); ) {
-      pane.add(makeNameText(it.next()), 0, it.nextIndex());
+    for (Keyboard keyboard : Keyboard.values()) {
+      pane.add(makeNameText(keyboard.name()), 0, keyboard.ordinal());
     }
 
     keyButtonList = new ArrayList<>(28);

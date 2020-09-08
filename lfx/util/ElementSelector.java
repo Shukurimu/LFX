@@ -15,7 +15,7 @@ public class ElementSelector<T> implements Selectable<T> {
 
   @SafeVarargs
   public ElementSelector(T... elements) {
-    this(false, elements);
+    this(true, elements);
   }
 
   @Override

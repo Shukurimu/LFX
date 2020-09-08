@@ -1,7 +1,6 @@
 package lfx.object;
 
 import java.util.List;
-import lfx.object.Observable;
 
 public interface Weapon extends Observable {
   double INITIAL_MP = 750.0;

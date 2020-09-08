@@ -12,7 +12,6 @@ public abstract class GuiScene {
   protected static final double WINDOW_WIDTH = 794;
   protected static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
   protected static final double PORTRAIT_SIZE = 180;
-  protected static final long VALID_KEY_INTERVAL = 200L;
 
   /**
    * Builds the Scene of this object.

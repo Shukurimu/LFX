@@ -1,7 +1,5 @@
 package lfx.base;
 
-import lfx.base.Order;
-
 public interface Controller {
   void update();
   void consumeKeys();
@@ -17,7 +15,7 @@ public interface Controller {
   boolean pressRun();
 
   default boolean pressWalk() {
-    return pressX() | pressZ();
+    return pressX() || pressZ();
   }
 
   default boolean pressX() {
@@ -29,19 +27,21 @@ public interface Controller {
   }
 
   default double valueX() {
-    return pressX() ? (press_R() ? 1.0 : -1.0) : 0.0;
+    return press_L() ? (press_R() ? 0.0 : -1.0) : (press_R() ? 1.0 : 0.0);
   }
 
   default double valueZ() {
-    return pressZ() ? (press_D() ? 1.0 : -1.0) : 0.0;
+    return press_U() ? (press_D() ? 0.0 : -1.0) : (press_D() ? 1.0 : 0.0);
   }
 
   default boolean getFacing(boolean originalFacing) {
-    return pressX() ? press_R() : originalFacing;
+    return press_L() ? (press_R() && originalFacing)
+                     : (press_R() || originalFacing);
   }
 
   default boolean reverseFacing(boolean originalFacing) {
-    return pressX() && (press_R() != originalFacing);
+    return press_L() ? (!press_R() && originalFacing)
+                     : (press_R() && !originalFacing);
   }
 
 }

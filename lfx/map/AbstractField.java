@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.layout.Pane;
 import javafx.scene.Node;
-import lfx.map.Field;
 import lfx.object.Energy;
 import lfx.object.Hero;
 import lfx.object.Observable;

@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Set;
 import lfx.base.Type;
-import lfx.tool.Extractor;
 
 class CpointExtractor extends Extractor {
   static final Set<String> validKeys = Set.of(

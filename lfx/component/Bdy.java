@@ -2,7 +2,6 @@ package lfx.component;
 
 import lfx.base.Box;
 import lfx.base.Scope;
-import lfx.component.Itr;
 
 /**
  * To simplify itr-bdy logic, some state-related attributes are transplanted here.
