@@ -1,4 +1,4 @@
-package lfx.object;
+package lfx.game.object;
 
 import java.util.List;
 import java.util.Map;
@@ -7,12 +7,15 @@ import lfx.base.Controller;
 import lfx.base.Cost;
 import lfx.base.Order;
 import lfx.base.Scope;
-import lfx.base.Viewer;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.State;
 import lfx.component.Wpoint;
+import lfx.game.Hero;
+import lfx.game.Library;
+import lfx.game.Observable;
+import lfx.game.Weapon;
 import lfx.util.ImageCell;
 import lfx.util.Point;
 import lfx.util.Util;
@@ -686,11 +689,6 @@ class BaseHero extends AbstractObject implements Hero {
   @Override
   public Point getViewpoint() {
     return new Point(px, faceRight ? 1.0 : -1.0);
-  }
-
-  @Override
-  public void updateViewer(Viewer viewer) {
-    return;
   }
 
   @Override

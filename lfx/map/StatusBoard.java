@@ -14,7 +14,7 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.TextAlignment;
-import lfx.object.Hero;
+import lfx.game.Hero;
 import lfx.util.Const;
 import lfx.util.Tuple;
 

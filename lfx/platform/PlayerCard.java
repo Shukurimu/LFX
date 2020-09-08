@@ -3,9 +3,9 @@ package lfx.platform;
 import java.util.EnumMap;
 import java.util.Map;
 import lfx.base.Controller;
-import lfx.object.Hero;
-import lfx.object.Library;
-import lfx.object.Playable;
+import lfx.game.Hero;
+import lfx.game.Library;
+import lfx.game.Playable;
 import lfx.util.ElementSelector;
 import lfx.util.Selectable;
 

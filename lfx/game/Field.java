@@ -1,8 +1,6 @@
-package lfx.map;
+package lfx.game;
 
 import java.util.List;
-import javafx.scene.layout.Pane;
-import lfx.object.Observable;
 import lfx.util.Util;
 
 public interface Field extends Environment {
@@ -15,7 +13,7 @@ public interface Field extends Environment {
   double CAMERA_SPEED_THRESHOLD = 0.9;
 
   double getBoundWidth();
-  Pane getVisualNodePane();
+  // Pane getVisualNodePane();
   int getObjectCount();
 
   boolean switchUnlimitedMode();
@@ -26,7 +24,7 @@ public interface Field extends Environment {
 
   void stepOneFrame();
 
-  static double calcCameraPos(List<Observable> tracingList, double currentPos) {
+  default double calcCameraPos(List<Observable> tracingList, double currentPos) {
     // Camera moving policy is modified from F.LF.
     double position = 0.0;
     int weight = 0;

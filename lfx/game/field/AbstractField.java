@@ -1,4 +1,4 @@
-package lfx.map;
+package lfx.game.field;
 
 import java.util.ArrayList;
 import java.util.List;

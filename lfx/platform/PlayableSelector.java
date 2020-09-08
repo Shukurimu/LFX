@@ -1,7 +1,7 @@
 package lfx.platform;
 
 import java.util.List;
-import lfx.object.Playable;
+import lfx.game.Playable;
 import lfx.util.Selectable;
 
 public class PlayableSelector implements Selectable<Playable> {

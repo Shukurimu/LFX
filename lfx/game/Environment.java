@@ -1,4 +1,4 @@
-package lfx.map;
+package lfx.game;
 
 import java.util.List;
 

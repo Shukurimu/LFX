@@ -1,4 +1,4 @@
-package lfx.object;
+package lfx.game.object;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -15,7 +15,9 @@ import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.Opoint;
-import lfx.map.Environment;
+import lfx.game.Environment;
+import lfx.game.Library;
+import lfx.game.Observable;
 import lfx.util.Area;
 import lfx.util.Point;
 import lfx.util.Tuple;
@@ -49,7 +51,6 @@ public abstract class AbstractObject implements Observable {
   protected double hpMax = 500.0;
   protected double hp2nd = 500.0;
   protected double mpMax = 500.0;
-  private final Viewer viewer = new Viewer();
   private final int baseScope;
   private double anchorX = 0.0;  // picture x-coordinate (left if faceRight else right)
   private double anchorY = 0.0;  // picture y-coordinate (top)
@@ -357,11 +358,6 @@ public abstract class AbstractObject implements Observable {
     return result;
   }
 
-  public void updateViewer() {
-    viewer.update(faceRight, anchorX, anchorY, pz, frame.pic);
-    return;
-  }
-
   @Override
   public void act() {
     spawnedObjectList.clear();
@@ -389,7 +385,6 @@ public abstract class AbstractObject implements Observable {
       bdyList.addAll(getCurrentBdys());
       itrList.clear();
       itrList.addAll(getCurrentItrs());
-      updateViewer();
     } else {
       existence = false;
     }
@@ -408,7 +403,7 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public Viewer getViewer() {
-    return viewer;
+    return new Viewer(frame.pic, faceRight, anchorX, anchorY, pz, hp, hp2nd, hpMax, mp, mpMax);
   }
 
   @Override

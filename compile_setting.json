@@ -40,13 +40,7 @@
         "lfx/base/Direction.java",
         "lfx/base/Order.java",
         "lfx/base/Scope.java",
-        "lfx/base/Type.java"
-      ]
-    },
-    {
-      "target": "image-base",
-      "modules": ["javafx.graphics"],
-      "pathes": [
+        "lfx/base/Type.java",
         "lfx/base/Viewer.java"
       ]
     },
@@ -67,51 +61,45 @@
     {
       "target": "base interfaces",
       "pathes": [
-        "lfx/map/Environment.java",
-        "lfx/object/Observable.java",
-        "lfx/object/Playable.java"
+        "lfx/game/Environment.java",
+        "lfx/game/Observable.java",
+        "lfx/game/Playable.java"
       ]
     },
     {
       "target": "extend interfaces",
       "pathes": [
-        "lfx/object/Hero.java",
-        "lfx/object/Weapon.java",
-        "lfx/object/Energy.java"
+        "lfx/game/Hero.java",
+        "lfx/game/Weapon.java",
+        "lfx/game/Energy.java"
       ]
     },
     {
-      "target": "extend image-interfaces",
-      "modules": ["javafx.graphics"],
+      "target": "integration interfaces",
       "pathes": [
-        "lfx/map/Field.java"
-      ]
-    },
-    {
-      "target": "object library",
-      "pathes": [
-        "lfx/object/Library.java"
+        "lfx/game/Library.java",
+        "lfx/game/Field.java"
       ]
     },
     {
       "target": "root object",
       "pathes": [
-        "lfx/object/AbstractObject.java"
+        "lfx/game/object/AbstractObject.java"
       ]
     },
     {
       "target": "base map",
       "modules": ["javafx.graphics"],
       "pathes": [
-        "lfx/map/BaseMap.java"
+        "lfx/game/object/AbstractField.java"
       ]
     },
     {
       "target": "base objects",
       "pathes": [
-        "lfx/object/BaseHero.java",
-        "lfx/object/BaseWeapon.java",
-        "lfx/object/BaseEnergy.java"
+        "lfx/game/object/BaseHero.java",
+        "lfx/game/object/BaseWeapon.java",
+        "lfx/game/object/BaseEnergy.java"
       ]
     },
     {

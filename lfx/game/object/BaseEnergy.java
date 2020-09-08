@@ -1,10 +1,15 @@
-package lfx.object;
+package lfx.game.object;
 
 import java.util.List;
+import lfx.base.Action;
 import lfx.base.Order;
 import lfx.base.Scope;
 import lfx.component.Effect;
 import lfx.component.Frame;
+import lfx.game.Energy;
+import lfx.game.Hero;
+import lfx.game.Library;
+import lfx.game.Observable;
 import lfx.util.Point;
 import lfx.util.Util;
 
@@ -65,16 +70,15 @@ class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected Action updateAction(Action nextAct) {
-    switch (frame.combo.getOrDefault(Order.hit_Ra, Action.UNASSIGNED)) {
-      case Action.JOHN_CHASE:
+    Action function = frame.combo.get(Order.hit_Ra);
+    if (function == null) {
+      // nothing
+    } else if (function == Action.JOHN_CHASE) {
         nextAct = moveJohnChase(nextAct);
-        break;
-      case Action.JOHN_CHASE_FAST:
-        nextAct = moveJohnChaseFast(nextAct);
-        break;
-      case Action.DENNIS_CHASE:
+    } else if (function == Action.JOHN_CHASE_FAST) {
+        nextAct = moveJohnFast(nextAct);
+    } else if (function == Action.DENNIS_CHASE) {
         nextAct = moveDennisChase(nextAct);
-        break;
     }
     return nextAct;
   }
@@ -168,7 +172,7 @@ class BaseEnergy extends AbstractObject implements Energy {
   @Override
   protected void transitNextFrame() {
     transitFrame(hp > 0.0 ? frame.next
-                          : frame.combo.getOrDefault(Action.hit_d, frame.next)
+                          : frame.combo.getOrDefault(Order.hit_d, frame.next)
     );
     return;
   }
@@ -179,7 +183,7 @@ class BaseEnergy extends AbstractObject implements Energy {
     if (xBound.get(0) >= px && px >= xBound.get(1)) {
       /** Refresh countdown timer if in bound. */
       lifetime = DESTROY_TIME;
-    } else if ((!frame.combo.containsKey(Input.Combo.hit_Ra) || hp < 0.0) && (--lifetime < 0)) {
+    } else if ((!frame.combo.containsKey(Order.hit_Ra) || hp < 0.0) && (--lifetime < 0)) {
       /** Even the blast flies out of bound and is not in a functional frame (hit_Fa == NONE),
           it still can live a short time. (e.g., dennis_chase first 4 frames) */
       return false;

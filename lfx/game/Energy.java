@@ -1,4 +1,4 @@
-package lfx.object;
+package lfx.game;
 
 public interface Energy extends Observable {
 

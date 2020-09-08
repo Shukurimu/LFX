@@ -1,4 +1,4 @@
-package lfx.object;
+package lfx.game;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,17 +27,17 @@ public class Library {
     return;
   }
 
-  void register(Hero origin) {
+  public void register(Hero origin) {
     assertSingleton(heroMapping.putIfAbsent(origin.getIdentifier(), origin));
     return;
   }
 
-  void register(Weapon origin) {
+  public void register(Weapon origin) {
     assertSingleton(weaponMapping.putIfAbsent(origin.getIdentifier(), origin));
     return;
   }
 
-  void register(Energy origin) {
+  public void register(Energy origin) {
     assertSingleton(energyMapping.putIfAbsent(origin.getIdentifier(), origin));
     return;
   }

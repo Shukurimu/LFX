@@ -1,4 +1,4 @@
-package lfx.object;
+package lfx.game.object;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +11,10 @@ import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.component.State;
 import lfx.component.Wpoint;
+import lfx.game.Hero;
+import lfx.game.Library;
+import lfx.game.Observable;
+import lfx.game.Weapon;
 import lfx.util.Area;
 import lfx.util.Tuple;
 import lfx.util.Util;

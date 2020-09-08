@@ -1,11 +1,10 @@
-package lfx.object;
+package lfx.game;
 
 import java.util.List;
 import lfx.base.Viewer;
 import lfx.component.Bdy;
 import lfx.component.Frame;
 import lfx.component.Itr;
-import lfx.map.Environment;
 import lfx.util.Area;
 import lfx.util.Point;
 import lfx.util.Tuple;

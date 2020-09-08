@@ -1,7 +1,6 @@
-package lfx.object;
+package lfx.game;
 
 import lfx.base.Controller;
-import lfx.base.Viewer;
 import lfx.component.Wpoint;
 import lfx.util.Point;
 
@@ -20,7 +19,6 @@ public interface Hero extends Observable, Playable {
   boolean isAlive();
   Point getChasingPoint();
   Point getViewpoint();
-  void updateViewer(Viewer viewer);
   void setController(Controller controller);
 
   String Key_walking_speed  = "walking_speed";
