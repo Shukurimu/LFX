@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Set;
-import lfx.base.Action;
 import lfx.base.Type;
+import lfx.component.Action;
 import lfx.component.State;
 
 class FrameExtractor extends Extractor {

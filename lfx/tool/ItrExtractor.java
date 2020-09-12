@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Set;
-import lfx.base.Action;
 import lfx.base.Type;
+import lfx.component.Action;
 import lfx.component.Itr;
 
 class ItrExtractor extends Extractor {

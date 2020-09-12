@@ -1,4 +1,4 @@
-package lfx.base;
+package lfx.component;
 
 public class Cost {
   public static final Cost FREE = new Cost(0, 0);

@@ -1,16 +1,17 @@
 package lfx.game;
 
 import java.util.List;
-import lfx.base.Viewer;
 import lfx.component.Bdy;
 import lfx.component.Frame;
 import lfx.component.Itr;
 import lfx.util.Area;
+import lfx.util.ImageCell;
 import lfx.util.Point;
 import lfx.util.Tuple;
 
 public interface Observable {
 
+  boolean isHero();
   Observable makeClone();
   String getIdentifier();
   int getTeamId();
@@ -80,8 +81,8 @@ public interface Observable {
 
   boolean exists();
 
-  Viewer getViewer();
-
+  ImageCell getImage();
+  double[] getImageAnchors();
   double[] getStamina();
 
 }

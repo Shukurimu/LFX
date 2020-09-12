@@ -1,9 +1,9 @@
 package lfx.game.object;
 
 import java.util.List;
-import lfx.base.Action;
 import lfx.base.Order;
 import lfx.base.Scope;
+import lfx.component.Action;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.game.Energy;

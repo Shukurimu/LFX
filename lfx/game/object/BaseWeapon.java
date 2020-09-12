@@ -3,9 +3,9 @@ package lfx.game.object;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import lfx.base.Action;
 import lfx.base.Scope;
 import lfx.base.Type;
+import lfx.component.Action;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;
@@ -140,7 +140,7 @@ class BaseWeapon extends AbstractObject implements Weapon {
       vy += itr.dvy;
       if (itr.fall >= 0) {
         // nextAct = type.hitAct(fall, vx);
-        // if (nextAct != Const.TBA) {
+        // if (nextAct != Action.TBA) {
           // transitFrame(nextAct);
         // }
         if (isHeavy()) {

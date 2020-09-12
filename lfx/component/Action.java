@@ -1,4 +1,4 @@
-package lfx.base;
+package lfx.component;
 
 import lfx.util.Util;
 

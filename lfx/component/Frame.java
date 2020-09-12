@@ -2,8 +2,6 @@ package lfx.component;
 
 import java.util.List;
 import java.util.Map;
-import lfx.base.Action;
-import lfx.base.Cost;
 import lfx.base.Order;
 import lfx.util.ImageCell;
 

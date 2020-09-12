@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import lfx.base.Action;
-import lfx.base.Cost;
 import lfx.base.Order;
 import lfx.util.ImageCell;
 import lfx.util.Tuple;
@@ -66,7 +64,10 @@ public class DataCollector {
       if (e instanceof Tuple) {
         @SuppressWarnings("unchecked")
         Tuple<Order, Action> kv = (Tuple<Order, Action>) e;
-        kv.first.insert(combo, kv.second);
+        combo.put(kv.first, kv.second);
+        for (Order order : kv.first.additions) {
+          combo.put(order, kv.second);
+        }
       } else if (e instanceof Effect.Value) {
         effect.add((Effect.Value) e);
       } else if (e instanceof Bdy) {

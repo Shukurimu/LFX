@@ -15,6 +15,7 @@ public interface Weapon extends Observable {
   String Key_drop_sound = "drop_sound";
   String Key_broken_sound = "broken_sound";
 
+  @Override default boolean isHero() { return false; }
   @Override Weapon makeClone();
   boolean isHeavy();
   boolean isDrink();

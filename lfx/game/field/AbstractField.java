@@ -1,31 +1,25 @@
 package lfx.game.field;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import javafx.scene.layout.Pane;
-import javafx.scene.Node;
-import lfx.object.Energy;
-import lfx.object.Hero;
-import lfx.object.Observable;
-import lfx.object.Weapon;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lfx.game.Field;
+import lfx.game.Observable;
 import lfx.util.UnionReadOnlyIterable;
 
 public class AbstractField implements Field {
   protected final double boundWidth;
   protected final double boundTop;
   protected final double boundBottom;
-  private final Pane visualNodePane = new Pane();
-  private final List<Node> visualNodeList = visualNodePane.getChildren();
-  private final List<Observable>    heroList = new ArrayList<>(64);
-  private final List<Observable>  weaponList = new ArrayList<>(128);
-  private final List<Observable>  energyList = new ArrayList<>(512);
-  private final List<Observable>   heroQueue = new ArrayList<>(8);
-  private final List<Observable> weaponQueue = new ArrayList<>(16);
-  private final List<Observable> energyQueue = new ArrayList<>(64);
+  protected final List<Observable> heroList = new LinkedList<>();
+  protected final List<Observable> itemList = new LinkedList<>();
+  private final List<Observable> pendingQueue = new ArrayList<>(64);
   private final Iterable<Observable> heroView = new UnionReadOnlyIterable<>(heroList);
-  private final Iterable<Observable> everything = new UnionReadOnlyIterable<>(
-      heroList, weaponList, energyList
-  );
+  private final Iterable<Observable> everything = new UnionReadOnlyIterable<>(heroList, itemList);
   private int independentTeamId = 16;  // Reserve for pre-defined teams.
   private boolean unlimitedMode = false;
   protected double friction = 1.0;
@@ -35,7 +29,7 @@ public class AbstractField implements Field {
   protected List<Double> heroXBound;
   protected List<Double> itemXBound;
 
-  public AbstractField(double boundWidth, double boundTop, double boundBottom) {
+  protected AbstractField(double boundWidth, double boundTop, double boundBottom) {
     this.boundWidth = boundWidth;
     this.boundTop = boundTop;
     this.boundBottom = boundBottom;
@@ -44,20 +38,7 @@ public class AbstractField implements Field {
     itemXBound = List.of(boundWidth + ITEM_ADDITIONAL_WIDTH, -ITEM_ADDITIONAL_WIDTH);
   }
 
-  @Override
-  public double getBoundWidth() {
-    return boundWidth;
-  }
-
-  @Override
-  public Pane getVisualNodePane() {
-    return visualNodePane;
-  }
-
-  @Override
-  public int getObjectCount() {
-    return visualNodeList.size();
-  }
+  /** ========== Environment Interface ========== */
 
   @Override
   public boolean isUnlimitedMode() {
@@ -100,17 +81,11 @@ public class AbstractField implements Field {
     return itemXBound;
   }
 
-  public void spawnObject(Observable object) {
-    if (object instanceof Energy) {
-      energyQueue.add(object);
-      return;
-    }
-    if (object instanceof Weapon) {
-      weaponQueue.add(object);
-      return;
-    }
-    heroQueue.add(object);
-    return;
+  /** ========== Field Interface ========== */
+
+  @Override
+  public double getBoundWidth() {
+    return boundWidth;
   }
 
   @Override
@@ -119,64 +94,103 @@ public class AbstractField implements Field {
   }
 
   @Override
-  public void reviveAll() {
+  public boolean reviveAll() {
     System.out.println("reviveAll()");
-    return;
+    return true;
   }
 
   @Override
-  public void dropNeutralWeapons() {
+  public boolean dropNeutralWeapons() {
     System.out.println("dropNeutralWeapons()");
-    return;
+    return true;
   }
 
   @Override
-  public void destroyWeapons() {
+  public boolean destroyWeapons() {
     System.out.println("destroyWeapons()");
-    return;
+    return true;
   }
 
   @Override
-  public void disperseEnergies() {
+  public boolean disperseEnergies() {
     System.out.println("disperseEnergies()");
+    return true;
+  }
+
+  @Override
+  public void spawnObject(Observable anything) {
+    pendingQueue.add(anything);
     return;
   }
 
-  protected void updateObservableList(List<Observable> targetList,
-                                      List<Observable> targetQueue) {
-    targetList.forEach(o -> o.act());
-    targetList.removeIf(o -> !o.exists());
-    targetList.addAll(targetQueue);
-    targetQueue.forEach(o -> visualNodeList.add(o.getViewer().getFxNode()));
-    targetQueue.clear();
-    return;
+  /**
+   * Removes no longer existing objects from given List, and then returns a List of removed items.
+   * Due to this operation, originalList is usually a LinkedList.
+   *
+   * @param   originalList
+   *          a List may contain objects should be removed
+   * @return  a List of removed items from originalList, can be empty
+   */
+  protected List<Observable> filterObjects(List<Observable> originalList) {
+    List<Observable> removedItemList = new ArrayList<>(16);
+    for (ListIterator<Observable> it = originalList.listIterator(); it.hasNext(); ) {
+      Observable o = it.next();
+      if (!o.exists()) {
+        it.remove();
+        removedItemList.add(o);
+      }
+    }
+    return removedItemList;
+  }
+
+  /**
+   * Partitions the given object List into Hero and Item groups.
+   * Heroes are put in TRUE bucket, while Items are put in FALSE bucket.
+   *
+   * @param   mixingList
+   *          a List containing Heroes or Items
+   * @return  a Map grouping Heroes and Items
+   */
+  protected Map<Boolean, List<Observable>> partitionHeroItem(List<Observable> mixingList) {
+    return mixingList.stream().collect(Collectors.partitioningBy(o -> o.isHero()));
   }
 
   @Override
   public void stepOneFrame() {
     ++timestamp;
-    /** Hero has higher privilege to spread itrs, or you cannot rebound energys
-        without getting hurt, since energys can hit you at the same time. */
+    // Hero has higher privilege to spread itrs.
+    // Otherwise you cannot rebound energys without getting hurt,
+    // since energys can hit you at the same time.
     heroList.forEach(o -> o.spreadItrs(everything));
-    weaponList.forEach(o -> o.react());
-    energyList.forEach(o -> o.react());
+    itemList.forEach(o -> o.react());
 
-    weaponList.forEach(o -> o.spreadItrs(everything));
-    energyList.forEach(o -> o.spreadItrs(everything));
-
-    for (Observable o : everything) {
+    itemList.forEach(o -> o.spreadItrs(everything));
+    Stream.concat(heroList.stream(), itemList.stream()).forEach(o -> {
       o.react();
       o.act();
-      for (Observable s : o.getSpawnedObjectList()) {
-        spawnObject(s);
-      }
-    }
+      pendingQueue.addAll(o.getSpawnedObjectList());
+    });
 
-    updateObservableList(heroList, heroQueue);
-    updateObservableList(weaponList, weaponQueue);
-    updateObservableList(energyList, energyQueue);
-    visualNodeList.removeIf(o -> !o.isVisible());
+    filterObjects(heroList);
+    filterObjects(itemList);
+    Map<Boolean, List<Observable>> groupedMap = partitionHeroItem(pendingQueue);
+    heroList.addAll(groupedMap.get(Boolean.TRUE));
+    itemList.addAll(groupedMap.get(Boolean.FALSE));
+    pendingQueue.clear();
     return;
+  }
+
+  protected double calcCameraPos(List<Observable> tracingList, double currentPos) {
+    if (tracingList.isEmpty()) {  // default middle
+      return (getBoundWidth() - FIELD_WIDTH) / 2.0;
+    }
+    // Camera moving policy is modified from F.LF.
+    double position = tracingList.stream().mapToDouble(o -> o.getPosX()).average().getAsDouble();
+    int weight = tracingList.stream().mapToInt(o -> o.getFacing() ? 1 : -1).sum();
+    position = weight * WIDTH_DIV24 + position - WIDTH_DIV2;
+    position = position < 0.0 ? 0.0 : Math.min(position, getBoundWidth() - FIELD_WIDTH);
+    return position < currentPos ? Math.max(currentPos - CAMERA_SPEED_THRESHOLD, position)
+                                 : Math.min(currentPos + CAMERA_SPEED_THRESHOLD, position);
   }
 
 }

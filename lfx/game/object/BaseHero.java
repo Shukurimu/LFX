@@ -2,11 +2,11 @@ package lfx.game.object;
 
 import java.util.List;
 import java.util.Map;
-import lfx.base.Action;
 import lfx.base.Controller;
-import lfx.base.Cost;
 import lfx.base.Order;
 import lfx.base.Scope;
+import lfx.component.Action;
+import lfx.component.Cost;
 import lfx.component.Effect;
 import lfx.component.Frame;
 import lfx.component.Itr;

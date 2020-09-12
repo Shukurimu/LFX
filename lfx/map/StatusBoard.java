@@ -8,23 +8,23 @@ import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.BlendMode;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.TextAlignment;
 import lfx.game.Hero;
-import lfx.util.Const;
 import lfx.util.Tuple;
 
 public class StatusBoard {
+  public static final double CANVAS_WIDTH = 794 / 4;
+  public static final double CANVAS_HEIGHT = 60;
   private static final double PADDING = 5.0;
-  private static final double ICON_SIZE = Const.CANVAS_HEIGHT - PADDING * 2.0;
+  private static final double ICON_SIZE = CANVAS_HEIGHT - PADDING * 2.0;
   private static final double BAR_BEGIN = ICON_SIZE + PADDING * 2.0;
-  private static final double BAR_WIDTH = Const.CANVAS_WIDTH - BAR_BEGIN - PADDING - 1.0;
+  private static final double BAR_WIDTH = CANVAS_WIDTH - BAR_BEGIN - PADDING - 1.0;
   private static final double BAR_HEIGHT = 15.0;
-  private static final double BAR_MARGIN = (Const.CANVAS_HEIGHT - BAR_HEIGHT * 2.0) / 3.0;
+  private static final double BAR_MARGIN = (CANVAS_HEIGHT - BAR_HEIGHT * 2.0) / 3.0;
   private static final double TEXT_X = BAR_BEGIN + BAR_WIDTH - 1.0;
   private static final double HP_FILL_Y = BAR_MARGIN;
   private static final double MP_FILL_Y = BAR_MARGIN * 2.0 + BAR_HEIGHT;
@@ -88,11 +88,11 @@ public class StatusBoard {
 
   public StatusBoard(Hero target) {
     this.target = target;
-    fxNode = new Canvas(Const.CANVAS_WIDTH, Const.CANVAS_HEIGHT);
+    fxNode = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     gc = fxNode.getGraphicsContext2D();
     gc.drawImage(target.getPortrait().get(), PADDING, PADDING, ICON_SIZE, ICON_SIZE);
     gc.setFill(BACKGROUND_COLOR);
-    gc.fillRect(0, 0, Const.CANVAS_WIDTH, Const.CANVAS_HEIGHT);
+    gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     gc.setLineWidth(1.0);
     gc.setFill(Color.BLACK);
     gc.strokeRect(PADDING - 1.0, PADDING - 1.0, ICON_SIZE + 2.0, ICON_SIZE + 2.0);
@@ -107,7 +107,7 @@ public class StatusBoard {
   }
 
   public void draw() {
-    double stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
+    double[] stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(HP_BAR_BASE);

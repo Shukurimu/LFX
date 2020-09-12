@@ -1,6 +1,5 @@
 package lfx.component;
 
-import lfx.base.Action;
 import lfx.util.Point;
 
 public class Wpoint extends Point {

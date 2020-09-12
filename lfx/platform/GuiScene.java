@@ -3,15 +3,16 @@ package lfx.platform;
 import java.util.function.Consumer;
 import javafx.scene.Scene;
 
-public abstract class GuiScene {
-  protected static final double CONFIG_BUTTON_WIDTH = 120;
-  protected static final double DEFAULT_FPS = 30.0;
-  protected static final double CANVAS_WIDTH = 794 / 4;
-  protected static final double CANVAS_HEIGHT = 60;
-  protected static final double TEXTLABEL_HEIGHT = 20;
-  protected static final double WINDOW_WIDTH = 794;
-  protected static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
-  protected static final double PORTRAIT_SIZE = 180;
+public interface GuiScene {
+  double CONFIG_BUTTON_WIDTH = 120;
+  double DEFAULT_FPS = 30.0;
+  double DEFAULT_MSPF = 1000.0 / DEFAULT_FPS;
+  double CANVAS_WIDTH = 794 / 4;
+  double CANVAS_HEIGHT = 60;
+  double TEXTLABEL_HEIGHT = 20;
+  double WINDOW_WIDTH = 794;
+  double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
+  double PORTRAIT_SIZE = 180;
 
   /**
    * Builds the Scene of this object.
@@ -20,6 +21,6 @@ public abstract class GuiScene {
    *          changes the window view to accepted Scene
    * @return  this Scene
    */
-  protected abstract Scene makeScene(Consumer<Scene> sceneChanger);
+  Scene makeScene(Consumer<Scene> sceneChanger);
 
 }

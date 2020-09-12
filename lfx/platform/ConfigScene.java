@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.List;
-import java.util.ListIterator;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -26,9 +25,9 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import lfx.setting.Keyboard;
-import lfx.util.Const;
 
-public class ConfigScene extends Application {
+public class ConfigScene extends Application implements GuiScene {
+  public static final String CONFIG_PATH = "setting.txt";
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
   public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
   public static final Charset CHARSET = Charset.forName("utf-8");
@@ -44,8 +43,8 @@ public class ConfigScene extends Application {
 
   public ConfigScene(List<String[]> keyArrayList, Consumer<String> finishFunction) {
     pane = new GridPane();
-    for (ListIterator<String> it = Const.DEFAULT_PLAYER_NAME.listIterator(); it.hasNext(); ) {
-      pane.add(makeNameText(it.next()), it.nextIndex(), 0);
+    for (int index : new int[] { 1, 2, 3, 4 }) {
+      pane.add(makeNameText("Player " + index), 1 + index, 0);
     }
     for (Keyboard keyboard : Keyboard.values()) {
       pane.add(makeNameText(keyboard.name()), 0, keyboard.ordinal());
@@ -55,7 +54,7 @@ public class ConfigScene extends Application {
     for (int colIndex = 1; colIndex <= 4; ++colIndex) {
       for (int rowIndex = 1; rowIndex <= 7; ++rowIndex) {
         ToggleButton button = new ToggleButton();
-        button.setPrefSize(Const.CONFIG_BUTTON_WIDTH, 30);
+        button.setPrefSize(CONFIG_BUTTON_WIDTH, 30);
         button.setOnAction(this::clickBindingHandler);
         keyButtonList.add(button);
         pane.add(button, colIndex, rowIndex);
@@ -104,7 +103,7 @@ public class ConfigScene extends Application {
   static Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
     Button button = new Button(text);
     button.setOnAction(handler);
-    button.setPrefWidth(Const.CONFIG_BUTTON_WIDTH);
+    button.setPrefWidth(CONFIG_BUTTON_WIDTH);
     button.setFont(Font.font(null, FontWeight.BLACK, 16));
     return button;
   }
@@ -140,15 +139,16 @@ public class ConfigScene extends Application {
     return;
   }
 
-  public Scene makeScene() {
-    Scene scene = new Scene(pane, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
+  @Override
+  public Scene makeScene(Consumer<Scene> sceneChanger) {
+    Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
     scene.setOnKeyPressed(this::keyPressHandler);
     return scene;
   }
 
   private static List<String[]> load() {
     List<String> fileLines = new ArrayList<>();
-    try (FileReader fileReader = new FileReader(Const.CONFIG_PATH, CHARSET);
+    try (FileReader fileReader = new FileReader(CONFIG_PATH, CHARSET);
          BufferedReader reader = new BufferedReader(fileReader)) {
       return Keyboard.load(reader);
     } catch (Exception ex) {
@@ -158,7 +158,7 @@ public class ConfigScene extends Application {
   }
 
   private String save() {
-    try (PrintWriter writer = new PrintWriter(Const.CONFIG_PATH, CHARSET)) {
+    try (PrintWriter writer = new PrintWriter(CONFIG_PATH, CHARSET)) {
       Keyboard.save(writer, getButtonText());
       return "Saved";
     } catch (Exception ex) {
@@ -173,7 +173,7 @@ public class ConfigScene extends Application {
       System.out.println(result);
       Platform.exit();
     });
-    primaryStage.setScene(configScene.makeScene());
+    primaryStage.setScene(configScene.makeScene(null));
     primaryStage.setTitle("Little Fighter X - Setting");
     primaryStage.setX(600.0);
     primaryStage.show();

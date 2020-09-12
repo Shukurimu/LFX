@@ -23,6 +23,8 @@ import lfx.base.Controller;
 import lfx.util.Const;
 
 public final class Main extends Application {
+  public static final double WINDOW_WIDTH = 794;
+  public static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
   Consumer<Scene> sceneChanger = null;
 
   @Override

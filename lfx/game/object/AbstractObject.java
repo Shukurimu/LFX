@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import lfx.base.Action;
 import lfx.base.Box;
+import lfx.base.Order;
 import lfx.base.Scope;
-import lfx.base.Viewer;
+import lfx.component.Action;
 import lfx.component.Bdy;
 import lfx.component.Effect;
 import lfx.component.Frame;
@@ -19,6 +19,7 @@ import lfx.game.Environment;
 import lfx.game.Library;
 import lfx.game.Observable;
 import lfx.util.Area;
+import lfx.util.ImageCell;
 import lfx.util.Point;
 import lfx.util.Tuple;
 import lfx.util.Util;
@@ -402,8 +403,13 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public Viewer getViewer() {
-    return new Viewer(frame.pic, faceRight, anchorX, anchorY, pz, hp, hp2nd, hpMax, mp, mpMax);
+  public ImageCell getImage() {
+    return frame.pic;
+  }
+
+  @Override
+  public double[] getImageAnchors() {
+    return new double[] { anchorX, anchorY, pz };
   }
 
   @Override
@@ -461,6 +467,17 @@ public abstract class AbstractObject implements Observable {
   @Override
   public String toString() {
     return String.format("%s.%d", identifier, this.hashCode());
+  }
+
+  /**
+   * Makes a Tuple for registering combo map.
+   *
+   * @param   order
+   * @param   action
+   * @return  Tuple of key-value pair
+   */
+  protected static Tuple<Order, Action> combo(Order order, Action action) {
+    return new Tuple<>(order, action);
   }
 
 }

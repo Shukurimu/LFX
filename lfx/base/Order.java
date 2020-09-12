@@ -2,9 +2,7 @@ package lfx.base;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-import lfx.util.Tuple;
 
 public enum Order {
   hit_ja("dja", Direction.SAME),
@@ -21,43 +19,21 @@ public enum Order {
   hit_j ("j",   Direction.SAME),
   hit_d ("d",   Direction.SAME),
 
-  hit_Fa("", Direction.SAME) {
-    @Override public void insert(Map<Order, Action> targetMap, Action action) {
-      targetMap.putIfAbsent(hit_Ra, action);
-      targetMap.putIfAbsent(hit_La, action);
-      return;
-    }
-  },
-  hit_Fj("", Direction.SAME) {
-    @Override public void insert(Map<Order, Action> targetMap, Action action) {
-      targetMap.putIfAbsent(hit_Rj, action);
-      targetMap.putIfAbsent(hit_Lj, action);
-      return;
-    }
-  };
+  hit_Fa("", Direction.SAME, hit_Ra, hit_La),
+  hit_Fj("", Direction.SAME, hit_Rj, hit_Lj);
 
   public static final List<Order> ORDER_LIST = Arrays.stream(Order.values())
                                                      .filter(o -> !o.keySequence.isEmpty())
                                                      .collect(Collectors.toUnmodifiableList());
   public final String keySequence;
   public final Direction direction;
+  public final List<Order> additions;
 
-  private Order(String keySequence, Direction direction) {
+  @SafeVarargs
+  private Order(String keySequence, Direction direction, Order... additions) {
     this.keySequence = keySequence;
     this.direction = direction;
-  }
-
-  public Tuple<Order, Action> of(Action action) {
-    return new Tuple<Order, Action>(this, action);
-  }
-
-  public Tuple<Order, Action> of(int actionNumber) {
-    return new Tuple<Order, Action>(this, new Action(actionNumber));
-  }
-
-  public void insert(Map<Order, Action> targetMap, Action action) {
-    targetMap.put(this, action);
-    return;
+    this.additions = List.copyOf(Arrays.asList(additions));
   }
 
   @Override

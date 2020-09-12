@@ -13,6 +13,7 @@ public interface Energy extends Observable {
       e.g., Bouncing ball between two John's shields. */
   int REFLECT_VREST = 8;
 
+  @Override default boolean isHero() { return false; }
   @Override Energy makeClone();
   void rebound();
   void disperse();

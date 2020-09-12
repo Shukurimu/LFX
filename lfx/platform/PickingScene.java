@@ -13,10 +13,9 @@ import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import lfx.base.Controller;
-// import lfx.map.BaseMap;
 import lfx.game.Playable;
 
-public class PickingScene extends GuiScene {
+public class PickingScene implements GuiScene {
   private final GridPane guiContainer;
   private final List<PlayerCardView> cardViewList = new ArrayList<>(4);
 

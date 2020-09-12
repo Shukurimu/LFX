@@ -14,7 +14,6 @@
       "target": "utils",
       "pathes": [
         "lfx/util/Area.java",
-        "lfx/util/Const.java",
         "lfx/util/ElementSelector.java",
         "lfx/util/Point.java",
         "lfx/util/Selectable.java",
@@ -33,21 +32,20 @@
     {
       "target": "bases",
       "pathes": [
-        "lfx/base/Action.java",
         "lfx/base/Box.java",
         "lfx/base/Controller.java",
-        "lfx/base/Cost.java",
         "lfx/base/Direction.java",
         "lfx/base/Order.java",
         "lfx/base/Scope.java",
-        "lfx/base/Type.java",
-        "lfx/base/Viewer.java"
+        "lfx/base/Type.java"
       ]
     },
     {
       "target": "components",
       "pathes": [
+        "lfx/component/Action.java",
         "lfx/component/Bdy.java",
+        "lfx/component/Cost.java",
         "lfx/component/Cpoint.java",
         "lfx/component/DataCollector.java",
         "lfx/component/Effect.java",
@@ -84,14 +82,8 @@
     {
       "target": "root object",
       "pathes": [
-        "lfx/game/object/AbstractObject.java"
-      ]
-    },
-    {
-      "target": "base map",
-      "modules": ["javafx.graphics"],
-      "pathes": [
-        "lfx/game/object/AbstractField.java"
+        "lfx/game/object/AbstractObject.java",
+        "lfx/game/field/AbstractField.java"
       ]
     },
     {
@@ -103,7 +95,7 @@
       ]
     },
     {
-      "target": "keyboard",
+      "target": "setting",
       "pathes": [
         "lfx/setting/Keyboard.java"
       ]
@@ -119,7 +111,10 @@
       "modules": ["javafx.graphics"],
       "pathes": [
         "lfx/platform/KeyboardController.java",
-        "lfx/map/StatusBoard.java"
+        "lfx/map/Background.java",
+        "lfx/map/Layer.java",
+        "lfx/map/StatusBoard.java",
+        "lfx/map/Viewer.java"
       ]
     },
     {
