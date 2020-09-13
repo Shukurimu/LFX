@@ -211,6 +211,12 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public void setProperty(Environment env) {
+    this.env = env;
+    return;
+  }
+
+  @Override
   public List<Tuple<Bdy, Area>> getBdys() {
     return bdyList;
   }

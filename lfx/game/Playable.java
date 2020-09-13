@@ -8,7 +8,7 @@ public interface Playable {
 
   static Playable SELECTION_IDLE = new Playable() {
     @Override public ImageCell getPortrait() {
-      return ImageCell.SELECTION_IDLE_IMAGE;
+      return ImageCell.getSelectionIdleImage();
     }
     @Override public String getName() {
       return "";
@@ -17,7 +17,7 @@ public interface Playable {
 
   static Playable SELECTION_RANDOM = new Playable() {
     @Override public ImageCell getPortrait() {
-      return ImageCell.SELECTION_RANDOM_IMAGE;
+      return ImageCell.getSelectionRandomImage();
     }
     @Override public String getName() {
       return "<RANDOM>";

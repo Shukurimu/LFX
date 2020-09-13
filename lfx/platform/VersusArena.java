@@ -21,6 +21,7 @@ import javafx.scene.Scene;
 import javafx.util.Duration;
 import lfx.game.Field;
 import lfx.game.field.AbstractField;
+import lfx.game.Hero;
 import lfx.game.Observable;
 import lfx.map.Background;
 import lfx.map.Layer;
@@ -31,8 +32,8 @@ public class VersusArena extends AbstractField implements GuiScene {
   private final GridPane guiContainer = new GridPane();
   private final ScrollPane scrollPane;
   private final List<Node> viewerList;
-  private final List<Observable> tracingList;
-  private final List<StatusBoard> boardList;
+  private final List<Observable> tracingList = new ArrayList<>(8);
+  private final List<StatusBoard> statusBoardList = new ArrayList<>(8);
   private final Label middleText1 = makeLabel(Color.AQUA, HPos.LEFT);
   private final Label middleText2 = makeLabel(Color.VIOLET, HPos.RIGHT);
   private final Label bottomText1 = makeLabel(Color.GOLD, HPos.LEFT);
@@ -40,10 +41,14 @@ public class VersusArena extends AbstractField implements GuiScene {
   private final Timeline render;
   private double cameraPosition = 0.0;
 
-  public VersusArena(Background bg, List<Observable> tracingList, List<StatusBoard> boardList) {
+  public VersusArena(Background bg, List<Hero> initialObjectList) {
     super(bg.width, bg.top, bg.bottom);
-    this.tracingList = tracingList;
-    this.boardList = boardList;
+    for (Hero object : initialObjectList) {
+      spawnObject(object);
+      tracingList.add(object);
+      statusBoardList.add(new StatusBoard(object));
+    }
+    tracingList.removeIf(o -> o == null);
 
     Pane objectLayer = new Pane();
     viewerList = objectLayer.getChildren();
@@ -58,7 +63,7 @@ public class VersusArena extends AbstractField implements GuiScene {
     scrollPane.setHmax(bg.width - FIELD_WIDTH);
     scrollPane.setVmax(0.0);
 
-    guiContainer.addRow(0, (Node[]) boardList.toArray());
+    statusBoardList.forEach(s -> guiContainer.addRow(0, s));
     guiContainer.add(middleText1, 0, 1, 2, 1);
     guiContainer.add(middleText2, 2, 1, 2, 1);
     guiContainer.add(scrollPane,  0, 2, 4, 1);
@@ -95,7 +100,7 @@ public class VersusArena extends AbstractField implements GuiScene {
     cameraPosition = calcCameraPos(tracingList, cameraPosition);
     scrollPane.setHvalue(cameraPosition);
 
-    boardList.forEach(board -> board.draw());
+    statusBoardList.forEach(board -> board.update());
     middleText1.setText("MapTime: " + getTimestamp());
     bottomText1.setText("FxNode: " + viewerList.size());
     bottomText2.setText(

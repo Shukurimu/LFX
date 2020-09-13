@@ -8,6 +8,7 @@ import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.BlendMode;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -16,7 +17,7 @@ import javafx.scene.text.TextAlignment;
 import lfx.game.Hero;
 import lfx.util.Tuple;
 
-public class StatusBoard {
+public class StatusBoard extends Canvas {
   public static final double CANVAS_WIDTH = 794 / 4;
   public static final double CANVAS_HEIGHT = 60;
   private static final double PADDING = 5.0;
@@ -39,7 +40,6 @@ public class StatusBoard {
   private static final LinearGradient BAR_3D_LOOK;
 
   private final Hero target;
-  private final Canvas fxNode;
   private final GraphicsContext gc;
 
   static {
@@ -87,10 +87,11 @@ public class StatusBoard {
   }
 
   public StatusBoard(Hero target) {
+    super(CANVAS_WIDTH, CANVAS_HEIGHT);
     this.target = target;
-    fxNode = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
-    gc = fxNode.getGraphicsContext2D();
-    gc.drawImage(target.getPortrait().get(), PADDING, PADDING, ICON_SIZE, ICON_SIZE);
+    Image portrait = target == null ? null : target.getPortrait().get();
+    gc = this.getGraphicsContext2D();
+    gc.drawImage(portrait, PADDING, PADDING, ICON_SIZE, ICON_SIZE);
     gc.setFill(BACKGROUND_COLOR);
     gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     gc.setLineWidth(1.0);
@@ -102,11 +103,10 @@ public class StatusBoard {
     gc.setTextAlign(TextAlignment.RIGHT);
   }
 
-  public Canvas getFxNode() {
-    return fxNode;
-  }
-
-  public void draw() {
+  public void update() {
+    if (target == null) {
+      return;
+    }
     double[] stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);

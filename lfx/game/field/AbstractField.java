@@ -173,6 +173,8 @@ public class AbstractField implements Field {
 
     filterObjects(heroList);
     filterObjects(itemList);
+    pendingQueue.removeIf(o -> o == null);
+    pendingQueue.forEach(o -> o.setProperty(this));
     Map<Boolean, List<Observable>> groupedMap = partitionHeroItem(pendingQueue);
     heroList.addAll(groupedMap.get(Boolean.TRUE));
     itemList.addAll(groupedMap.get(Boolean.FALSE));

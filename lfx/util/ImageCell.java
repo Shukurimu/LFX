@@ -3,6 +3,7 @@ package lfx.util;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.FutureTask;
 import java.util.List;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -17,9 +18,10 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
 public class ImageCell {
-  static final WritablePixelFormat<IntBuffer> pixelFormat = PixelFormat.getIntArgbPreInstance();
-  public static final ImageCell SELECTION_IDLE_IMAGE;
-  public static final ImageCell SELECTION_RANDOM_IMAGE;
+  private static final WritablePixelFormat<IntBuffer> pixelFormat =
+      PixelFormat.getIntArgbPreInstance();
+  private static ImageCell SELECTION_IDLE_IMAGE = null;
+  private static ImageCell SELECTION_RANDOM_IMAGE = null;
 
   public final Image normal;
   public final Image mirror;
@@ -43,7 +45,7 @@ public class ImageCell {
 
   private static Image loadImage(String path) {
     try {
-      return new Image(path);
+      return new Image("file:" + path);
     } catch (Exception expection) {
       expection.printStackTrace();
     }
@@ -77,8 +79,8 @@ public class ImageCell {
     ImageCell nothing = new ImageCell(new WritableImage(w, h));
     List<ImageCell> pictureList = new ArrayList<>(w * h);
     final int[] buffer = new int[w * h];
-    for (int y = 0; y < col; y += h + 1) {  // +1 for separating line
-      for (int x = 0; x < row; x += w + 1) {
+    for (int iCol = 0, y = 0; iCol < col; ++iCol, y += h + 1) {  // +1 for separating line
+      for (int iRow = 0, x = 0; iRow < row; ++iRow, x += w + 1) {
         if (x + w <= width && y + h <= height) {
           Image normal = new WritableImage(reader, x, y, w, h);
           // programmically mirror image
@@ -102,19 +104,27 @@ public class ImageCell {
     return pictureList;
   }
 
-  static {
-    double width = 180.0;
-    Canvas canvas = new Canvas(width, width);
-    GraphicsContext gc = canvas.getGraphicsContext2D();
-    SELECTION_IDLE_IMAGE = new ImageCell(canvas.snapshot(null, null));
+  public static ImageCell getSelectionIdleImage() {
+    if (SELECTION_IDLE_IMAGE == null) {
+      SELECTION_IDLE_IMAGE = new ImageCell(new WritableImage(180, 180));
+    }
+    return SELECTION_IDLE_IMAGE;
+  }
 
-    gc.setFill(Color.BLACK);
-    gc.fillRect(0.0, 0.0, width, width);
-    gc.setFill(Color.WHITE);
-    gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
-    gc.setTextAlign(TextAlignment.CENTER);
-    gc.fillText("?", width / 2.0, width / 2.0);
-    SELECTION_RANDOM_IMAGE = new ImageCell(canvas.snapshot(null, null));
+  public static ImageCell getSelectionRandomImage() {
+    if (SELECTION_RANDOM_IMAGE == null) {
+      double width = 180.0;
+      Canvas canvas = new Canvas(width, width);
+      GraphicsContext gc = canvas.getGraphicsContext2D();
+      gc.setFill(Color.BLACK);
+      gc.fillRect(0.0, 0.0, width, width);
+      gc.setFill(Color.WHITE);
+      gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
+      gc.setTextAlign(TextAlignment.CENTER);
+      gc.fillText("?", width * 0.5, width * 0.8);
+      SELECTION_RANDOM_IMAGE = new ImageCell(canvas.snapshot(null, null));
+    }
+    return SELECTION_RANDOM_IMAGE;
   }
 
 }

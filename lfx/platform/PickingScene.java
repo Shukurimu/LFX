@@ -7,6 +7,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.Scene;
@@ -14,9 +15,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import lfx.base.Controller;
 import lfx.game.Playable;
+import lfx.map.Background;
 
 public class PickingScene implements GuiScene {
-  private final GridPane guiContainer;
+  private final GridPane guiContainer = new GridPane();
   private final List<PlayerCardView> cardViewList = new ArrayList<>(4);
 
   private static class PlayerCardView extends PlayerCard {
@@ -36,7 +38,7 @@ public class PickingScene implements GuiScene {
       hero.setFont(TEXT_FONT);
       team.setFont(TEXT_FONT);
       guiComponent = new VBox(/* spacing */ 6.0, name, icon, hero, team);
-      guiComponent.setAlignment(Pos.CENTER);
+      guiComponent.setAlignment(Pos.CENTER);  // defaults to Pos.TOP_LEFT
       guiComponent.setMinHeight(300);
     }
 
@@ -53,34 +55,36 @@ public class PickingScene implements GuiScene {
   }
 
   public PickingScene(List<Controller> controllerList) {
-    guiContainer = new GridPane();
+    double columnWidth = WINDOW_WIDTH / controllerList.size();
+    ColumnConstraints columnConstraints = new ColumnConstraints(columnWidth);
     for (Controller controller : controllerList) {
       PlayerCardView cardView = new PlayerCardView(controller);
       cardViewList.add(cardView);
       guiContainer.addRow(1, cardView.guiComponent);
+      guiContainer.getColumnConstraints().add(columnConstraints);
+      GridPane.setHalignment(cardView.guiComponent, HPos.CENTER);
     }
 
     Label head = new Label("ALL PICK");
     head.setMinHeight(80.0);
     head.setFont(Font.font(null, FontWeight.BOLD, 52.0));
-    GridPane.setHalignment(head, HPos.CENTER);
     guiContainer.add(head, 0, 0, controllerList.size(), 1);
+    GridPane.setHalignment(head, HPos.CENTER);
 
     Label tail = new Label("<untitled>");
     tail.setMinHeight(60.0);
     tail.setFont(Font.font(null, FontWeight.MEDIUM, 20.0));
-    GridPane.setHalignment(tail, HPos.RIGHT);
     guiContainer.add(tail, 0, 2, controllerList.size(), 1);
+    GridPane.setHalignment(tail, HPos.RIGHT);
 
-    guiContainer.setHgap(9.0);
+    guiContainer.setHgap(0.0);
     guiContainer.setVgap(16.0);
   }
 
   @Override
   public Scene makeScene(Consumer<Scene> sceneChanger) {
     Scene scene = new Scene(guiContainer, WINDOW_WIDTH, WINDOW_HEIGHT);
-    Consumer<String> pickingSceneBridge = (String info) -> {
-      System.out.println(info);
+    Consumer<Scene> pickingSceneBridge = (Scene nouse) -> {
       cardViewList.forEach(c -> c.reset());
       sceneChanger.accept(scene);
     };
@@ -88,10 +92,9 @@ public class PickingScene implements GuiScene {
       KeyboardController.press(event.getCode());
       cardViewList.forEach(c -> c.update());
       if (PlayerCard.isReady(cardViewList)) {
-        // c.makeHero();
-        // Arena arena = new Arena(new BaseMap(990, 200, 400));
-        // arena.setPlayers(playerList);
-        // sceneChanger.accept(arena.makeScene(pickingSceneBridge));
+        Background bg = new Background();
+        VersusArena arena = new VersusArena(bg, PlayerCard.getHeroList(cardViewList));
+        sceneChanger.accept(arena.makeScene(pickingSceneBridge));
       }
     });
     scene.setOnKeyReleased(event -> {

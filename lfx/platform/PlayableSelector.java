@@ -1,14 +1,19 @@
 package lfx.platform;
 
+import java.util.ArrayList;
 import java.util.List;
+import lfx.game.Library;
 import lfx.game.Playable;
 import lfx.util.Selectable;
 
 public class PlayableSelector implements Selectable<Playable> {
-  private final List<Playable> valueList = List.of(
-    Playable.SELECTION_RANDOM
-  );
+  private final List<Playable> valueList = new ArrayList<>(40);
   private Playable current = Playable.SELECTION_RANDOM;
+
+  public PlayableSelector() {
+    valueList.add(Playable.SELECTION_RANDOM);
+    valueList.addAll(Library.instance().getPlayableList());
+  }
 
   @Override
   public Playable get() {

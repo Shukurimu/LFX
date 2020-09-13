@@ -19,7 +19,7 @@ import lfx.util.Area;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
-class BaseWeapon extends AbstractObject implements Weapon {
+public class BaseWeapon extends AbstractObject implements Weapon {
   public final Type type;
   public final double dropHurt;
   public final String soundHit;

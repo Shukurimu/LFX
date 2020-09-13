@@ -44,10 +44,10 @@ public class ConfigScene extends Application implements GuiScene {
   public ConfigScene(List<String[]> keyArrayList, Consumer<String> finishFunction) {
     pane = new GridPane();
     for (int index : new int[] { 1, 2, 3, 4 }) {
-      pane.add(makeNameText("Player " + index), 1 + index, 0);
+      pane.add(makeNameText("Player " + index), index, 0);
     }
     for (Keyboard keyboard : Keyboard.values()) {
-      pane.add(makeNameText(keyboard.name()), 0, keyboard.ordinal());
+      pane.add(makeNameText(keyboard.name()), 0, keyboard.ordinal() + 1);
     }
 
     keyButtonList = new ArrayList<>(28);
@@ -146,7 +146,7 @@ public class ConfigScene extends Application implements GuiScene {
     return scene;
   }
 
-  private static List<String[]> load() {
+  static List<String[]> load() {
     List<String> fileLines = new ArrayList<>();
     try (FileReader fileReader = new FileReader(CONFIG_PATH, CHARSET);
          BufferedReader reader = new BufferedReader(fileReader)) {

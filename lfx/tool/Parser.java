@@ -100,7 +100,7 @@ public class Parser {
     while (matcher.find()) {
       if (!matcher.group(1).endsWith("_rate")) {
         lineList.add(indent(2) +
-            String.format("stamina.add(%s, %.2f);",
+            String.format("stamina.put(%s, %.2f);",
                           FrameExtractor.asPath(matcher.group(1)),
                           Double.valueOf(matcher.group(2))
         ));
@@ -130,6 +130,28 @@ public class Parser {
     return;
   }
 
+  void insertConstructorLines() {
+    String declarationBase = "";
+    String superCallBase = "";
+    if (type.isHero) {
+      declarationBase = indent(1) +
+          "private %s(List<Frame> frameList, Map<String, Double> stamina, ImageCell portrait) {";
+      superCallBase = indent(2) + "super(%s, frameList, stamina, portrait);";
+    } else if (type.isWeapon) {
+      declarationBase = indent(1) +
+          "private %s(List<Frame> frameList, Map<String, String> stamina, Type type, Map<Wpoint.Usage, Itr> strengthMap) {";
+      superCallBase = indent(2) + "super(%s, frameList, stamina, type, strengthMap);";
+    } else {
+      declarationBase = indent(1) +
+          "private %s(List<Frame> frameList, Map<String, String> stamina) {";
+      superCallBase = indent(2) + "super(%s, frameList, stamina);";
+    }
+    lineList.add(String.format(declarationBase, identifier));
+    lineList.add(String.format(superCallBase, FrameExtractor.asPath(identifier)));
+    lineList.add(indent(1) + "}");
+    return;
+  }
+
   void parse(String baseClass, String content) {
     lineList.add("package lfx.data;");
     lineList.add("");
@@ -137,11 +159,16 @@ public class Parser {
     lineList.add("import java.util.HashMap;");
     lineList.add("import java.util.List;");
     lineList.add("import java.util.Map;");
+    lineList.add("import lfx.base.*;");
     lineList.add("import lfx.component.*;");
-    lineList.add(String.format("import lfx.object.%s;", baseClass));
+    lineList.add("import lfx.util.ImageCell;");
     lineList.add("");
-    lineList.add(String.format("public class %s extends %s {", identifier, baseClass));
+    lineList.add(String.format(
+        "public class %s extends lfx.game.object.%s {", identifier, baseClass
+    ));
     lineList.add(indent(1) + String.format("private static %s singleton = null;", identifier));
+    lineList.add("");
+    insertConstructorLines();
     lineList.add("");
     lineList.add(indent(1) + String.format("public static synchronized %s of() {", identifier));
     lineList.add(indent(2) + "if (singleton != null) { return singleton; }");
@@ -167,7 +194,7 @@ public class Parser {
       }
     }
     lineList.add("");
-    lineList.add(indent(2) + "DataCollector collector = new DataCollector(400, imageList);");
+    lineList.add(indent(2) + "DataCollector collector = new DataCollector(imageList, 400);");
 
     int frameCount = 0;
     matcher.usePattern(frameTagPattern);
@@ -191,7 +218,6 @@ public class Parser {
     content = builder.toString().trim();
 
     List<String> argList = new ArrayList<>(6);
-    argList.add(FrameExtractor.asPath(identifier));
     argList.add("collector.getFrameList()");
     argList.add("stamina");
     if (type.isHero) {
@@ -203,7 +229,8 @@ public class Parser {
     String args = String.join(", ", argList);
 
     lineList.add("");
-    lineList.add(indent(2) + String.format("singleton = new %s(%s);", baseClass, args));
+    lineList.add(indent(2) + String.format("singleton = new %s(%s);", identifier, args));
+    lineList.add(indent(2) + "singleton.registerLibrary();");
     lineList.add(indent(2) + "return singleton;");
     lineList.add(indent(1) + "}");
     lineList.add("");

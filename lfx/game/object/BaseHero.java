@@ -21,7 +21,7 @@ import lfx.util.Point;
 import lfx.util.Util;
 import lfx.util.Tuple;
 
-class BaseHero extends AbstractObject implements Hero {
+public class BaseHero extends AbstractObject implements Hero {
   // Hidden action frame counters.
   private final Indexer walkingIndexer = new Indexer(2, 3, 2, 1, 0, 1);
   private final Indexer runningIndexer = new Indexer(0, 1, 2, 1);

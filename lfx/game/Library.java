@@ -9,16 +9,17 @@ import lfx.util.Util;
 
 public class Library {
   private static final Library singleton = new Library();
-  private final Weapon DUMMY = null;  // TODO: fake Weapon
-
+  private final Weapon DUMMY = null;  // TODO: fake object
   private final Map<String, Hero> heroMapping = new HashMap<>(32);
   private final Map<String, Weapon> weaponMapping = new HashMap<>(16);
   private final Map<String, Energy> energyMapping = new HashMap<>(64);
-  private final List<Map<String, ? extends Observable>> searchOrderList = List.of(
-      energyMapping, weaponMapping, heroMapping
-  );
+  private final List<Map<String, ? extends Observable>> searchOrderList =
+      List.of(energyMapping, weaponMapping, heroMapping);
+  private final List<String> RANDOMABLE_LIST =
+      List.of("Deep", "John", "Henry", "Rudolf", "Louis",
+              "Firen", "Freeze", "Dennis", "Woody", "Davis");
   private final Set<String> NON_DROPPABLE_SET = Set.of("IceSword", "LouisArmour1", "LouisArmour2");
-  private final List<Weapon> droppableWeaponOriginList;
+  private final List<Weapon> droppableWeaponOriginList = new ArrayList<>(16);
 
   private void assertSingleton(Observable oldInstance) {
     if (oldInstance != null) {
@@ -34,6 +35,9 @@ public class Library {
 
   public void register(Weapon origin) {
     assertSingleton(weaponMapping.putIfAbsent(origin.getIdentifier(), origin));
+    if (!NON_DROPPABLE_SET.contains(origin.getIdentifier())) {
+      droppableWeaponOriginList.add(origin);
+    }
     return;
   }
 
@@ -43,7 +47,13 @@ public class Library {
   }
 
   public Hero getClone(Playable playable) {
-    return heroMapping.get(playable.getName()).makeClone();
+    String name = playable.getName();
+    if (playable == Playable.SELECTION_RANDOM) {
+      // TODO: now always Template
+      name = "Template";
+    }
+    System.out.println("Clone: " + name);
+    return heroMapping.get(name).makeClone();
   }
 
   Observable getOrigin(String identifier) {
@@ -70,6 +80,10 @@ public class Library {
     return cloneList;
   }
 
+  public List<Playable> getPlayableList() {
+    return List.copyOf(heroMapping.values());
+  }
+
   public Observable getRandomWeapon() {
     return Util.getRandomElement(droppableWeaponOriginList).makeClone();
   }
@@ -94,15 +108,7 @@ public class Library {
     );
   }
 
-  private Library() {
-    List<Weapon> droppableList = new ArrayList<>(weaponMapping.size());
-    for (Map.Entry<String, Weapon> entry : weaponMapping.entrySet()) {
-      if (!NON_DROPPABLE_SET.contains(entry.getKey())) {
-        droppableList.add(entry.getValue());
-      }
-    }
-    droppableWeaponOriginList = List.copyOf(droppableList);
-  }
+  private Library() {}
 
   public static Library instance() {
     return singleton;

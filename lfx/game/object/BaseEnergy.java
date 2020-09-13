@@ -1,6 +1,7 @@
 package lfx.game.object;
 
 import java.util.List;
+import java.util.Map;
 import lfx.base.Order;
 import lfx.base.Scope;
 import lfx.component.Action;
@@ -13,15 +14,15 @@ import lfx.game.Observable;
 import lfx.util.Point;
 import lfx.util.Util;
 
-class BaseEnergy extends AbstractObject implements Energy {
+public class BaseEnergy extends AbstractObject implements Energy {
   public final String soundHit;
   private int lifetime = DESTROY_TIME;
   private Hero focus = null;
   private Observable creator = null;
 
-  protected BaseEnergy(String identifier, List<Frame> frameList, String soundHit) {
+  protected BaseEnergy(String identifier, List<Frame> frameList, Map<String, String> stamina) {
     super(identifier, frameList, Scope.ENERGY);
-    this.soundHit = soundHit;
+    this.soundHit = stamina.get("weapon_hit_sound");
   }
 
   private BaseEnergy(BaseEnergy base) {

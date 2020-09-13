@@ -1,38 +1,25 @@
 package lfx.platform;
 
-import java.util.ArrayList;
 import java.util.function.Consumer;
-import java.util.HashMap;
-import java.util.List;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.effect.InnerShadow;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
-import lfx.base.Controller;
-import lfx.util.Const;
 
 public final class Main extends Application {
-  public static final double WINDOW_WIDTH = 794;
-  public static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
-  Consumer<Scene> sceneChanger = null;
 
   @Override
   public void start(Stage primaryStage) {
-    sceneChanger = (Scene scene) -> primaryStage.setScene(scene);
-    VBox vbox = new VBox(8.0);
-    vbox.setAlignment(Pos.CENTER);
-    Scene startScene = new Scene(vbox, Const.WINDOW_WIDTH, Const.WINDOW_HEIGHT);
+    ResourceLoadingTask loadingTask =
+        new ResourceLoadingTask((Scene scene) -> primaryStage.setScene(scene));
 
     Text banner = new Text("Little Fighter X");
     banner.setEffect(new InnerShadow(6.0, 3.0, 3.0, Color.DARKORCHID));
@@ -40,35 +27,23 @@ public final class Main extends Application {
     banner.setFont(Font.font("Lucida Calligraphy", FontWeight.BLACK, 80));
 
     Text author = new Text("(._.)");
-    author.setVisible(false);
 
     Text messageText = new Text("");
+    messageText.textProperty().bind(loadingTask.messageProperty());
 
     Button playButton = new Button("Game Start");
     playButton.setFont(Font.font(null, FontWeight.BLACK, 32));
-
-    Button configButton = new Button("Control Settings");
-    configButton.setFont(Font.font(null, FontWeight.EXTRA_BOLD, 24));
-
     playButton.setOnAction(event -> {
       primaryStage.setResizable(false);
       playButton.setVisible(false);
-      configButton.setVisible(false);
-      LoadingTask task = new LoadingTask(messageText);
-      (new Thread(task)).start();
+      new Thread(loadingTask).start();
     });
 
-    Consumer<String> configSceneBridge = (String result) -> {
-      messageText.setText(result);
-      primaryStage.setScene(startScene);
-    };
-    configButton.setOnAction(event -> {
-      ConfigScene scene = new ConfigScene(configSceneBridge);
-      primaryStage.setScene(scene.makeScene());
-    });
+    VBox guiContainer = new VBox(16.0, banner, author, playButton, messageText);
+    guiContainer.setAlignment(Pos.CENTER);  // defaults to Pos.TOP_LEFT
 
-    vbox.getChildren().addAll(banner, author, playButton, messageText, configButton);
-    // primaryStage.setResizable(false);
+    Scene startScene = new Scene(guiContainer, GuiScene.WINDOW_WIDTH, GuiScene.WINDOW_HEIGHT);
+    primaryStage.setResizable(false);
     primaryStage.setScene(startScene);
     primaryStage.setTitle("Little Fighter X");
     primaryStage.setX(600.0);
@@ -79,41 +54,8 @@ public final class Main extends Application {
   @Override
   public void stop() {
     System.out.println("[Exit]");
-    System.exit(0);
+    Platform.exit();
     return;
-  }
-
-  private class LoadingTask extends Task<Void> {
-    List<Controller> controllerList = new ArrayList<>();
-
-    public LoadingTask(Text text) {
-      text.textProperty().bind(this.messageProperty());
-    }
-
-    @Override
-    public Void call() {
-      System.out.println("isFxApplicationThread: " + Platform.isFxApplicationThread());
-      for (String[] stringArray : ConfigScene.loadControlStringArrayList()) {
-        controllerList.add(new KeyboardController(stringArray));
-      }
-      return null;
-    }
-
-    @Override
-    protected void succeeded() {
-      super.succeeded();
-      PickingScene scene = new PickingScene(sceneChanger, controllerList);
-      sceneChanger.accept(scene.makeScene());
-      return;
-    }
-
-  }
-
-  public static Scene sceneBuilder(Parent parent, double cpw, double cph) {
-    double width = 1600;
-    double height = 900;
-    parent.getTransforms().setAll(new Scale(width / cpw, height / cph));
-    return new Scene(parent, width, height, Color.BLACK);
   }
 
   public static void main(String[] args) {

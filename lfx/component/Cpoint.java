@@ -60,6 +60,10 @@ public class Cpoint extends Point {
     return new Cpoint(x, y, new Action(fronthurtact), new Action(backhurtact));
   }
 
+  public static Cpoint grabee(int x, int y) {
+    return new Cpoint(x, y, Action.HERO_FRONTHURT, Action.HERO_BACKHURT);
+  }
+
   public static Builder graber(int x, int y, Action vAction, int decrease) {
     return new Builder(x, y, vAction, decrease);
   }

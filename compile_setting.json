@@ -103,7 +103,9 @@
     {
       "target": "selector functional",
       "pathes": [
-        "lfx/platform/PlayableSelector.java"
+        "lfx/platform/PlayableSelector.java",
+        "lfx/platform/PickingPhase.java",
+        "lfx/platform/PlayerCard.java"
       ]
     },
     {
@@ -123,16 +125,15 @@
       "pathes": [
         "lfx/platform/GuiScene.java",
         "lfx/platform/ConfigScene.java",
-        "lfx/platform/VersusArena.java",
-        "lfx/platform/PlayerCard.java",
-        "lfx/platform/PickingPhase.java",
-        "lfx/platform/PickingScene.java"
+        "lfx/platform/PickingScene.java",
+        "lfx/platform/VersusArena.java"
       ]
     },
     {
       "target": "main",
       "modules": ["javafx.graphics", "javafx.controls"],
       "pathes": [
+        "lfx/platform/ResourceLoadingTask.java",
         "lfx/platform/Main.java"
       ]
     },

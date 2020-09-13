@@ -50,13 +50,13 @@ class WpointExtractor extends Extractor {
       case 0:
         return String.format("Wpoint.hold(%s)", requiredArgs);
       case 1:
-        return String.format("Wpoint.attack(%s, %s)", requiredArgs, Wpoint.Usage.NORMAL);
+        return String.format("Wpoint.attack(%s, \"%s\")", requiredArgs, Wpoint.Usage.NORMAL);
       case 2:
-        return String.format("Wpoint.attack(%s, %s)", requiredArgs, Wpoint.Usage.JUMP);
+        return String.format("Wpoint.attack(%s, \"%s\")", requiredArgs, Wpoint.Usage.JUMP);
       case 3:
-        return String.format("Wpoint.attack(%s, %s)", requiredArgs, Wpoint.Usage.RUN);
+        return String.format("Wpoint.attack(%s, \"%s\")", requiredArgs, Wpoint.Usage.RUN);
       case 4:
-        return String.format("Wpoint.attack(%s, %s)", requiredArgs, Wpoint.Usage.DASH);
+        return String.format("Wpoint.attack(%s, \"%s\")", requiredArgs, Wpoint.Usage.DASH);
     }
     System.out.printf("[%s] Unclassifiable %s%n", toString(), content);
     return null;

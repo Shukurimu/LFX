@@ -226,7 +226,7 @@ class FrameExtractor extends Extractor {
         System.out.printf("[%s] Unexpected hit_xxx %s %d%n", toString(), key, intValue);
         continue;
       }
-      argsLine.add(String.format("new Tuple(Order.%s, %s)", key, value));
+      argsLine.add(String.format("combo(Order.%s, %s)", key, value));
     }
     return null;
   }

@@ -36,8 +36,8 @@ public class Wpoint extends Point {
     return new Wpoint(x, y, weaponact, cover, 0, 0, 0, Usage.JUST_HOLD);
   }
 
-  public static Wpoint attack(int x, int y, Action weaponact, int cover, Usage usage) {
-    return new Wpoint(x, y, weaponact, cover, 0, 0, 0, usage);
+  public static Wpoint attack(int x, int y, Action weaponact, int cover, String usage) {
+    return new Wpoint(x, y, weaponact, cover, 0, 0, 0, Usage.valueOf(usage));
   }
 
   public static Wpoint release(int x, int y, Action weaponact, int cover,

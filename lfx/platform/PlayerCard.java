@@ -1,6 +1,8 @@
 package lfx.platform;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import lfx.base.Controller;
 import lfx.game.Hero;
@@ -10,6 +12,13 @@ import lfx.util.ElementSelector;
 import lfx.util.Selectable;
 
 public class PlayerCard {
+  private static final Map<Integer, String> TEAM_TEXT = Map.of(
+      0, "Independent",
+      1, "Team 1",
+      2, "Team 2",
+      3, "Team 3",
+      4, "Team 4"
+  );
   private final Controller controller;
   private final Selectable<PickingPhase> pickingPhaseSelector =
       new ElementSelector<>(false, PickingPhase.values());
@@ -29,19 +38,12 @@ public class PlayerCard {
   }
 
   protected String getTeamText() {
-    return pickingPhaseSelector.get().displayTeamText ? "Team " + teamIdSelector.get() : "";
+    return pickingPhaseSelector.get().displayTeamText ? TEAM_TEXT.get(teamIdSelector.get()) : "";
   }
 
   public void reset() {
     pickingPhaseSelector.setDefault();
     return;
-  }
-
-  public Hero makeHero() {
-    Playable current = playableSelector.get();
-    Hero hero = Library.instance().getClone(current);
-    hero.setProperty(null, teamIdSelector.get().intValue(), true);
-    return hero;
   }
 
   protected void update() {
@@ -51,12 +53,15 @@ public class PlayerCard {
     } else if (controller.press_j()) {
       pickingPhaseSelector.setPrevious();
     } else if (controller.press_L()) {
-      settings.get(pickingPhaseSelector.get()).setPrevious();
+      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setPrevious();
     } else if (controller.press_R()) {
-      settings.get(pickingPhaseSelector.get()).setNext();
+      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setNext();
     } else if (controller.press_U()) {
-      settings.get(pickingPhaseSelector.get()).setDefault();
+      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setDefault();
+    } else {
+      return;
     }
+    controller.consumeKeys();
     return;
   }
 
@@ -70,6 +75,29 @@ public class PlayerCard {
       playerCount += phase.playerCount;
     }
     return playerCount > 0;
+  }
+
+  /**
+   * Builds the Hero this PlayerCard refering to with other properties.
+   *
+   * @return  targeting Hero, or null if unavailable
+   */
+  private Hero makeHero() {
+    if (pickingPhaseSelector.get() != PickingPhase.FINISHED) {
+      return null;
+    }
+    Playable current = playableSelector.get();
+    Hero hero = Library.instance().getClone(current);
+    hero.setProperty(null, teamIdSelector.get().intValue(), true);
+    return hero;
+  }
+
+  public static List<Hero> getHeroList(Iterable<? extends PlayerCard> playerCards) {
+    List<Hero> heroList = new ArrayList<>(4);
+    for (PlayerCard card : playerCards) {
+      heroList.add(card.makeHero());
+    }
+    return heroList;
   }
 
 }

@@ -46,7 +46,7 @@ class ItrExtractor extends Extractor {
         return String.format("Itr.grab(%s, false, %s, %s)",
                              boxString, data.get("catchingact"), data.get("caughtact"));
       case 2:
-        return String.format("Itr.kind(Itr.Kind.%s, %s, %s)",
+        return String.format("Itr.kind(%s, Itr.Kind.%s, %s)",
                              boxString, Itr.Kind.PICK, "Scope.ITR_ALL_WEAPON");
       case 3:
         return String.format("Itr.grab(%s, true, %s, %s)",
@@ -54,13 +54,13 @@ class ItrExtractor extends Extractor {
       case 5:
         return String.format("Itr.onHand(%s)", boxString);
       case 7:
-        return String.format("Itr.kind(Itr.Kind.%s, %s, %s)",
+        return String.format("Itr.kind(%s, Itr.Kind.%s, %s)",
                              boxString, Itr.Kind.ROLL_PICK, "Scope.ITR_ALL_WEAPON");
       case 14:
-        return String.format("Itr.kind(Itr.Kind.%s, %s, %s)",
+        return String.format("Itr.kind(%s, Itr.Kind.%s, %s)",
                              boxString, Itr.Kind.BLOCK, "Scope.ITR_EVERYTHING");
       case 15:
-        return String.format("Itr.kind(Itr.Kind.%s, %s, %s)",
+        return String.format("Itr.kind(%s, Itr.Kind.%s, %s)",
                              boxString, Itr.Kind.VORTEX, "Scope.ITR_NON_ENERGY");
       default:
         return String.format("new Itr(%s, %s)", boxString, getItrArguments(state, data));

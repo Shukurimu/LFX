@@ -56,7 +56,7 @@ class CpointExtractor extends Extractor {
     }
 
     StringBuilder builder = new StringBuilder(128);
-    builder.append(String.format("Cpoint.grabber(%d, %d, %d, %d)",
+    builder.append(String.format("Cpoint.graber(%d, %d, %d, %d)",
                                  x, y,
                                  data.get("vaction").intValue(),
                                  data.getOrDefault("decrease", DECREASE).intValue()

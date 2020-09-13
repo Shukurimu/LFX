@@ -15,10 +15,11 @@ import lfx.util.Tuple;
 
 public class KeyboardController implements Controller {
   private static final Map<KeyCode, KeyMonitor> mapping = new EnumMap<>(KeyCode.class);
+  private static final Instant DEFAULT_PRESSED_INSTANT = Instant.now().plusSeconds(86400L);
 
   private static class KeyMonitor implements Comparable<KeyMonitor> {
     int pressCount = 0;
-    Instant pressInstant = Instant.EPOCH;
+    Instant pressInstant = DEFAULT_PRESSED_INSTANT;
     boolean doublePress = false;
 
     void setPressed() {
@@ -35,6 +36,10 @@ public class KeyboardController implements Controller {
       return;
     }
 
+    boolean pressedAfter(Instant instant) {
+      return pressInstant.isAfter(instant);
+    }
+
     boolean pressedBefore(Instant instant) {
       return pressInstant.isBefore(instant);
     }
@@ -48,7 +53,6 @@ public class KeyboardController implements Controller {
 
   private final List<Tuple<KeyMonitor, String>> keyList = new ArrayList<>(8);
   private final Map<Keyboard, KeyMonitor> monitorMap = new EnumMap<>(Keyboard.class);
-  private final StringBuilder sequence = new StringBuilder(8);
   private Instant validInstant = Instant.EPOCH;
   private Instant consumeInstant = Instant.EPOCH;
 
@@ -74,14 +78,6 @@ public class KeyboardController implements Controller {
 
   @Override
   public void update() {
-    sequence.setLength(0);
-    keyList.sort((e1, e2) -> e1.first.compareTo(e2.first));
-    for (Tuple<KeyMonitor, String> tuple : keyList) {
-      if (tuple.first.pressedBefore(consumeInstant)) {
-        break;
-      }
-      sequence.append(tuple.second);
-    }
     validInstant = Instant.now().plusMillis(Keyboard.VALID_KEY_INTERVAL);
     return;
   }
@@ -94,6 +90,13 @@ public class KeyboardController implements Controller {
 
   @Override
   public Order getOrder() {
+    StringBuilder sequence = new StringBuilder(8);
+    keyList.sort((e1, e2) -> e1.first.compareTo(e2.first));
+    for (Tuple<KeyMonitor, String> tuple : keyList) {
+      if (tuple.first.pressedAfter(consumeInstant)) {
+        sequence.append(tuple.second);
+      }
+    }
     for (Order order : Order.ORDER_LIST) {
       if (sequence.indexOf(order.keySequence) >= 0) {
         return order;
@@ -124,17 +127,20 @@ public class KeyboardController implements Controller {
 
   @Override
   public boolean press_a() {
-    return monitorMap.get(Keyboard.Attack).pressedBefore(validInstant);
+    KeyMonitor monitor = monitorMap.get(Keyboard.Attack);
+    return monitor.pressedAfter(consumeInstant) && monitor.pressedBefore(validInstant);
   }
 
   @Override
   public boolean press_j() {
-    return monitorMap.get(Keyboard.Jump).pressedBefore(validInstant);
+    KeyMonitor monitor = monitorMap.get(Keyboard.Jump);
+    return monitor.pressedAfter(consumeInstant) && monitor.pressedBefore(validInstant);
   }
 
   @Override
   public boolean press_d() {
-    return monitorMap.get(Keyboard.Defend).pressedBefore(validInstant);
+    KeyMonitor monitor = monitorMap.get(Keyboard.Defend);
+    return monitor.pressedAfter(consumeInstant) && monitor.pressedBefore(validInstant);
   }
 
   public boolean pressRunL() {
