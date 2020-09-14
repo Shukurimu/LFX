@@ -1,6 +1,6 @@
 package lfx.component;
 
-import lfx.util.Point;
+import lfx.base.Point;
 
 public class Cpoint extends Point {
   public final Action vAction;

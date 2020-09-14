@@ -87,4 +87,11 @@ public class Frame {
                       : (vx > 0.0 ? Math.max(absDvx, vx) : absDvx);
   }
 
+  @Override
+  public String toString() {
+    return String.format("Frame%d(center %d %d, %s, %d, %s, dv %d %d %d, %s)",
+                         curr, centerx, centery, state, wait, next,
+                         dvx, dvy, dvz, cost);
+  }
+
 }

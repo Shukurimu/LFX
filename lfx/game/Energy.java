@@ -1,7 +1,6 @@
 package lfx.game;
 
 public interface Energy extends Observable {
-
   double CHASE_AX = 0.7;
   double CHASE_VXMAX = 14.0;
   double CHASE_VXOUT = 17.0;

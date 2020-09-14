@@ -1,4 +1,4 @@
-package lfx.util;
+package lfx.base;
 
 public class Point {
   public static final Point ORIGIN = new Point(0.0, 0.0);

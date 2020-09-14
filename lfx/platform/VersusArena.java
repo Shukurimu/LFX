@@ -10,27 +10,22 @@ import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.util.Duration;
-import lfx.game.Field;
 import lfx.game.field.AbstractField;
 import lfx.game.Hero;
 import lfx.game.Observable;
 import lfx.map.Background;
-import lfx.map.Layer;
 import lfx.map.StatusBoard;
 import lfx.map.Viewer;
 
 public class VersusArena extends AbstractField implements GuiScene {
   private final GridPane guiContainer = new GridPane();
-  private final ScrollPane scrollPane;
   private final List<Node> viewerList;
   private final List<Observable> tracingList = new ArrayList<>(8);
   private final List<StatusBoard> statusBoardList = new ArrayList<>(8);
@@ -52,23 +47,25 @@ public class VersusArena extends AbstractField implements GuiScene {
 
     Pane objectLayer = new Pane();
     viewerList = objectLayer.getChildren();
+    objectLayer.setViewOrder(-1.0);
+    objectLayer.setMaxSize(FIELD_WIDTH, FIELD_HEIGHT);
+    objectLayer.setMinSize(FIELD_WIDTH, FIELD_HEIGHT);
+
     Pane screenLayer = new Pane(objectLayer);
     screenLayer.getChildren().addAll(bg.elementList);
     screenLayer.setMaxSize(FIELD_WIDTH, FIELD_HEIGHT);
     screenLayer.setMinSize(FIELD_WIDTH, FIELD_HEIGHT);
 
-    scrollPane = new ScrollPane(screenLayer);
-    scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-    scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-    scrollPane.setHmax(bg.width - FIELD_WIDTH);
-    scrollPane.setVmax(0.0);
-
     statusBoardList.forEach(s -> guiContainer.addRow(0, s));
     guiContainer.add(middleText1, 0, 1, 2, 1);
     guiContainer.add(middleText2, 2, 1, 2, 1);
-    guiContainer.add(scrollPane,  0, 2, 4, 1);
+    guiContainer.add(screenLayer, 0, 2, 4, 1);
     guiContainer.add(bottomText1, 0, 3, 2, 1);
     guiContainer.add(bottomText2, 2, 3, 2, 1);
+    // TODO: rename Background
+    guiContainer.setBackground(new javafx.scene.layout.Background(
+        new javafx.scene.layout.BackgroundFill(Color.BLACK, null, null)
+    ));
     render = new Timeline(new KeyFrame(new Duration(DEFAULT_MSPF), this::keyFrameHandler));
   }
 
@@ -81,9 +78,9 @@ public class VersusArena extends AbstractField implements GuiScene {
   }
 
   @Override
-  protected List<Observable> filterObjects(List<Observable> originalList) {
-    List<Observable> removedItemList = super.filterObjects(originalList);
-    viewerList.removeIf(v -> originalList.contains(((Viewer) v).getObject()));
+  protected List<Observable> retainExistingObjects(List<Observable> originalList) {
+    List<Observable> removedItemList = super.retainExistingObjects(originalList);
+    viewerList.removeIf(v -> removedItemList.contains(((Viewer) v).getObject()));
     return removedItemList;
   }
 
@@ -98,15 +95,15 @@ public class VersusArena extends AbstractField implements GuiScene {
   private void keyFrameHandler(ActionEvent event) {
     stepOneFrame();
     cameraPosition = calcCameraPos(tracingList, cameraPosition);
-    scrollPane.setHvalue(cameraPosition);
 
-    statusBoardList.forEach(board -> board.update());
+    viewerList.forEach(n -> ((Viewer) n).update(cameraPosition));
+    statusBoardList.forEach(s -> s.update());
     middleText1.setText("MapTime: " + getTimestamp());
     bottomText1.setText("FxNode: " + viewerList.size());
     bottomText2.setText(
-          String.format("ThreadName: %s   FxThread: %s",
-                        Thread.currentThread().getName(),
-                        javafx.application.Platform.isFxApplicationThread()
+          String.format("(%s) %s",
+                        javafx.application.Platform.isFxApplicationThread() ? "Fx" : "NonFx",
+                        Thread.currentThread().getName()
           )
     );
     return;

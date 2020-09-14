@@ -6,8 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import lfx.base.Area;
 import lfx.base.Box;
 import lfx.base.Order;
+import lfx.base.Point;
 import lfx.base.Scope;
 import lfx.component.Action;
 import lfx.component.Bdy;
@@ -18,13 +20,11 @@ import lfx.component.Opoint;
 import lfx.game.Environment;
 import lfx.game.Library;
 import lfx.game.Observable;
-import lfx.util.Area;
 import lfx.util.ImageCell;
-import lfx.util.Point;
 import lfx.util.Tuple;
 import lfx.util.Util;
 
-public abstract class AbstractObject implements Observable {
+abstract class AbstractObject implements Observable {
   public final String identifier;
   protected final List<Frame> frameList;  // shared between same objects
   protected final List<Observable> spawnedObjectList = new ArrayList<>(16);
@@ -203,10 +203,16 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void setProperty(Environment env, int teamId, boolean faceRight) {
-    this.env = env;
+  public void setProperty(int teamId, boolean faceRight) {
     this.teamId = teamId;
     this.faceRight = faceRight;
+    return;
+  }
+
+  @Override
+  public void setProperty(Environment env, int actNumber) {
+    this.env = env;
+    transitFrame(new Action(actNumber));
     return;
   }
 
@@ -370,7 +376,7 @@ public abstract class AbstractObject implements Observable {
     spawnedObjectList.clear();
     // Opoint is triggered only at the first timeunit.
     if (isFirstTimeunit()) {
-      frame.opointList.forEach(opoint -> opointify(opoint));
+      frame.opointList.forEach(this::opointify);
     }
     // TODO: check taking effect is at frame begining or ending.
     Action nextAct = applyStatus();
@@ -438,7 +444,7 @@ public abstract class AbstractObject implements Observable {
     for (Observable clone : cloneList) {
       double cloneVz = singleShot ? 0.0 : (index * zStep - Opoint.Z_RANGE);
       boolean facing = opoint.direction.getFacing(faceRight);
-      clone.setProperty(env, teamId, facing);
+      clone.setProperty(teamId, facing);
       clone.setVelocity(facing ? opoint.dvx : -opoint.dvx,
                         opoint.dvy,
                         orderVz + cloneVz
@@ -458,7 +464,7 @@ public abstract class AbstractObject implements Observable {
     List<Observable> cloneList = Library.instance().getArmourSetList();
     int index = 0;
     for (Observable clone : cloneList) {
-      clone.setProperty(env, teamId, Util.randomBool());
+      clone.setProperty(teamId, Util.randomBool());
       clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * rvx[index],
                         (Util.randomBounds(0.0, 3.0) - 8.0),
                         (Util.randomBounds(0.0, 4.0) + 3.0) * rvz[index]

@@ -1,8 +1,8 @@
 package lfx.game;
 
 import lfx.base.Controller;
+import lfx.base.Point;
 import lfx.component.Wpoint;
-import lfx.util.Point;
 
 public interface Hero extends Observable, Playable {
   double DEFEND_INJURY_REDUCTION = 0.10;

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import lfx.base.Controller;
 import lfx.base.Order;
+import lfx.base.Point;
 import lfx.base.Scope;
 import lfx.component.Action;
 import lfx.component.Cost;
@@ -17,7 +18,6 @@ import lfx.game.Library;
 import lfx.game.Observable;
 import lfx.game.Weapon;
 import lfx.util.ImageCell;
-import lfx.util.Point;
 import lfx.util.Util;
 import lfx.util.Tuple;
 

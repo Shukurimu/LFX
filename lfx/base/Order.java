@@ -18,7 +18,7 @@ public enum Order {
   hit_a ("a",   Direction.SAME),
   hit_j ("j",   Direction.SAME),
   hit_d ("d",   Direction.SAME),
-
+  // aliases
   hit_Fa("", Direction.SAME, hit_Ra, hit_La),
   hit_Fj("", Direction.SAME, hit_Rj, hit_Lj);
 

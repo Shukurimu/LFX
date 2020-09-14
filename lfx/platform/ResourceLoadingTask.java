@@ -6,7 +6,7 @@ import java.util.List;
 import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import lfx.base.Controller;
-import lfx.data.*;
+// import lfx.data.*;
 
 class ResourceLoadingTask extends Task<Void> {
   private Consumer<Scene> sceneChanger;
@@ -24,7 +24,7 @@ class ResourceLoadingTask extends Task<Void> {
       controllerList.add(new KeyboardController(stringArray));
       this.updateMessage("Load Controller " + ++index);
     }
-    this.updateMessage("Load " + Template.of().getIdentifier());
+    // this.updateMessage("Load " + Template.of().getIdentifier());
     return null;
   }
 

@@ -1,6 +1,5 @@
 package lfx.platform;
 
-import java.util.function.Consumer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;

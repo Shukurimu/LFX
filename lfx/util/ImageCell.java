@@ -3,7 +3,6 @@ package lfx.util;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.FutureTask;
 import java.util.List;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -20,7 +19,8 @@ import javafx.scene.text.TextAlignment;
 public class ImageCell {
   private static final WritablePixelFormat<IntBuffer> pixelFormat =
       PixelFormat.getIntArgbPreInstance();
-  private static ImageCell SELECTION_IDLE_IMAGE = null;
+  private static final Canvas predrawnRandomImageCanvas = getPredrawnRandomImageCanvas(180);
+  private static ImageCell SELECTION_IDLE_IMAGE = new ImageCell(new WritableImage(180, 180));
   private static ImageCell SELECTION_RANDOM_IMAGE = null;
 
   public final Image normal;
@@ -104,25 +104,28 @@ public class ImageCell {
     return pictureList;
   }
 
+  private static Canvas getPredrawnRandomImageCanvas(double width) {
+    Canvas canvas = new Canvas(width, width);
+    GraphicsContext gc = canvas.getGraphicsContext2D();
+    gc.setFill(Color.BLACK);
+    gc.fillRect(0.0, 0.0, width, width);
+    gc.setFill(Color.WHITE);
+    gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
+    gc.setTextAlign(TextAlignment.CENTER);
+    gc.fillText("?", width * 0.5, width * 0.8);
+    return canvas;
+  }
+
   public static ImageCell getSelectionIdleImage() {
-    if (SELECTION_IDLE_IMAGE == null) {
-      SELECTION_IDLE_IMAGE = new ImageCell(new WritableImage(180, 180));
-    }
     return SELECTION_IDLE_IMAGE;
   }
 
+  /**
+   * snapshot throws IllegalStateException if not called on the JavaFX Application Thread.
+   */
   public static ImageCell getSelectionRandomImage() {
     if (SELECTION_RANDOM_IMAGE == null) {
-      double width = 180.0;
-      Canvas canvas = new Canvas(width, width);
-      GraphicsContext gc = canvas.getGraphicsContext2D();
-      gc.setFill(Color.BLACK);
-      gc.fillRect(0.0, 0.0, width, width);
-      gc.setFill(Color.WHITE);
-      gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
-      gc.setTextAlign(TextAlignment.CENTER);
-      gc.fillText("?", width * 0.5, width * 0.8);
-      SELECTION_RANDOM_IMAGE = new ImageCell(canvas.snapshot(null, null));
+      SELECTION_RANDOM_IMAGE = new ImageCell(predrawnRandomImageCanvas.snapshot(null, null));
     }
     return SELECTION_RANDOM_IMAGE;
   }

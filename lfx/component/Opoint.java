@@ -1,7 +1,7 @@
 package lfx.component;
 
 import lfx.base.Direction;
-import lfx.util.Point;
+import lfx.base.Point;
 
 public class Opoint extends Point {
   // (test) upper most item z-velocity for those quantity more than 1
@@ -15,8 +15,8 @@ public class Opoint extends Point {
   public final String oid;
   public final Direction direction;
 
-  public Opoint(boolean release, int x, int y, int dvx, int dvy, int amount,
-                Action action, String oid, Direction direction) {
+  private Opoint(boolean release, int x, int y, int dvx, int dvy, int amount,
+                 Action action, String oid, Direction direction) {
     super(x, y);
     this.release = release;
     this.dvx = dvx;

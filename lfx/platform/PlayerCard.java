@@ -88,7 +88,9 @@ public class PlayerCard {
     }
     Playable current = playableSelector.get();
     Hero hero = Library.instance().getClone(current);
-    hero.setProperty(null, teamIdSelector.get().intValue(), true);
+    hero.setController(controller);
+    hero.setProperty(teamIdSelector.get().intValue(), true);
+    hero.setProperty(null, 0);
     return hero;
   }
 

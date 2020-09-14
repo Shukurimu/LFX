@@ -1,4 +1,4 @@
-package lfx.util;
+package lfx.base;
 
 public class Area {
   public final double x1;

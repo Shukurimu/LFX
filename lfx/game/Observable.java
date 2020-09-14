@@ -1,12 +1,12 @@
 package lfx.game;
 
 import java.util.List;
+import lfx.base.Area;
+import lfx.base.Point;
 import lfx.component.Bdy;
 import lfx.component.Frame;
 import lfx.component.Itr;
-import lfx.util.Area;
 import lfx.util.ImageCell;
-import lfx.util.Point;
 import lfx.util.Tuple;
 
 public interface Observable {
@@ -48,10 +48,11 @@ public interface Observable {
    * Mainly used in Opoint.
    */
   void setVelocity(double vx, double vy, double vz);
-  void setProperty(Environment env, int teamId, boolean faceRight);
+  void setProperty(int teamId, boolean faceRight);
   /**
    * Map initialization
    */
+  void setProperty(Environment env, int actNumber);
   void setProperty(Environment env);
 
   List<Tuple<Bdy, Area>> getBdys();

@@ -91,16 +91,16 @@ public class StatusBoard extends Canvas {
     this.target = target;
     Image portrait = target == null ? null : target.getPortrait().get();
     gc = this.getGraphicsContext2D();
-    gc.drawImage(portrait, PADDING, PADDING, ICON_SIZE, ICON_SIZE);
     gc.setFill(BACKGROUND_COLOR);
     gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    gc.drawImage(portrait, PADDING, PADDING, ICON_SIZE, ICON_SIZE);
     gc.setLineWidth(1.0);
     gc.setFill(Color.BLACK);
     gc.strokeRect(PADDING - 1.0, PADDING - 1.0, ICON_SIZE + 2.0, ICON_SIZE + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, HP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, MP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
-    gc.setTextBaseline(VPos.CENTER);
-    gc.setTextAlign(TextAlignment.RIGHT);
+    // gc.setTextBaseline(VPos.CENTER);
+    // gc.setTextAlign(TextAlignment.RIGHT);
   }
 
   public void update() {
@@ -108,6 +108,9 @@ public class StatusBoard extends Canvas {
       return;
     }
     double[] stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
+    stamina[0] *= BAR_WIDTH;
+    stamina[1] *= BAR_WIDTH;
+    stamina[2] *= BAR_WIDTH;
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(HP_BAR_BASE);

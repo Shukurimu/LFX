@@ -125,13 +125,13 @@ public class AbstractField implements Field {
 
   /**
    * Removes no longer existing objects from given List, and then returns a List of removed items.
-   * Due to this operation, originalList is usually a LinkedList.
+   * Due to this operation, originalList is preferred to be a LinkedList.
    *
    * @param   originalList
    *          a List may contain objects should be removed
    * @return  a List of removed items from originalList, can be empty
    */
-  protected List<Observable> filterObjects(List<Observable> originalList) {
+  protected List<Observable> retainExistingObjects(List<Observable> originalList) {
     List<Observable> removedItemList = new ArrayList<>(16);
     for (ListIterator<Observable> it = originalList.listIterator(); it.hasNext(); ) {
       Observable o = it.next();
@@ -171,8 +171,8 @@ public class AbstractField implements Field {
       pendingQueue.addAll(o.getSpawnedObjectList());
     });
 
-    filterObjects(heroList);
-    filterObjects(itemList);
+    retainExistingObjects(heroList);
+    retainExistingObjects(itemList);
     pendingQueue.removeIf(o -> o == null);
     pendingQueue.forEach(o -> o.setProperty(this));
     Map<Boolean, List<Observable>> groupedMap = partitionHeroItem(pendingQueue);

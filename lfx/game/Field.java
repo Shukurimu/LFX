@@ -1,7 +1,5 @@
 package lfx.game;
 
-import java.util.List;
-
 public interface Field extends Environment {
   double ITEM_ADDITIONAL_WIDTH = 50.0;
   double DROP_PROBABILITY = 1.0 / 6.0 / 30.0;

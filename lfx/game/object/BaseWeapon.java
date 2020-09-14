@@ -3,6 +3,7 @@ package lfx.game.object;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lfx.base.Area;
 import lfx.base.Scope;
 import lfx.base.Type;
 import lfx.component.Action;
@@ -15,7 +16,6 @@ import lfx.game.Hero;
 import lfx.game.Library;
 import lfx.game.Observable;
 import lfx.game.Weapon;
-import lfx.util.Area;
 import lfx.util.Tuple;
 import lfx.util.Util;
 

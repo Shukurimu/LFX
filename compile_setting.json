@@ -11,19 +11,17 @@
   "root": "lfx",
   "steps": [
     {
-      "target": "utils",
+      "target": "utilities",
       "pathes": [
-        "lfx/util/Area.java",
-        "lfx/util/ElementSelector.java",
-        "lfx/util/Point.java",
         "lfx/util/Selectable.java",
+        "lfx/util/ElementSelector.java",
         "lfx/util/Tuple.java",
         "lfx/util/UnionReadOnlyIterable.java",
         "lfx/util/Util.java"
       ]
     },
     {
-      "target": "image-util",
+      "target": "image utility",
       "modules": ["javafx.graphics"],
       "pathes": [
         "lfx/util/ImageCell.java"
@@ -32,28 +30,35 @@
     {
       "target": "bases",
       "pathes": [
+        "lfx/base/Area.java",
         "lfx/base/Box.java",
         "lfx/base/Controller.java",
         "lfx/base/Direction.java",
         "lfx/base/Order.java",
+        "lfx/base/Point.java",
         "lfx/base/Scope.java",
         "lfx/base/Type.java"
       ]
     },
     {
-      "target": "components",
+      "target": "small components",
       "pathes": [
         "lfx/component/Action.java",
         "lfx/component/Bdy.java",
         "lfx/component/Cost.java",
         "lfx/component/Cpoint.java",
-        "lfx/component/DataCollector.java",
         "lfx/component/Effect.java",
-        "lfx/component/Frame.java",
         "lfx/component/Itr.java",
         "lfx/component/Opoint.java",
         "lfx/component/State.java",
         "lfx/component/Wpoint.java"
+      ]
+    },
+    {
+      "target": "large components",
+      "pathes": [
+        "lfx/component/Frame.java",
+        "lfx/component/DataCollector.java"
       ]
     },
     {
@@ -65,7 +70,7 @@
       ]
     },
     {
-      "target": "extend interfaces",
+      "target": "extended interfaces",
       "pathes": [
         "lfx/game/Hero.java",
         "lfx/game/Weapon.java",
@@ -73,14 +78,14 @@
       ]
     },
     {
-      "target": "integration interfaces",
+      "target": "integrated interfaces",
       "pathes": [
         "lfx/game/Library.java",
         "lfx/game/Field.java"
       ]
     },
     {
-      "target": "root object",
+      "target": "root objects",
       "pathes": [
         "lfx/game/object/AbstractObject.java",
         "lfx/game/field/AbstractField.java"
@@ -101,7 +106,7 @@
       ]
     },
     {
-      "target": "selector functional",
+      "target": "selections",
       "pathes": [
         "lfx/platform/PlayableSelector.java",
         "lfx/platform/PickingPhase.java",
@@ -109,7 +114,7 @@
       ]
     },
     {
-      "target": "UIs",
+      "target": "UI parts",
       "modules": ["javafx.graphics"],
       "pathes": [
         "lfx/platform/KeyboardController.java",
@@ -138,13 +143,13 @@
       ]
     },
     {
-      "target": "base tools",
+      "target": "base parser",
       "pathes": [
         "lfx/tool/Extractor.java"
       ]
     },
     {
-      "target": "component tools",
+      "target": "component parsers",
       "pathes": [
         "lfx/tool/BdyExtractor.java",
         "lfx/tool/CpointExtractor.java",
@@ -154,7 +159,7 @@
       ]
     },
     {
-      "target": "tools",
+      "target": "integrated parsers",
       "pathes": [
         "lfx/tool/FrameExtractor.java",
         "lfx/tool/Parser.java"

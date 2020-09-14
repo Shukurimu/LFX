@@ -11,7 +11,6 @@ import lfx.game.Energy;
 import lfx.game.Hero;
 import lfx.game.Library;
 import lfx.game.Observable;
-import lfx.util.Point;
 import lfx.util.Util;
 
 public class BaseEnergy extends AbstractObject implements Energy {

@@ -1,11 +1,10 @@
 package lfx.platform;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.time.Instant;
 import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import lfx.base.Controller;

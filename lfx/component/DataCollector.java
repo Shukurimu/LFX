@@ -24,10 +24,6 @@ public class DataCollector {
     this(imageList, FRAME_COUNT);
   }
 
-  static int nonNullValue(Integer originValue, int defaultValue) {
-    return originValue == null ? originValue.intValue() : defaultValue;
-  }
-
   public void add(int curr, int wait, State state, int pic, int centerx, int centery,
                   Action next, Object... elements) {
     add(curr, wait, state, pic, centerx, centery, 0, 0, 0, next, elements);
