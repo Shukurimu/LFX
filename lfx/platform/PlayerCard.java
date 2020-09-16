@@ -61,7 +61,7 @@ public class PlayerCard {
     } else {
       return;
     }
-    controller.consumeKeys();
+    controller.consume();
     return;
   }
 

@@ -102,7 +102,10 @@
     {
       "target": "setting",
       "pathes": [
-        "lfx/setting/Keyboard.java"
+        "lfx/setting/Input.java",
+        "lfx/setting/InputMonitor.java",
+        "lfx/setting/AbstractController.java",
+        "lfx/setting/Configure.java"
       ]
     },
     {

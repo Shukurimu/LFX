@@ -1,12 +1,13 @@
 package lfx.setting;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
-public enum Keyboard {
+public enum Input {
   Up    ("U"),
   Down  ("D"),
   Left  ("L"),
@@ -15,7 +16,6 @@ public enum Keyboard {
   Jump  ("j"),
   Defend("d");
 
-  public static final long VALID_KEY_INTERVAL = 200L;
   public static final String CHAR_SEPARATOR = " ";
   public static final List<String> DEFAULT_LINES = List.of(
       "NUMPAD8 NUMPAD2 NUMPAD4 NUMPAD6 NUMPAD5 NUMPAD0 ADD",
@@ -26,11 +26,11 @@ public enum Keyboard {
 
   public final String symbol;
 
-  private Keyboard(String symbol) {
+  private Input(String symbol) {
     this.symbol = symbol;
   }
 
-  public static List<String[]> loadDefault() {
+  public static List<String[]> getDefault() {
     List<String[]> keyArrayList = new ArrayList<>();
     for (String defaultLine : DEFAULT_LINES) {
       keyArrayList.add(defaultLine.split(CHAR_SEPARATOR));
@@ -38,13 +38,13 @@ public enum Keyboard {
     return keyArrayList;
   }
 
-  public static List<String[]> load(BufferedReader reader) {
+  static List<String[]> load(BufferedReader reader) {
     List<String[]> keyArrayList = new ArrayList<>();
     for (String defaultLine : DEFAULT_LINES) {
       String line = null;
       try {
         line = reader.readLine();
-      } catch (java.io.IOException ex) {
+      } catch (IOException ex) {
         line = defaultLine;
       }
       keyArrayList.add(line.split(CHAR_SEPARATOR));
@@ -52,7 +52,7 @@ public enum Keyboard {
     return keyArrayList;
   }
 
-  public static boolean save(PrintWriter writer, List<String[]> keyArrayList) {
+  static boolean save(PrintWriter writer, List<String[]> keyArrayList) {
     boolean noException = true;
     for (ListIterator<String> it = DEFAULT_LINES.listIterator(); it.hasNext(); ) {
       String defaultLine = it.next();

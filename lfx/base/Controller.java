@@ -1,8 +1,8 @@
 package lfx.base;
 
 public interface Controller {
+  void consume();
   void update();
-  void consumeKeys();
   Order getOrder();
 
   boolean press_U();

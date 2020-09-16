@@ -1,9 +1,5 @@
 package lfx.platform;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.List;
@@ -24,30 +20,31 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import lfx.setting.Keyboard;
+import lfx.setting.Configure;
+import lfx.setting.Input;
 
 public class ConfigScene extends Application implements GuiScene {
-  public static final String CONFIG_PATH = "setting.txt";
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
   public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
-  public static final Charset CHARSET = Charset.forName("utf-8");
 
   private final GridPane pane;
+  private final Configure configure;
   private final List<ToggleButton> keyButtonList;
   private ToggleButton focusing = null;
 
   public ConfigScene() {
     pane = null;
+    configure = null;
     keyButtonList = null;
   }
 
-  public ConfigScene(List<String[]> keyArrayList, Consumer<String> finishFunction) {
+  public ConfigScene(Consumer<String> finishFunction) {
     pane = new GridPane();
     for (int index : new int[] { 1, 2, 3, 4 }) {
       pane.add(makeNameText("Player " + index), index, 0);
     }
-    for (Keyboard keyboard : Keyboard.values()) {
-      pane.add(makeNameText(keyboard.name()), 0, keyboard.ordinal() + 1);
+    for (Input input : Input.values()) {
+      pane.add(makeNameText(input.name()), 0, input.ordinal() + 1);
     }
 
     keyButtonList = new ArrayList<>(28);
@@ -60,11 +57,20 @@ public class ConfigScene extends Application implements GuiScene {
         pane.add(button, colIndex, rowIndex);
       }
     }
-    setButtonText(keyArrayList);
 
-    pane.add(makeActionButton("Default", event -> setButtonText(Keyboard.loadDefault())), 2, 12);
-    pane.add(makeActionButton("Save", event -> finishFunction.accept(this.save())), 3, 12);
-    pane.add(makeActionButton("Cancel", event -> finishFunction.accept("Cancelled")), 4, 12);
+    configure = Configure.load();
+    setButtonText(configure.getKeyboardSetting());
+
+    pane.add(makeActionButton("Default", event -> {
+      setButtonText(Input.getDefault());
+    }), 2, 12);
+    pane.add(makeActionButton("Save", event -> {
+      configure.setKeyboardSetting(getButtonText());
+      finishFunction.accept(configure.save());
+    }), 3, 12);
+    pane.add(makeActionButton("Cancel", event -> {
+      finishFunction.accept("Cancelled");
+    }), 4, 12);
     pane.setAlignment(Pos.CENTER);
     pane.setHgap(9.0);
     pane.setVgap(6.0);
@@ -146,30 +152,9 @@ public class ConfigScene extends Application implements GuiScene {
     return scene;
   }
 
-  static List<String[]> load() {
-    List<String> fileLines = new ArrayList<>();
-    try (FileReader fileReader = new FileReader(CONFIG_PATH, CHARSET);
-         BufferedReader reader = new BufferedReader(fileReader)) {
-      return Keyboard.load(reader);
-    } catch (Exception ex) {
-      System.err.println("Exception happened while loading settings.");
-    }
-    return Keyboard.load(null);
-  }
-
-  private String save() {
-    try (PrintWriter writer = new PrintWriter(CONFIG_PATH, CHARSET)) {
-      Keyboard.save(writer, getButtonText());
-      return "Saved";
-    } catch (Exception ex) {
-      System.err.println("Exception happened while saving settings.");
-      return "Failed";
-    }
-  }
-
   @Override
   public void start(Stage primaryStage) {
-    ConfigScene configScene = new ConfigScene(load(), (String result) -> {
+    ConfigScene configScene = new ConfigScene((String result) -> {
       System.out.println(result);
       Platform.exit();
     });

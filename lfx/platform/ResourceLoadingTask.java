@@ -6,6 +6,7 @@ import java.util.List;
 import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import lfx.base.Controller;
+import lfx.setting.Configure;
 // import lfx.data.*;
 
 class ResourceLoadingTask extends Task<Void> {
@@ -20,7 +21,7 @@ class ResourceLoadingTask extends Task<Void> {
   public Void call() {
     // This method does not run on FX application thread.
     int index = 0;
-    for (String[] stringArray : ConfigScene.load()) {
+    for (String[] stringArray : Configure.load().getKeyboardSetting()) {
       controllerList.add(new KeyboardController(stringArray));
       this.updateMessage("Load Controller " + ++index);
     }
