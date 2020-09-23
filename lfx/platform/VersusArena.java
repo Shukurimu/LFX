@@ -98,8 +98,10 @@ public class VersusArena extends AbstractField implements GuiScene {
 
     viewerList.forEach(n -> ((Viewer) n).update(cameraPosition));
     statusBoardList.forEach(s -> s.update());
-    middleText1.setText("MapTime: " + getTimestamp());
-    bottomText1.setText("FxNode: " + viewerList.size());
+    middleText1.setText("FxNode: " + viewerList.size());
+    bottomText1.setText(
+          String.format("MapTime %d   Camera %.2f", getTimestamp(), cameraPosition)
+    );
     bottomText2.setText(
           String.format("(%s) %s",
                         javafx.application.Platform.isFxApplicationThread() ? "Fx" : "NonFx",

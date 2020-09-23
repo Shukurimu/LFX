@@ -19,7 +19,6 @@ public interface Hero extends Observable, Playable {
   Wpoint getWpoint();
   boolean isAlive();
   Point getChasingPoint();
-  Point getViewpoint();
   void setController(Controller controller);
 
   String Key_walking_speed  = "walking_speed";
@@ -41,6 +40,7 @@ public interface Hero extends Observable, Playable {
   String Key_hp_reg = "hp_reg";
   String Key_mp_reg = "mp_reg";
 
+  // Hidden action frame counter.
   class Indexer {
     private int index = -1;
     private final int[] data;

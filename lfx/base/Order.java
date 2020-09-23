@@ -20,7 +20,8 @@ public enum Order {
   hit_d ("d",   Direction.SAME),
   // aliases
   hit_Fa("", Direction.SAME, hit_Ra, hit_La),
-  hit_Fj("", Direction.SAME, hit_Rj, hit_Lj);
+  hit_Fj("", Direction.SAME, hit_Rj, hit_Lj),
+  HIT_NA("", Direction.SAME);
 
   public static final List<Order> ORDER_LIST = Arrays.stream(Order.values())
                                                      .filter(o -> !o.keySequence.isEmpty())

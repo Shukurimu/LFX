@@ -53,7 +53,7 @@ public class Action {
   @Override
   public String toString() {
     return actionName == null ?
-        String.format("Action(%3d, %b)", index, changeFacing) :
+        String.format("Action(%d, %b)", index, changeFacing) :
         String.format("Action.%s", actionName);
   }
 

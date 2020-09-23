@@ -22,6 +22,7 @@ public class ImageCell {
   private static final Canvas predrawnRandomImageCanvas = getPredrawnRandomImageCanvas(180);
   private static ImageCell SELECTION_IDLE_IMAGE = new ImageCell(new WritableImage(180, 180));
   private static ImageCell SELECTION_RANDOM_IMAGE = null;
+  public static ImageCell EMPTY = new ImageCell(null);
 
   public final Image normal;
   public final Image mirror;
@@ -57,6 +58,15 @@ public class ImageCell {
     return new ImageCell(loadImage(path));
   }
 
+  static void reverseRange(int[] array, int first, int length) {
+    for (int last = first + length - 1; first < last; ++first, --last) {
+      int value = array[first];
+      array[first] = array[last];
+      array[last] = value;
+    }
+    return;
+  }
+
   /**
    * Some Bitmaps are not loaded correctly in JavaFX.
    * You may need to convert them into standard format in advance.
@@ -70,7 +80,8 @@ public class ImageCell {
     final int height = (int) rawImage.getHeight();
     final int[] pixels = new int[width * height];
     rawImage.getPixelReader().getPixels(0, 0, width, height, pixelFormat, pixels, 0, width);
-    Arrays.setAll(pixels, i -> pixels[i] == 0xff000000 ? 0 : pixels[i]);
+    // Set color #000000 to transparent.
+    Arrays.parallelSetAll(pixels, i -> pixels[i] == 0xff000000 ? 0 : pixels[i]);
 
     WritableImage matteImage = new WritableImage(width, height);
     matteImage.getPixelWriter().setPixels(0, 0, width, height, pixelFormat, pixels, 0, width);
@@ -83,20 +94,16 @@ public class ImageCell {
       for (int iRow = 0, x = 0; iRow < row; ++iRow, x += w + 1) {
         if (x + w <= width && y + h <= height) {
           Image normal = new WritableImage(reader, x, y, w, h);
-          // programmically mirror image
+          // Programmically mirror image.
           reader.getPixels(x, y, w, h, pixelFormat, buffer, 0, w);
-          for (int i = 0; i < h; ++i) {
-            for (int l = i * w, r = l + w - 1; l < r; ++l, --r) {
-              int value = buffer[l];
-              buffer[l] = buffer[r];
-              buffer[r] = value;
-            }
+          for (int j = 0; j < h; ++j) {
+            reverseRange(buffer, j * w, w);
           }
           WritableImage mirror = new WritableImage(w, h);
           mirror.getPixelWriter().setPixels(0, 0, w, h, pixelFormat, buffer, 0, w);
           pictureList.add(new ImageCell(normal, mirror));
         } else {
-          // index-out-of-bound shows nothing
+          // index-out-of-bound shows nothing.
           pictureList.add(nothing);
         }
       }

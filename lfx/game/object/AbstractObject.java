@@ -108,6 +108,14 @@ abstract class AbstractObject implements Observable {
     return newAction && isFirstTimeunit();
   }
 
+  protected boolean isLastTimeunit() {
+    return transition == 0;
+  }
+
+  protected boolean isSameFacingVelocity() {
+    return vx == 0.0 || (faceRight == (vx > 0.0));
+  }
+
   @Override
   public Frame getCurrentFrame() {
     return frame;
@@ -334,7 +342,7 @@ abstract class AbstractObject implements Observable {
   // HP & MP
   protected abstract Action updateStamina(Action nextAct);
   /**
-   * If the object still alive, fit the boundary to the env and returns true.
+   * If the object still alive, fits the boundary to the env and returns true.
    *
    * @return false if the object should be deleted
    */

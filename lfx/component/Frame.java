@@ -46,6 +46,7 @@ public class Frame {
     this.dvy = dvy;
     this.dvz = dvz;
     this.cost = cost;
+    combo.put(Order.HIT_NA, Action.UNASSIGNED);
     this.combo = Map.copyOf(combo);
     this.effect = List.copyOf(effect);
     this.bdyList = List.copyOf(bdyList);
@@ -57,14 +58,14 @@ public class Frame {
   }
 
   private Frame() {  // DUMMY
-    pic = null;
+    pic = ImageCell.EMPTY;
     centerx = centery = 0;
     state = State.UNIMPLEMENTED;
     curr = wait = 999999;
     next = Action.UNASSIGNED;
     dvx = dvy = dvz = RESET_VELOCITY;
     cost = Cost.FREE;
-    combo = Map.of();
+    combo = Map.of(Order.HIT_NA, Action.UNASSIGNED);
     effect = List.of();
     bdyList = List.of();
     itrList = List.of();

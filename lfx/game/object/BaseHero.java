@@ -22,7 +22,6 @@ import lfx.util.Util;
 import lfx.util.Tuple;
 
 public class BaseHero extends AbstractObject implements Hero {
-  // Hidden action frame counters.
   private final Indexer walkingIndexer = new Indexer(2, 3, 2, 1, 0, 1);
   private final Indexer runningIndexer = new Indexer(0, 1, 2, 1);
 
@@ -123,7 +122,7 @@ public class BaseHero extends AbstractObject implements Hero {
 
   @Override
   public double getInputZ() {
-    return controller.pressZ() ? (controller.press_U() ? 1.0 : -1.0) : 0.0;
+    return controller.valueZ();
   }
 
   @Override
@@ -139,11 +138,8 @@ public class BaseHero extends AbstractObject implements Hero {
 
   @Override
   protected void transitFrame(Action action) {
-    Action orderAction = frame.combo.getOrDefault(controller.getOrder(), Action.UNASSIGNED);
-    if (orderAction == Action.UNASSIGNED) {
-      super.transitFrame(action);
-      return;
-    }
+    boolean fromNonDashState = frame.state != State.DASH;
+    Action orderAction = frame.combo.getOrDefault(controller.getOrder(), action);
     Cost cost = frameList.get(orderAction.index).cost;
     if (cost == Cost.FREE || env.isUnlimitedMode()) {
       super.transitFrame(orderAction);
@@ -154,11 +150,30 @@ public class BaseHero extends AbstractObject implements Hero {
     } else {
       super.transitFrame(action);
     }
+    // dash kinetic energy
+    if (fromNonDashState && isActionFirstTimeunit()) {
+      if (frame.curr == Action.HERO_DASH1.index) {
+        vx = faceRight ? Value_dash_distance : -Value_dash_distance;
+      } else if (frame.curr == Action.HERO_DASH2.index) {
+        vx = faceRight ? -Value_dash_distance : Value_dash_distance;
+      } else {
+        return;
+      }
+      vy += Value_dash_height;
+      vz = controller.valueZ() * Value_dash_distancez;
+    }
     return;
   }
 
   @Override
   protected void transitNextFrame() {
+    // jump kinetic energy; jumpAttack is followed by Action.HERO_JUMPAIR.
+    if (frame.next.index == Action.HERO_JUMPAIR.index) {
+      // dvx is applied after friction reduction.
+      vx += controller.valueX() * Math.copySign(Value_jump_distance, vx);
+      vy += Value_jump_height;
+      vz = controller.valueZ() * Value_jump_distancez;
+    }
     Cost cost = frameList.get(frame.next.index).cost;
     if (cost == Cost.FREE || env.isUnlimitedMode()) {
       super.transitFrame(frame.next);
@@ -285,6 +300,13 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
+  public void act() {
+    controller.update();
+    super.act();
+    return;
+  }
+
+  @Override
   protected Action updateAction(Action nextAct) {
     switch (frame.state) {
       case STAND:       nextAct = moveStand(nextAct);      break;
@@ -363,12 +385,14 @@ public class BaseHero extends AbstractObject implements Hero {
       nextAct = Action.HERO_RUNNING.shifts(runningIndexer.reset());
       faceRight = controller.getFacing(faceRight);
     } else if (controller.pressWalk()) {
-      if (isFirstTimeunit()) {
+      if (isLastTimeunit()) {
         nextAct = Action.HERO_WALKING.shifts(walkingIndexer.next());
       }
       faceRight = controller.getFacing(faceRight);
-      vx = controller.valueX() * Value_walking_speed;
-      vz = controller.valueZ() * Value_walking_speedz;
+      // position change
+      px += controller.valueX() *
+           (controller.pressZ() ? Value_walking_speedx : Value_walking_speed);
+      pz += controller.valueZ() * Value_walking_speedz;
     }
     return nextAct;
   }
@@ -380,19 +404,22 @@ public class BaseHero extends AbstractObject implements Hero {
       nextAct = Action.HERO_HEAVY_RUN.shifts(runningIndexer.reset());
       faceRight = controller.getFacing(faceRight);
     } else if (controller.pressWalk()) {
-      if (isFirstTimeunit()) {
+      if (isLastTimeunit()) {
         nextAct = Action.HERO_HEAVY_WALK.shifts(walkingIndexer.next());
       }
       faceRight = controller.getFacing(faceRight);
-      vx = controller.valueX() * Value_heavy_walking_speed;
-      vz = controller.valueZ() * Value_heavy_walking_speedz;
+      // position change
+      px += controller.valueX() *
+           (controller.pressZ() ? Value_heavy_walking_speedx : Value_heavy_walking_speed);
+      pz += controller.valueZ() * Value_heavy_walking_speedz;
     }
     return nextAct;
   }
 
   private Action moveRun(Action nextAct) {
-    vx = faceRight ? Value_running_speed : -Value_running_speed;
-    vz = controller.valueZ() * Value_running_speedz;
+    vx = (faceRight ? 1.0 : -1.0) *
+        (controller.pressZ() ? Value_running_speedx : Value_running_speed);
+    pz += controller.valueZ() * Value_running_speedz;
     if (controller.press_a()) {
       if (weapon == null) {
         nextAct = Action.HERO_RUN_ATK;
@@ -413,62 +440,50 @@ public class BaseHero extends AbstractObject implements Hero {
       nextAct = Action.HERO_ROLLING;
     } else if (controller.reverseFacing(faceRight)) {
       nextAct = Action.HERO_STOPRUN;
-    } else if (isFirstTimeunit()) {
+    } else if (isLastTimeunit()) {
       nextAct = Action.HERO_RUNNING.shifts(runningIndexer.next());
     }
     return nextAct;
   }
 
   private Action moveHeavyRun(Action nextAct) {
-    vx = faceRight ? Value_heavy_running_speed : -Value_heavy_running_speed;
-    vz = controller.valueZ() * Value_heavy_running_speedz;
+    vx = (faceRight ? 1.0 : -1.0) *
+        (controller.pressZ() ? Value_heavy_running_speedx : Value_heavy_running_speed);
+    pz += controller.valueZ() * Value_heavy_running_speedz;
     if (controller.press_a()) {
       nextAct = Action.HERO_HEAVY_WEAPON_THROW;
     } else if (controller.reverseFacing(faceRight)) {
       nextAct = Action.HERO_HEAVY_STOP_RUN;
-    } else if (isFirstTimeunit()) {
+    } else if (isLastTimeunit()) {
       nextAct = Action.HERO_HEAVY_RUN.shifts(runningIndexer.next());
     }
     return nextAct;
   }
 
   private Action moveJump(Action nextAct) {
-    if (frame.curr == Action.HERO_JUMPAIR.index && isActionFirstTimeunit()) {
-      // dvx is applied after friction reduction.
-      vx += Math.copySign(Value_jump_distance, vx);
-      vy += Value_jump_height;
-      vz = controller.valueZ() * Value_jump_distancez;
-    } else {
-      faceRight = controller.getFacing(faceRight);
-      if (controller.press_a()) {
-        if (weapon == null) {
-          nextAct = Action.HERO_JUMP_ATK;
-        } else if (weapon.isLight()) {
-          nextAct = controller.pressWalk() ?
-                    Action.HERO_SKY_WEAPON_THROW : Action.HERO_JUMP_WEAPON_ATK;
-        } else if (weapon.isSmall() || weapon.isDrink()) {
-          nextAct = Action.HERO_SKY_WEAPON_THROW;
-        } else {
-          weapon.release();
-          weapon = null;
-        }
+    faceRight = controller.getFacing(faceRight);
+    if (controller.press_a()) {
+      if (weapon == null) {
+        nextAct = Action.HERO_JUMP_ATK;
+      } else if (weapon.isLight()) {
+        nextAct = controller.pressWalk() ?
+                  Action.HERO_SKY_WEAPON_THROW : Action.HERO_JUMP_WEAPON_ATK;
+      } else if (weapon.isSmall() || weapon.isDrink()) {
+        nextAct = Action.HERO_SKY_WEAPON_THROW;
+      } else {
+        weapon.release();
+        weapon = null;
       }
     }
     return nextAct;
   }
 
   private Action moveDash(Action nextAct) {
-    if (frame.curr == Action.HERO_DASH1.index && isActionFirstTimeunit()) {
-      vx = Math.copySign(Value_dash_distance, vx);
-      vy += Value_dash_height;
-      vz = controller.valueZ() * Value_dash_distancez;
-      return nextAct;
-    }
     if (controller.reverseFacing(faceRight)) {  // turn facing
       faceRight = controller.press_R();
-      nextAct = faceRight == (vx >= 0.0) ? Action.HERO_DASH1 : Action.HERO_DASH2;
+      nextAct = isSameFacingVelocity() ? Action.HERO_DASH1 : Action.HERO_DASH2;
     }
-    if (controller.press_a() && (faceRight == (vx >= 0.0))) {
+    if (isSameFacingVelocity() && controller.press_a()) {
       if (weapon == null) {
         nextAct = Action.HERO_DASH_ATK;
       } else if (weapon.isLight()) {
@@ -487,19 +502,16 @@ public class BaseHero extends AbstractObject implements Hero {
     if (controller.press_j()) {
       if (controller.pressX()) {
         faceRight = controller.press_R();
-        nextAct = Action.HERO_DASH1;
-      } else if (Math.abs(vx) > 0.1) {
-        nextAct = faceRight == (vx >= 0.0) ? Action.HERO_DASH1 : Action.HERO_DASH2;
-      } else if (!isFirstTimeunit()) {  // TODO: transition < 2 ?
-        nextAct = Action.HERO_JUMP;
+        return Action.HERO_DASH1;
       }
-      return nextAct;
+      if (Math.abs(vx) > 0.1) {
+        return isSameFacingVelocity() ? Action.HERO_DASH1 : Action.HERO_DASH2;
+      } else {
+        return Action.HERO_JUMP;
+      }
     }
-    if (controller.pressWalk()) {
-      vz = controller.valueZ() * Value_walking_speedz;
-      if (!isFirstTimeunit()) {
-        nextAct = Action.HERO_WALKING.shifts(walkingIndexer.reset());
-      }
+    if (controller.pressWalk() && !isFirstTimeunit()) {
+      nextAct = Action.HERO_WALKING.shifts(walkingIndexer.reset());
     } else if (controller.press_d()) {
       nextAct = Action.HERO_ROLLING;
     }
@@ -561,10 +573,7 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   private Action moveLying(Action nextAct) {
-    if (0.0 >= hp) {
-      nextAct = Action.REPEAT;
-    }
-    return nextAct;
+    return hp > 0.0 ? nextAct : Action.REPEAT;
   }
 
   private Action landing(boolean reboundable, boolean faceForward, double damage) {
@@ -594,29 +603,31 @@ public class BaseHero extends AbstractObject implements Hero {
     } else {
       // In LF2 even the frame with dvy = -1 causes the character flying for a while,
       // so dvy takes effect before the calculation of gravity.
-      vy = frame.dvy;
+      vy += frame.dvy;
     }
     if (frame.dvz == Frame.RESET_VELOCITY) {
       vz = 0.0;
     } else {
-      vz = controller.valueZ() * frame.dvz;
+      vz += controller.valueZ() * frame.dvz;
     }
     if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
       px += vx;
-      py += vy;
       pz += vz;
     }
+    boolean wasFlying = py < 0.0;
+    py += vy;
     if (py < 0.0) {  // You are still flying.
       vy = env.applyGravity(vy);
       return nextAct;
     }
 
-    py = 0.0;  // You are on the ground.
-    if (frame.state == State.FALL) {
-      boolean reboundable = frame.curr != Action.HERO_FORWARD_FALLR.index &&
-                            frame.curr != Action.HERO_FORWARD_FALL1.index;
-      boolean faceForward = frame.curr <= Action.HERO_FORWARD_FALLR.index &&
-                            frame.curr >= Action.HERO_FORWARD_FALL1.index;
+    if (py == 0.0) {
+      // nothing to do
+    } else if (frame.state == State.FALL) {
+      boolean reboundable = frame.curr != Action.HERO_FORWARD_FALLR.index
+                         && frame.curr != Action.HERO_FORWARD_FALL1.index;
+      boolean faceForward = frame.curr <= Action.HERO_FORWARD_FALLR.index
+                         && frame.curr >= Action.HERO_FORWARD_FALL1.index;
       nextAct = landing(reboundable, faceForward, 0.0);
     } else if (frame.state == State.FIRE) {
       nextAct = landing(true, false, 0.0);
@@ -626,10 +637,11 @@ public class BaseHero extends AbstractObject implements Hero {
     } else if (frame.state == State.JUMP || frame.state == State.FLIP) {
       nextAct = Action.HERO_CROUCH1;
       vy = 0.0;
-    } else {
+    } else if (wasFlying) {
       nextAct = Action.HERO_CROUCH2;
       vy = 0.0;
     }
+    py = 0.0;  // You are on the ground.
     vx = env.applyFriction(vx * LANDING_VELOCITY_REMAIN);
     vz = env.applyFriction(vz * LANDING_VELOCITY_REMAIN);
 
@@ -684,11 +696,6 @@ public class BaseHero extends AbstractObject implements Hero {
   @Override
   public String getName() {
     return identifier;
-  }
-
-  @Override
-  public Point getViewpoint() {
-    return new Point(px, faceRight ? 1.0 : -1.0);
   }
 
   @Override

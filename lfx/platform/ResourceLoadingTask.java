@@ -22,7 +22,7 @@ class ResourceLoadingTask extends Task<Void> {
     // This method does not run on FX application thread.
     int index = 0;
     for (String[] stringArray : Configure.load().getKeyboardSetting()) {
-      controllerList.add(new KeyboardController(stringArray));
+      controllerList.add(KeyboardController.ofSetting(stringArray));
       this.updateMessage("Load Controller " + ++index);
     }
     // this.updateMessage("Load " + Template.of().getIdentifier());
