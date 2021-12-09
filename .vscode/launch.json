@@ -1,0 +1,21 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch Main",
+      "request": "launch",
+      "mainClass": "lfx.platform.Main",
+      "vmArgs": [
+        "--module-path",
+        "C:/Program Files/Java/javafx-sdk-17.0.0.1/lib",
+        "--add-modules",
+        "javafx.graphics,javafx.controls",
+        "-Djava.util.logging.config.file=src/logging.properties"
+      ]
+    }
+  ]
+}
