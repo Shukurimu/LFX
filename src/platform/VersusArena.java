@@ -3,7 +3,6 @@ package platform;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.List;
-import java.util.Map;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -17,14 +16,15 @@ import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.util.Duration;
-import game.field.AbstractField;
-import game.Hero;
-import game.Observable;
+
+import field.BaseField;
 import map.Background;
 import map.StatusBoard;
 import map.Viewer;
+import object.Hero;
+import object.Observable;
 
-public class VersusArena extends AbstractField implements GuiScene {
+public class VersusArena extends BaseField implements GuiScene {
   private final GridPane guiContainer = new GridPane();
   private final List<Node> viewerList;
   private final List<Observable> tracingList = new ArrayList<>(8);
@@ -39,7 +39,6 @@ public class VersusArena extends AbstractField implements GuiScene {
   public VersusArena(Background bg, List<Hero> initialObjectList) {
     super(bg.width, bg.top, bg.bottom);
     for (Hero object : initialObjectList) {
-      spawnObject(object);
       tracingList.add(object);
       statusBoardList.add(new StatusBoard(object));
     }
@@ -77,26 +76,11 @@ public class VersusArena extends AbstractField implements GuiScene {
     return label;
   }
 
-  @Override
-  protected List<Observable> retainExistingObjects(List<Observable> originalList) {
-    List<Observable> removedItemList = super.retainExistingObjects(originalList);
-    viewerList.removeIf(v -> removedItemList.contains(((Viewer) v).getObject()));
-    return removedItemList;
-  }
-
-  @Override
-  protected Map<Boolean, List<Observable>> partitionHeroItem(List<Observable> mixingList) {
-    for (Observable object : mixingList) {
-      viewerList.add(new Viewer(object));
-    }
-    return super.partitionHeroItem(mixingList);
-  }
-
   private void keyFrameHandler(ActionEvent event) {
     stepOneFrame();
     cameraPosition = calcCameraPos(tracingList, cameraPosition);
 
-    viewerList.forEach(n -> ((Viewer) n).update(cameraPosition));
+    viewerList.forEach(n -> ((Viewer) n).update());
     statusBoardList.forEach(s -> s.update());
     middleText1.setText("FxNode: " + viewerList.size());
     bottomText1.setText(
@@ -148,7 +132,7 @@ public class VersusArena extends AbstractField implements GuiScene {
           render.setRate(render.getCurrentRate() == 0.0 || render.getRate() == 2.0 ? 1.0 : 2.0);
           break;
         case F6:
-          middleText2.setText(switchUnlimitedMode() ? "[F6] Unlimited Mode" : "");
+          switchUnlimitedMode();
           break;
         case F7:
           reviveAll();
@@ -162,6 +146,8 @@ public class VersusArena extends AbstractField implements GuiScene {
         case F10:
           disperseEnergies();
           break;
+        default:
+
       }
       return;
     });

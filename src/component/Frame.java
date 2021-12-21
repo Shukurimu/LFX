@@ -2,14 +2,14 @@ package component;
 
 import java.util.List;
 import java.util.Map;
-import base.Order;
-import util.ImageCell;
+
+import base.KeyOrder;
 
 public class Frame {
   public static final Frame DUMMY = new Frame();
   public static final int RESET_VELOCITY = 550;
 
-  public final ImageCell pic;
+  public final int pic;
   public final int centerx;
   public final int centery;
   public final State state;
@@ -20,21 +20,19 @@ public class Frame {
   public final int dvy;
   public final int dvz;
   public final Cost cost;
-  public final Map<Order, Action> combo;
-  public final List<Effect.Value> effect;
+  public final Map<KeyOrder, Action> combo;
   public final List<Bdy> bdyList;
   public final List<Itr> itrList;
   public final List<Opoint> opointList;
   public final Cpoint cpoint;
   public final Wpoint wpoint;
-  public final String sound;
 
-  Frame(ImageCell pic, int centerx, int centery,
+  Frame(int pic, int centerx, int centery,
         State state, int curr, int wait, Action next,
         int dvx, int dvy, int dvz, Cost cost,
-        Map<Order, Action> combo, List<Effect.Value> effect,
+        Map<KeyOrder, Action> combo,
         List<Bdy> bdyList, List<Itr> itrList, List<Opoint> opointList,
-        Cpoint cpoint, Wpoint wpoint, String sound) {
+        Cpoint cpoint, Wpoint wpoint) {
     this.pic = pic;
     this.centerx = centerx;
     this.centery = centery;
@@ -46,33 +44,28 @@ public class Frame {
     this.dvy = dvy;
     this.dvz = dvz;
     this.cost = cost;
-    combo.put(Order.HIT_NA, Action.UNASSIGNED);
     this.combo = Map.copyOf(combo);
-    this.effect = List.copyOf(effect);
     this.bdyList = List.copyOf(bdyList);
     this.itrList = List.copyOf(itrList);
     this.opointList = List.copyOf(opointList);
     this.cpoint = cpoint;
     this.wpoint = wpoint;
-    this.sound = sound;
   }
 
   private Frame() {  // DUMMY
-    pic = ImageCell.EMPTY;
+    pic = 0;
     centerx = centery = 0;
-    state = State.UNIMPLEMENTED;
+    state = State.NORMAL;
     curr = wait = 999999;
     next = Action.UNASSIGNED;
     dvx = dvy = dvz = RESET_VELOCITY;
     cost = Cost.FREE;
-    combo = Map.of(Order.HIT_NA, Action.UNASSIGNED);
-    effect = List.of();
+    combo = Map.of();
     bdyList = List.of();
     itrList = List.of();
     opointList = List.of();
     cpoint = null;
     wpoint = null;
-    sound = null;
   }
 
   public double calcVX(double vx, boolean faceRight) {

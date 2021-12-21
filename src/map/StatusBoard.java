@@ -1,9 +1,7 @@
 package map;
 
-import java.util.ArrayList;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
 import java.util.List;
+
 import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -14,8 +12,8 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.TextAlignment;
-import game.Hero;
-import util.Tuple;
+
+import object.Playable;
 
 public class StatusBoard extends Canvas {
   public static final double CANVAS_WIDTH = 794 / 4;
@@ -39,57 +37,50 @@ public class StatusBoard extends Canvas {
   private static final LinearGradient MP_BAR_CURR;
   private static final LinearGradient BAR_3D_LOOK;
 
-  private final Hero target;
+  private final Playable target;
+  private final double[] status = new double[6];
   private final GraphicsContext gc;
 
   static {
-    BiFunction<List<Tuple<Double, Color>>, UnaryOperator<Color>, List<Stop>> buildStops =
-        (inputs, op) -> {
-          List<Stop> result = new ArrayList<>();
-          inputs.forEach(info -> result.add(new Stop(info.first, op.apply(info.second))));
-          return result;
-        };
-
-    List<Tuple<Double, Color>> hpInfoList = List.of(
-        new Tuple<>(0.0, Color.CRIMSON),
-        new Tuple<>(0.4, Color.DARKORANGE),
-        new Tuple<>(0.7, Color.GOLD),
-        new Tuple<>(1.0, Color.MEDIUMSPRINGGREEN)
+    List<Stop> HP_STOPS = List.of(
+        new Stop(0.0, Color.CRIMSON),
+        new Stop(0.4, Color.DARKORANGE),
+        new Stop(0.7, Color.GOLD),
+        new Stop(1.0, Color.MEDIUMSPRINGGREEN)
     );
     HP_BAR_CURR = new LinearGradient(
         BAR_BEGIN, HP_FILL_Y, BAR_BEGIN + BAR_WIDTH, HP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.brighter())
-    );
+        false, CycleMethod.NO_CYCLE,
+        HP_STOPS.stream().map(s -> new Stop(s.getOffset(), s.getColor().brighter())).toList());
     HP_BAR_BASE = new LinearGradient(
         BAR_BEGIN, HP_FILL_Y, BAR_BEGIN + BAR_WIDTH, HP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(hpInfoList, c -> c.darker())
-    );
-    List<Tuple<Double, Color>> mpInfoList = List.of(
-        new Tuple<>(0.0, Color.DARKORCHID),
-        new Tuple<>(1.0, Color.AQUA)
+        false, CycleMethod.NO_CYCLE,
+        HP_STOPS.stream().map(s -> new Stop(s.getOffset(), s.getColor().darker())).toList());
+
+    List<Stop> MP_STOPS = List.of(
+        new Stop(0.0, Color.DARKORCHID),
+        new Stop(1.0, Color.AQUA)
     );
     MP_BAR_CURR = new LinearGradient(
         BAR_BEGIN, MP_FILL_Y, BAR_BEGIN + BAR_WIDTH, MP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.brighter())
-    );
+        false, CycleMethod.NO_CYCLE,
+        MP_STOPS.stream().map(s -> new Stop(s.getOffset(), s.getColor().brighter())).toList());
     MP_BAR_BASE = new LinearGradient(
         BAR_BEGIN, MP_FILL_Y, BAR_BEGIN + BAR_WIDTH, MP_FILL_Y + BAR_HEIGHT,
-        false, CycleMethod.NO_CYCLE, buildStops.apply(mpInfoList, c -> c.darker())
-    );
-    List<Tuple<Double, Color>> viewInfoList = List.of(
-        new Tuple<>(0.0, Color.color(0.4, 0.4, 0.4, 0.5)),
-        new Tuple<>(0.2, Color.color(0.6, 0.6, 0.6, 0.5)),
-        new Tuple<>(1.0, Color.color(0.0, 0.0, 0.0, 0.5))
-    );
-    BAR_3D_LOOK = new LinearGradient(
-        0, 0, 0, 1, true, CycleMethod.NO_CYCLE, buildStops.apply(viewInfoList, c -> c)
-    );
+        false, CycleMethod.NO_CYCLE,
+        MP_STOPS.stream().map(s -> new Stop(s.getOffset(), s.getColor().darker())).toList());
+
+    BAR_3D_LOOK = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE, List.of(
+        new Stop(0.0, Color.color(0.4, 0.4, 0.4, 0.5)),
+        new Stop(0.2, Color.color(0.6, 0.6, 0.6, 0.5)),
+        new Stop(1.0, Color.color(0.0, 0.0, 0.0, 0.5))
+    ));
   }
 
-  public StatusBoard(Hero target) {
+  public StatusBoard(Playable target) {
     super(CANVAS_WIDTH, CANVAS_HEIGHT);
     this.target = target;
-    Image portrait = target == null ? null : target.getPortrait().get();
+    Image portrait = null;// : target.getPortrait();
     gc = this.getGraphicsContext2D();
     gc.setFill(BACKGROUND_COLOR);
     gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -99,35 +90,35 @@ public class StatusBoard extends Canvas {
     gc.strokeRect(PADDING - 1.0, PADDING - 1.0, ICON_SIZE + 2.0, ICON_SIZE + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, HP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, MP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
-    // gc.setTextBaseline(VPos.CENTER);
-    // gc.setTextAlign(TextAlignment.RIGHT);
+    gc.setTextBaseline(VPos.CENTER);
+    gc.setTextAlign(TextAlignment.RIGHT);
   }
 
   public void update() {
-    if (target == null) {
+    if (!target.active()) {
       return;
     }
-    double[] stamina = target.getStamina();  // hp2ratio, hpratio, mpratio
-    stamina[0] *= BAR_WIDTH;
-    stamina[1] *= BAR_WIDTH;
-    stamina[2] *= BAR_WIDTH;
+    target.fillStatus(status);
+    double hp2Length = status[0] / status[1] * BAR_WIDTH;
+    double hp1Length = status[2] / status[3] * BAR_WIDTH;
+    double mp0Length = status[4] / status[5] * BAR_WIDTH;
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(HP_BAR_BASE);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[0], BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, hp2Length, BAR_HEIGHT);
     gc.setFill(HP_BAR_CURR);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[1], BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, hp1Length, BAR_HEIGHT);
     gc.setFill(MP_BAR_BASE);
     gc.fillRect(BAR_BEGIN, MP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFill(MP_BAR_CURR);
-    gc.fillRect(BAR_BEGIN, MP_FILL_Y, stamina[2], BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, mp0Length, BAR_HEIGHT);
     gc.setGlobalBlendMode(BlendMode.HARD_LIGHT);
     gc.setFill(BAR_3D_LOOK);
-    gc.fillRect(BAR_BEGIN, HP_FILL_Y, stamina[1], BAR_HEIGHT);
-    gc.fillRect(BAR_BEGIN, MP_FILL_Y, stamina[2], BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, hp1Length, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, mp0Length, BAR_HEIGHT);
     gc.setGlobalBlendMode(BlendMode.SRC_OVER);
-    // gc.strokeText(String.format("%.0f", hero.hp), TEXT_X, HP_TEXT_Y);
-    // gc.strokeText(String.format("%.0f", hero.mp), TEXT_X, MP_TEXT_Y);
+    gc.strokeText(String.format("%.0f", status[2]), TEXT_X, HP_TEXT_Y);
+    gc.strokeText(String.format("%.0f", status[4]), TEXT_X, MP_TEXT_Y);
     return;
   }
 

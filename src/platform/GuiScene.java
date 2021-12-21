@@ -1,6 +1,7 @@
 package platform;
 
 import java.util.function.Consumer;
+
 import javafx.scene.paint.Color;
 import javafx.scene.Parent;
 import javafx.scene.Scene;

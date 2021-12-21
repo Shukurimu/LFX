@@ -6,6 +6,19 @@
   "configurations": [
     {
       "type": "java",
+      "name": "Launch ConfigScene",
+      "request": "launch",
+      "mainClass": "platform.ConfigScene",
+      "vmArgs": [
+        "--module-path",
+        "C:/Program Files/Java/javafx-sdk-17.0.0.1/lib",
+        "--add-modules",
+        "javafx.graphics,javafx.controls",
+        "-Djava.util.logging.config.file=logging.properties"
+      ]
+    },
+    {
+      "type": "java",
       "name": "Launch Main",
       "request": "launch",
       "mainClass": "lfx.platform.Main",
@@ -14,7 +27,7 @@
         "C:/Program Files/Java/javafx-sdk-17.0.0.1/lib",
         "--add-modules",
         "javafx.graphics,javafx.controls",
-        "-Djava.util.logging.config.file=src/logging.properties"
+        "-Djava.util.logging.config.file=logging.properties"
       ]
     }
   ]

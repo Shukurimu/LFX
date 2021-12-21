@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.Set;
+
 import base.Type;
 import component.Action;
 import component.Itr;
@@ -99,11 +100,11 @@ class ItrExtractor extends Extractor {
         }
         break;
       case 4:
-        kind = Itr.Kind.THROW_DAMAGE;
+        kind = Itr.Kind.THROWN_DAMAGE;
         scope = "Scope.ITR_TEAMMATE_HERO";
         break;
       case 6:
-        kind = Itr.Kind.FORCE_ACT;
+        kind = Itr.Kind.FORCE_ACTION;
         data.put("dvx", Action.HERO_SUPER_PUNCH.index);
         scope = "Scope.ITR_ENEMY_HERO";
       case 8:

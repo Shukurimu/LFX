@@ -2,8 +2,8 @@ package platform;
 
 import java.util.ArrayList;
 import java.util.List;
-import game.Library;
-import game.Playable;
+
+import object.Playable;
 import util.Selectable;
 
 public class PlayableSelector implements Selectable<Playable> {
@@ -12,7 +12,6 @@ public class PlayableSelector implements Selectable<Playable> {
 
   public PlayableSelector() {
     valueList.add(Playable.SELECTION_RANDOM);
-    valueList.addAll(Library.instance().getPlayableList());
   }
 
   @Override

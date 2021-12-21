@@ -18,9 +18,4 @@ public enum Direction {
     return operator.apply(origin);
   }
 
-  @Override
-  public String toString() {
-    return String.format("Direction.%s", name());
-  }
-
 }

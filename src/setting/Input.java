@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 
 public enum Input {
   Up    ("U"),
@@ -46,6 +45,7 @@ public enum Input {
         line = reader.readLine();
       } catch (IOException ex) {
         line = defaultLine;
+        ex.printStackTrace();
       }
       keyArrayList.add(line.split(CHAR_SEPARATOR));
     }
@@ -54,13 +54,13 @@ public enum Input {
 
   static boolean save(PrintWriter writer, List<String[]> keyArrayList) {
     boolean noException = true;
-    for (ListIterator<String> it = DEFAULT_LINES.listIterator(); it.hasNext(); ) {
-      String defaultLine = it.next();
+    for (int i = 0; i < DEFAULT_LINES.size(); ++i) {
       String line = null;
       try {
-        line = String.join(CHAR_SEPARATOR, keyArrayList.get(it.previousIndex()));
+        line = String.join(CHAR_SEPARATOR, keyArrayList.get(i));
       } catch (Exception ex) {
-        line = defaultLine;
+        line = DEFAULT_LINES.get(i);
+        ex.printStackTrace();
         noException = false;
       }
       writer.println(line);

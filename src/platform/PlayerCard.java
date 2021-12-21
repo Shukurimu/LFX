@@ -5,9 +5,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import base.Controller;
-import game.Hero;
-import game.Library;
-import game.Playable;
+import object.Hero;
+import object.Playable;
 import util.ElementSelector;
 import util.Selectable;
 
@@ -86,12 +85,7 @@ public class PlayerCard {
     if (pickingPhaseSelector.get() != PickingPhase.FINISHED) {
       return null;
     }
-    Playable current = playableSelector.get();
-    Hero hero = Library.instance().getClone(current);
-    hero.setController(controller);
-    hero.setProperty(teamIdSelector.get().intValue(), true);
-    hero.setProperty(null, 0);
-    return hero;
+    return null;
   }
 
   public static List<Hero> getHeroList(Iterable<? extends PlayerCard> playerCards) {

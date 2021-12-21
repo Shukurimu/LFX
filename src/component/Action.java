@@ -3,18 +3,54 @@ package component;
 import util.Util;
 
 public class Action {
-  public static final Action UNASSIGNED = new Action("UNASSIGNED");
-  public static final Action DEFAULT = new Action("DEFAULT");
-  public static final Action DEFAULT_REVERSE = new Action("DEFAULT_REVERSE");
-  public static final Action REPEAT = new Action("REPEAT");
-  public static final Action REMOVAL = new Action("REMOVAL");
-  public static final Action JOHN_CHASE = new Action("JOHN_CHASE");
-  public static final Action JOHN_CHASE_FAST = new Action("JOHN_CHASE_FAST");
-  public static final Action DENNIS_CHASE = new Action("DENNIS_CHASE");
+  public static final int ACTION_LIMIT = 400;
+  public static final Action UNASSIGNED = new Action();
+  public static final Action DEFAULT = new Action();
+  public static final Action DEFAULT_REVERSE = new Action();
+  public static final Action REPEAT = new Action();
+  public static final Action REMOVAL = new Action();
+  // https://www.lf-empire.de/en/lf2-empire/data-changing/reference-pages/183-effect-3-hitfa
+  // hit_Fa:   Effect:   Picture Sequence:   Activate:   Ex.:   Extras:
+  public static final Action JOHN_CHASE = new Action();
+  // 1   Chasingball   (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     John: Energy Disk
+  public static final Action DENNIS_CHASE = new Action();
+  // 2   Chasingball   (x-, y-, z-axis)   0=start (dvx!), 1&2=curves, 3&4=lines, in a group: next
+  //     Flying, hit, hiting, rebound
+  //     Dennis: Chase Ball
+  public static final Action BOOMERANG_CHASE = new Action();
+  // 3   Chasingball   (x-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     Boomerang weapon9
+  //     Does not change facing direction even when turning.
+  public static final Action JAN_CHASE = new Action();
+  // 4   Chasingball, healing,   (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit_ground, (frame 60)
+  //     Jan: Angel Created with hit_Fa: 5.
+  //     Have to be used after a frame with hit_Fa: 3.
+  public static final Action FIRZEN_CHASE = new Action();
+  // 7   Chasingball, (x-, y-(down), z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound, tail, hit_ground
+  //     Firzen: Disaster Created with hit_Fa: 9.
+  //     Have to be used after a frame with hit_Fa: 3.
+  public static final Action JOHN_CHASE_FAST = new Action();
+  // 10  Movingball, (x-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     John: Energy Disk
+  //     Used to move away attacks after timer is down.
+  public static final Action BAT_CHASE_FAST = new Action();
+  // 12  Chasingball (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     Bat: Bats
+  //     Look at: hit_Fa: 1
+  public static final Action JULIAN_CHASE_FAST = new Action();
+  // 14  Chasingball (x-, z-axis)   0-9=lines, 50-59=curves, in a group: next
+  //     Flying (2x), hit, hiting, rebound
+  //     Julian: Skull Blasts
 
   public final int index;  // positive
   public final boolean changeFacing;
-  private final String actionName;
   private final int indexTo;  // exclusive
 
   public Action(int rawActNumber) {
@@ -25,21 +61,21 @@ public class Action {
       index = -rawActNumber;
       changeFacing = true;
     }
-    actionName = null;
+    if (index >= ACTION_LIMIT) {
+      throw new IndexOutOfBoundsException(rawActNumber);
+    }
     indexTo = index;
   }
 
-  private Action(String actionName) {
-    index = indexTo = 0;
+  private Action() {
+    index = indexTo = -1;
     changeFacing = false;
-    this.actionName = actionName;
   }
 
   private Action(int indexFrom, int range) {
     this.index = indexFrom;
     this.indexTo = indexFrom + range;
     changeFacing = false;
-    actionName = null;
   }
 
   public boolean includes(int actionNumber) {
@@ -51,10 +87,13 @@ public class Action {
   }
 
   @Override
+  public boolean equals(Object o) {
+    return o instanceof Action x && x.index == index;
+  }
+
+  @Override
   public String toString() {
-    return actionName == null ?
-        String.format("Action(%d, %b)", index, changeFacing) :
-        String.format("Action.%s", actionName);
+    return String.format("Action[%d, changeFacing=%b]", index, changeFacing);
   }
 
   private static final Action[] generateInnerStates(Action base) {
@@ -107,6 +146,7 @@ public class Action {
   public static final Action HERO_RUN_ATK = new Action(85, 5);
   public static final Action HERO_DASH_ATK = new Action(90, 5);
   public static final Action HERO_DASH_DEF = new Action(95, 0);
+  public static final Action HERO_LANDING_ACT = new Action(94, 0);
   public static final Action HERO_FLIP1 = new Action(100, 2);
   public static final Action HERO_ROLLING = new Action(102, 6);
   public static final Action HERO_FLIP2 = new Action(108, 2);
@@ -151,7 +191,7 @@ public class Action {
   public static final Action HERO_LYING1 = new Action(230, 1);
   public static final Action HERO_LYING2 = new Action(231, 1);
   public static final Action HERO_THROW_LYING_MAN = new Action(232, 3);
-  public static final Action HERO_TRANSFORM_BACK = new Action(245, 0);
+  public static final Action TRANSFORM_BACK = new Action(245, 0);
 
   public static final Action LIGHT_IN_THE_SKY = new Action(0, 16) {
     final Action[] innerStates = generateInnerStates(this);

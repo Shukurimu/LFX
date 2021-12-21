@@ -79,9 +79,6 @@ class FrameExtractor extends Extractor {
    */
   private State getState() {
     if (type.isHero) {
-      if (frameNumber == Action.HERO_CROUCH1.index) {
-        return State.LANDING;
-      }
       if (Action.HERO_HEAVY_WALK.includes(frameNumber)) {
         return State.HEAVY_WALK;
       }

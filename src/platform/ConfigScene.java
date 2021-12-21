@@ -3,6 +3,7 @@ package platform;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.List;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -10,7 +11,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.ToggleButton;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
@@ -20,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+
 import setting.Configure;
 import setting.Input;
 
@@ -29,8 +30,8 @@ public class ConfigScene extends Application implements GuiScene {
 
   private final GridPane pane;
   private final Configure configure;
-  private final List<ToggleButton> keyButtonList;
-  private ToggleButton focusing = null;
+  private final List<Button> keyButtonList;
+  private Button focusing = null;
 
   public ConfigScene() {
     pane = null;
@@ -50,7 +51,7 @@ public class ConfigScene extends Application implements GuiScene {
     keyButtonList = new ArrayList<>(28);
     for (int colIndex = 1; colIndex <= 4; ++colIndex) {
       for (int rowIndex = 1; rowIndex <= 7; ++rowIndex) {
-        ToggleButton button = new ToggleButton();
+        Button button = new Button();
         button.setPrefSize(CONFIG_BUTTON_WIDTH, 30);
         button.setOnAction(this::clickBindingHandler);
         keyButtonList.add(button);
@@ -62,6 +63,10 @@ public class ConfigScene extends Application implements GuiScene {
     setButtonText(configure.getKeyboardSetting());
 
     pane.add(makeActionButton("Default", event -> {
+      if (focusing != null) {
+        focusing.setTextFill(UNFOCUSED_TEXT_FILL);
+        focusing = null;
+      }
       setButtonText(Input.getDefault());
     }), 2, 12);
     pane.add(makeActionButton("Save", event -> {
@@ -116,32 +121,25 @@ public class ConfigScene extends Application implements GuiScene {
 
   private void keyPressHandler(KeyEvent event) {
     event.consume();
-    if (focusing != null && focusing.isSelected()) {
+    if (focusing != null) {
       KeyCode code = event.getCode();
       if (code == KeyCode.ESCAPE) {
         // cancel
-      } else if (code == KeyCode.UNDEFINED || code.isFunctionKey() || code.isMediaKey()) {
+      } else if (code.isFunctionKey() || code.isMediaKey()) {
         focusing.setText(KeyCode.UNDEFINED.name());
       } else {
         focusing.setText(code.name());
       }
       focusing.setTextFill(UNFOCUSED_TEXT_FILL);
-      focusing.setSelected(false);
+      focusing = null;
     }
     return;
   }
 
   private void clickBindingHandler(ActionEvent event) {
-    focusing = (ToggleButton) event.getSource();
-    for (ToggleButton button : keyButtonList) {
-      if (button == focusing) {
-        button.setTextFill(FOCUSED_TEXT_FILL);
-        button.setSelected(true);
-      } else {
-        button.setTextFill(UNFOCUSED_TEXT_FILL);
-        button.setSelected(false);
-      }
-    }
+    keyButtonList.forEach(b -> b.setTextFill(UNFOCUSED_TEXT_FILL));
+    focusing = (Button) event.getSource();
+    focusing.setTextFill(FOCUSED_TEXT_FILL);
     return;
   }
 

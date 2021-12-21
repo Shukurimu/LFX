@@ -4,15 +4,15 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import base.Controller;
-import base.Order;
-import setting.Input;
-import util.Tuple;
+import base.KeyOrder;
 
 public abstract class AbstractController implements Controller {
   private static final long VALID_PREPRESS_MS = 100L;
   private static final long VALID_INTERVAL_MS = 200L;
-  private final List<Tuple<InputMonitor, String>> inputSequenceBuffer = new ArrayList<>(8);
+  private static final KeyOrder[] keyOrderArray = KeyOrder.values();
+  private final List<Map.Entry<Input, InputMonitor>> inputSequenceBuffer;
   private final Map<Input, InputMonitor> inputMap;
   private Instant validComboFrom = Instant.EPOCH;
   private Instant validFrom = Instant.MAX;
@@ -20,9 +20,7 @@ public abstract class AbstractController implements Controller {
 
   protected AbstractController(Map<Input, InputMonitor> inputMap) {
     this.inputMap = inputMap;
-    for (Map.Entry<Input, InputMonitor> entry : inputMap.entrySet()) {
-      inputSequenceBuffer.add(new Tuple<>(entry.getValue(), entry.getKey().symbol));
-    }
+    inputSequenceBuffer = new ArrayList<>(inputMap.entrySet());
   }
 
   @Override
@@ -40,15 +38,15 @@ public abstract class AbstractController implements Controller {
   }
 
   @Override
-  public Order getOrder() {
+  public KeyOrder getKeyOrder() {
     StringBuilder sequence = new StringBuilder(8);
-    inputSequenceBuffer.sort((e1, e2) -> e1.first.compareTo(e2.first));
-    for (Tuple<InputMonitor, String> tuple : inputSequenceBuffer) {
-      if (tuple.first.pressedAfter(validComboFrom)) {
-        sequence.append(tuple.second);
+    inputSequenceBuffer.sort((e1, e2) -> e1.getValue().compareTo(e2.getValue()));
+    for (Map.Entry<Input, InputMonitor> entry : inputSequenceBuffer) {
+      if (entry.getValue().pressedAfter(validComboFrom)) {
+        sequence.append(entry.getKey().symbol);
       }
     }
-    for (Order order : Order.ORDER_LIST) {
+    for (KeyOrder order : keyOrderArray) {
       if (sequence.indexOf(order.keySequence) >= 0) {
         return order;
       }

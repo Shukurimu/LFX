@@ -2,8 +2,9 @@ package platform;
 
 import java.util.EnumMap;
 import java.util.Map;
-import javafx.application.Platform;
+
 import javafx.scene.input.KeyCode;
+
 import setting.AbstractController;
 import setting.Input;
 import setting.InputMonitor;
@@ -15,29 +16,34 @@ public class KeyboardController extends AbstractController {
     super(inputMap);
   }
 
+  /**
+   * Registers control keys.
+   *
+   * @param stringArray an array of {@code KeyCode} String
+   * @return the corresponding {@code Controller}
+   */
   public static KeyboardController ofSetting(String[] stringArray) {
     Map<Input, InputMonitor> inputMap = new EnumMap<>(Input.class);
     for (Input input : Input.values()) {
-      KeyCode code = KeyCode.UNDEFINED;
+      KeyCode code = null;
       try {
         code = KeyCode.valueOf(stringArray[input.ordinal()]);
-      } catch (Exception ex) {
+      } catch (IllegalArgumentException ex) {
+        code = KeyCode.UNDEFINED;
         System.err.println("Invalid KeyCode: " + stringArray[input.ordinal()]);
+      } catch (IndexOutOfBoundsException ex) {
+        code = KeyCode.UNDEFINED;
+        System.err.println("Insufficient Elements");
       }
       // Several keys can be set to same physical key.
-      InputMonitor monitor = keyMonitor.get(code);
-      if (monitor == null) {
-        monitor = new InputMonitor();
-        keyMonitor.put(code, monitor);
-      }
-      inputMap.put(input, monitor);
+      inputMap.put(input, keyMonitor.computeIfAbsent(code, k -> new InputMonitor()));
     }
     return new KeyboardController(inputMap);
   }
 
   public static boolean press(KeyCode code) {
     if (code == KeyCode.ESCAPE) {
-      Platform.exit();
+      javafx.application.Platform.exit();
       return false;
     }
     InputMonitor monitor = keyMonitor.get(code);

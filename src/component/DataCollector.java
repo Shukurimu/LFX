@@ -5,23 +5,21 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import base.Order;
-import util.ImageCell;
+
+import base.KeyOrder;
 import util.Tuple;
 
 public class DataCollector {
   public static final int FRAME_COUNT = 400;
 
-  private List<ImageCell> imageList;
   private List<Frame> frameList;
 
-  public DataCollector(List<ImageCell> imageList, int size) {
-    this.imageList = imageList;
+  public DataCollector(int size) {
     frameList = new ArrayList<>(Collections.nCopies(size, Frame.DUMMY));
   }
 
-  public DataCollector(List<ImageCell> imageList) {
-    this(imageList, FRAME_COUNT);
+  public DataCollector() {
+    this(FRAME_COUNT);
   }
 
   public void add(int curr, int wait, State state, int pic, int centerx, int centery,
@@ -47,52 +45,43 @@ public class DataCollector {
     if (next == Action.UNASSIGNED) {
       throw new IllegalArgumentException("Invalid Frame.next: " + next.toString());
     }
-    Map<Order, Action> combo = new EnumMap<>(Order.class);
-    List<Effect.Value> effect = new ArrayList<>(4);
+    Map<KeyOrder, Action> combo = new EnumMap<>(KeyOrder.class);
     List<Bdy> bdyList = new ArrayList<>(4);
     List<Itr> itrList = new ArrayList<>(4);
     List<Opoint> opointList = new ArrayList<>(4);
     Cost cost = Cost.FREE;
     Wpoint wpoint = null;
     Cpoint cpoint = null;
-    String sound = null;
     for (Object e : elements) {
       if (e instanceof Tuple) {
         @SuppressWarnings("unchecked")
-        Tuple<Order, Action> kv = (Tuple<Order, Action>) e;
+        Tuple<KeyOrder, Action> kv = (Tuple<KeyOrder, Action>) e;
         combo.put(kv.first, kv.second);
-        for (Order order : kv.first.additions) {
-          combo.put(order, kv.second);
-        }
-      } else if (e instanceof Effect.Value) {
-        effect.add((Effect.Value) e);
-      } else if (e instanceof Bdy) {
-        bdyList.add((Bdy) e);
-      } else if (e instanceof Itr) {
-        itrList.add((Itr) e);
-      } else if (e instanceof Opoint) {
-        opointList.add((Opoint) e);
-      } else if (e instanceof Cost) {
-        cost = (Cost) e;
-      } else if (e instanceof Wpoint) {
-        wpoint = (Wpoint) e;
-      } else if (e instanceof Cpoint) {
-        cpoint = (Cpoint) e;
-      } else if (e instanceof Cpoint.Builder) {
-        cpoint = ((Cpoint.Builder) e).build();
-      } else if (e instanceof String) {
-        sound = (String) e;
+      } else if (e instanceof Bdy x) {
+        bdyList.add(x);
+      } else if (e instanceof Itr x) {
+        itrList.add(x);
+      } else if (e instanceof Opoint x) {
+        opointList.add(x);
+      } else if (e instanceof Cost x) {
+        cost = x;
+      } else if (e instanceof Wpoint x) {
+        wpoint = x;
+      } else if (e instanceof Cpoint x) {
+        cpoint = x;
+      } else if (e instanceof Cpoint.Builder x) {
+        cpoint = x.build();
       } else {
         System.out.println("NotImplemented: " + e.toString());
       }
     }
     frameList.set(curr,
-        new Frame(imageList.get(pic), centerx, centery,
+        new Frame(0, centerx, centery,
                   state, curr, wait, next,
                   dvx, dvy, dvz, cost,
-                  combo, effect,
+                  combo,
                   bdyList, itrList, opointList,
-                  cpoint, wpoint, sound
+                  cpoint, wpoint
     ));
     return;
   }

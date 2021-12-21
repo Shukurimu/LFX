@@ -3,7 +3,7 @@ package base;
 public interface Controller {
   void consume();
   void update();
-  Order getOrder();
+  KeyOrder getKeyOrder();
 
   boolean press_U();
   boolean press_D();
@@ -14,16 +14,16 @@ public interface Controller {
   boolean press_d();
   boolean pressRun();
 
-  default boolean pressWalk() {
-    return pressX() || pressZ();
-  }
-
   default boolean pressX() {
     return press_L() ^ press_R();
   }
 
   default boolean pressZ() {
     return press_U() ^ press_D();
+  }
+
+  default boolean pressWalk() {
+    return pressX() || pressZ();
   }
 
   default double valueX() {
@@ -43,5 +43,19 @@ public interface Controller {
     return press_L() ? (!press_R() && originalFacing)
                      : (press_R() && !originalFacing);
   }
+
+  Controller NULL_CONTROLLER = new Controller() {
+    @Override public void consume() {}
+    @Override public void update() {}
+    @Override public KeyOrder getKeyOrder() { return null; }
+    @Override public boolean press_U() { return false; }
+    @Override public boolean press_D() { return false; }
+    @Override public boolean press_L() { return false; }
+    @Override public boolean press_R() { return false; }
+    @Override public boolean press_a() { return false; }
+    @Override public boolean press_j() { return false; }
+    @Override public boolean press_d() { return false; }
+    @Override public boolean pressRun() { return false; }
+  };
 
 }

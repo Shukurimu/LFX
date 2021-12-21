@@ -14,8 +14,8 @@ import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import base.Controller;
-import game.Playable;
 import map.Background;
+import object.Playable;
 
 public class PickingScene implements GuiScene {
   private final GridPane guiContainer = new GridPane();
@@ -46,8 +46,8 @@ public class PickingScene implements GuiScene {
     public void update() {
       super.update();
       Playable playable = getPlayable();
-      icon.setImage(playable.getPortrait().get());
-      hero.setText(playable.getName());
+      // icon.setImage(playable.getPortrait().get());
+      hero.setText(playable.getIdentifier());
       team.setText(getTeamText());
       return;
     }

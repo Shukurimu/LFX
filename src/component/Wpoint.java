@@ -19,7 +19,7 @@ public class Wpoint extends Point {
   public final int dvy;
   public final int dvz;
   public final Usage usage;
-  public final double zOffset;
+  public final boolean cover;
 
   private Wpoint(int x, int y, Action weaponact, int cover,
                  int dvx, int dvy, int dvz, Usage usage) {
@@ -29,7 +29,7 @@ public class Wpoint extends Point {
     this.dvy = dvy;
     this.dvz = dvz;
     this.usage = usage;
-    this.zOffset = cover == 0 ? Z_OFFSET : -Z_OFFSET;
+    this.cover = cover == 0;
   }
 
   public static Wpoint hold(int x, int y, Action weaponact, int cover) {
