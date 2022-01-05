@@ -1,26 +1,31 @@
 package base;
 
 public enum KeyOrder {
-  hit_ja("dja", Direction.SAME),
-  hit_aj("daj", Direction.SAME),
-  hit_Ua("dUa", Direction.SAME),
-  hit_Uj("dUj", Direction.SAME),
-  hit_Da("dDa", Direction.SAME),
-  hit_Dj("dDj", Direction.SAME),
-  hit_Ra("dRa", Direction.RIGHT),
-  hit_Rj("dRj", Direction.RIGHT),
-  hit_La("dLa", Direction.LEFT),
-  hit_Lj("dLj", Direction.LEFT),
-  hit_a ("a",   Direction.SAME),
-  hit_j ("j",   Direction.SAME),
-  hit_d ("d",   Direction.SAME);
+  hit_ja ("dja"),
+  hit_Ua ("dUa"),
+  hit_Uj ("dUj"),
+  hit_Da ("dDa"),
+  hit_Dj ("dDj"),
+  hit_Ra ("dRa"),
+  hit_Rj ("dRj"),
+  hit_La ("dLa"),
+  hit_Lj ("dLj"),
+  hit_a  ("a"),
+  hit_j  ("j"),
+  hit_d  ("d");
 
+  /**
+   * The representing key sequence of this {@code KeyOrder}.
+   */
   public final String keySequence;
-  public final Direction direction;
 
-  private KeyOrder(String keySequence, Direction direction) {
+  private KeyOrder(String keySequence) {
     this.keySequence = keySequence;
-    this.direction = direction;
+  }
+
+  @Override
+  public String toString() {
+    return String.join(".", getDeclaringClass().getSimpleName(), name());
   }
 
 }

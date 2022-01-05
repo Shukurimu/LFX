@@ -3,20 +3,34 @@ package component;
 /**
  * Apparently there are several functionalities which can take effect over time.
  * For instance, healing effect keeps regenerating target hero in 100 timeunits.
- * This class substitutes for specialized `state` and `next` as well.
+ * This class is introduced to serve those things, in addition to
+ * some special {@code itr}, {@code state}, and {@code next} as well.
  */
 public enum Effect {
-  // special itr-kind
+  /** Results from {@code Itr.BLOCK}. */
   MOVE_BLOCKING,
+  /** Results from {@code Itr.FORCE_ACTION}. */
   FORCE_SUPER_PUNCH,
+  /** Results from {@code Itr.SONATA}. */
   SONATA_UNFLIPPABLE,
-  // special state oneshot
-  REGENERATION,  // regen 8hp every 8tu over 100tu; the 1st 8hp is applied within 4tu.
-  HEALING,  // always exists for 100 tu
+  /** Results in {@code Itr.THROWN_DAMAGE} and landing injury. */
+  THROWN_ATTACK,
+  /** Transformation from grabbing mechanism. */
+  GRAB_TRANSFORM,
+  /** Regenerates 1 hp on average.  Effect ends if hp reaches hp2nd. */
+  REGENERATION,
+  /** Same as REGENERATION but always last for full 100 timeunit. */
+  HEALING,
+  /** next: 1100 ~ 1200 in LF2. */
   INVISIBLE,
-  // throwinjury condition
-  LANDING_INJURY;
-  // GENERAL_SHIELD, // Julian*2
-  // PLAIN_SHIELD, // Louis*1 Knight*2
+  /** Replenishable block non-element kind attack.  e.g., Louis & Knight. */
+  STANDARD_SHIELD,
+  /** Replenishable block all kind attack.  e.g., Julian. */
+  OMNI_SHIELD;
+
+  @Override
+  public String toString() {
+    return String.join(".", getDeclaringClass().getSimpleName(), name());
+  }
 
 }

@@ -5,29 +5,36 @@ import java.util.List;
 
 import base.KeyOrder;
 import base.Region;
+import base.Scope;
 import base.Type;
 import component.Action;
 import component.Effect;
 import component.Frame;
 import component.Itr;
-import util.Util;
 import util.Vector;
 
 public class BaseEnergy extends AbstractObject implements Energy {
   private static final System.Logger logger = System.getLogger("");
-  private static final List<Action> CHASEABLES = List.of(Action.JOHN_CHASE, Action.DENNIS_CHASE);
+  protected static final int DEFAULT_ITR_SCOPE =
+      Scope.ENEMY_HERO | Scope.ALL_WEAPON | Scope.ENEMY_ENERGY;
 
-  protected String soundHit;
+  protected String soundHit = "";
+  protected String soundDrop = "";
+  protected String soundBroken = "";
+
   protected int destroyCountdown = DESTROY_TIME;
   protected Action chasingFunction = Action.UNASSIGNED;
   protected Hero chasingFocus = null;
 
-  protected BaseEnergy(String identifier, List<Frame> frameList) {
-    super(identifier, Type.ENERGY, frameList);
+  protected BaseEnergy(Frame.Collector collector) {
+    super(Type.ENERGY, collector);
   }
 
   private BaseEnergy(BaseEnergy base) {
     super(base);
+    soundHit = base.soundHit;
+    soundDrop = base.soundDrop;
+    soundBroken = base.soundBroken;
   }
 
   @Override
@@ -54,11 +61,11 @@ public class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected Action updateByState() {
-    if (chasingFunction == Action.JOHN_CHASE) {
+    if (chasingFunction.index == 1) {
       return moveJohnChase(null);
-    } else if (chasingFunction == Action.JOHN_CHASE_FAST) {
+    } else if (chasingFunction.index == 10) {
       return moveJohnFast(null);
-    } else if (chasingFunction == Action.DENNIS_CHASE) {
+    } else if (chasingFunction.index == 2) {
       return moveDennisChase(null);
     }
     return Action.UNASSIGNED;
@@ -86,7 +93,7 @@ public class BaseEnergy extends AbstractObject implements Energy {
 
   private Action moveDennisChase(Action nextAct) {
     if (hp <= 0.0) {
-      if (!Action.DENNIS_CHASE_AWAY.includes(frame.curr)) {
+      if (!Action.DENNIS_CHASE_AWAY.contains(frame.curr)) {
         nextAct = Action.DENNIS_CHASE_AWAY;
       }
       vx = vx >= 0.0 ? Math.min(CHASE_VXOUT, vx + CHASE_AX)
@@ -98,12 +105,12 @@ public class BaseEnergy extends AbstractObject implements Energy {
     if (((pos.x() - px) >= 0.0) == (vx >= 0.0)) {
       // TODO: set every timeunit or condition
       // straight
-      if (!Action.DENNIS_CHASE_CHANGEDIR.includes(frame.curr)) {
+      if (!Action.DENNIS_CHASE_CHANGEDIR.contains(frame.curr)) {
         nextAct = Action.DENNIS_CHASE_CHANGEDIR;
       }
     } else {
       // changedir
-      if (Action.DENNIS_CHASE_CHANGEDIR.includes(frame.curr)) {
+      if (Action.DENNIS_CHASE_CHANGEDIR.contains(frame.curr)) {
         nextAct = Action.DENNIS_CHASE_STRAIGHT;
       }
     }
@@ -151,9 +158,9 @@ public class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  public void run(List<Observable> allObjects) {
+  public void run(int timestamp, List<Observable> allObjects) {
     chasingFunction = frame.combo.getOrDefault(KeyOrder.hit_Ra, Action.UNASSIGNED);
-    if (CHASEABLES.contains(chasingFunction) && chasingFocus == null) {
+    if (chasingFocus == null) {
       Observable result = allObjects.stream()
           .filter(o -> o.getType() == Type.HERO && o.exists() && o.getTeamId() != teamId)
           .min((a, b) -> Double.compare(Math.abs(a.getPosX() - px), Math.abs(b.getPosX() - px)))
@@ -162,7 +169,7 @@ public class BaseEnergy extends AbstractObject implements Energy {
         chasingFocus = x;
       }
     }
-    super.run(allObjects);
+    super.run(timestamp, allObjects);
   }
 
   @Override
@@ -176,20 +183,20 @@ public class BaseEnergy extends AbstractObject implements Energy {
       // time. (e.g., DennisChase's first 4 frames)
       return false;
     }
-    pz = Util.clamp(pz, boundary.z1(), boundary.z2());
+    pz = Math.min(Math.max(pz, boundary.z1()), boundary.z2());
     return true;
-  }
-
-  @Override
-  public void receiveItr(Observable source, Itr itr, Region absoluteRegion) {
-    // TODO Auto-generated method stub
-
   }
 
   @Override
   public void sendItr(Observable target, Itr itr) {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public boolean receiveItr(Observable source, Itr itr, Region absoluteRegion) {
+    // TODO Auto-generated method stub
+    return false;
   }
 
 }

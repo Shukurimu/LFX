@@ -45,4 +45,8 @@ public interface Field extends Environment {
    */
   void stepOneFrame();
 
+  // https://lf-empire.de/images/lf2-empire/dc-tutor/ratio.png
+  // CRAZY! ratio = int(x * int(i * 1.5 + 1.0))
+  // NORMAL ratio = int(x * i)
+
 }

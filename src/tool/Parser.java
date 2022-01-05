@@ -1,242 +1,366 @@
 package tool;
 
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Set;
+
 import base.Type;
+import component.Bdy;
+import component.Cpoint;
+import component.Frame;
+import component.Itr;
+import component.Opoint;
+import component.Wpoint;
+import object.BaseEnergy;
+import object.BaseHero;
+import object.BaseWeapon;
+import util.IntMap;
 import util.Tuple;
 
 /**
  * This parser is only reponsible for original LF2 version.
  */
 public class Parser {
-  static final Pattern bmpTagPattern = Pattern.compile("<bmp_begin>(.*?)<bmp_end>", Pattern.DOTALL);
-  static final Pattern frameTagPattern =
-      Pattern.compile("<frame>\\s*(\\d+)(.*?)\n(.*?)<frame_end>", Pattern.DOTALL);
-  static final Pattern strengthTagPattern =
-      Pattern.compile("<weapon_strength_list>(.*?)<weapon_strength_list_end>", Pattern.DOTALL);
-  static final Pattern strengthBlockPattern =
-      Pattern.compile("entry *: *\\d+ +(\\S+)(.*?)((?=entry)|$)", Pattern.DOTALL);
-  static final Pattern imageFilePattern = Pattern.compile("file.*?: *(\\S+) +(.*)");
-  static final Pattern staminaPattern = Pattern.compile("([_\\w]+) +(\\S+)");
-  static final Set<String> imageKeySet = Set.of("w", "h", "row", "col");
-  static final Set<String> heroStaminaKeys = Set.of("name", "head", "small");
-  static final Set<String> itemStaminaKeys = Set.of(
-      "weapon_hp", "weapon_drop_hurt",
-      "weapon_hit_sound", "weapon_drop_sound", "weapon_broken_sound"
-  );
+  private static final System.Logger logger = System.getLogger("");
 
   final Type type;
   final String identifier;
-  final List<String> lineList = new ArrayList<>(2400);
+  final String baseClassName;
+  final LinkedList<String> lineList = new LinkedList<>();
+  final Map<String, Double> stamina = new LinkedHashMap<>();
+  final Map<String, String> bmpInfo = new LinkedHashMap<>();
+  final Map<Wpoint.Usage, String> strengthMap = new EnumMap<>(Wpoint.Usage.class);
+  int indentLevel = 0;
 
   Parser(Type type, String identifier) {
     this.type = type;
     this.identifier = identifier;
+    baseClassName = (switch (type) {
+      case HERO -> BaseHero.class;
+      case DRINK, HEAVY, LIGHT, SMALL -> BaseWeapon.class;
+      case ENERGY -> BaseEnergy.class;
+      default -> throw new IllegalArgumentException();
+    }).getSimpleName();
   }
 
-  static String indent(int level) {
-    return "  ".repeat(level);
+  static String asPath(String rawString) {
+    return String.format("\"%s\"", rawString.replace("\\", "/"));
   }
 
-  String processImageLine(String tagContent) {
-    // file(0-99): sprite\sys\weapon7.bmp  w: 69  h: 69  row: 10  col: 4
-    StringBuilder builder = new StringBuilder(1024);
-    Matcher matcher = imageFilePattern.matcher(tagContent);
+  static final Pattern INT_PATTERN = Pattern.compile("(\\w+) *: *([-0-9]+)");
+  static final Pattern STRING_PATTERN = Pattern.compile("(\\w+) *: *(\\S+)");
+
+  /**
+   * Extracts every colon-separating key-value pair in given content.
+   * Values are converted to {@code Integer}s.
+   * Shows warning if there are contents cannot be parsed.
+   *
+   * @param content the searching space
+   * @return a Map containing key-value pairs
+   */
+  static IntMap parseIntValue(String content) {
+    HashMap<String, Integer> result = new HashMap<>(32);
+    StringBuilder sentinel = new StringBuilder(64);
+    Matcher matcher = INT_PATTERN.matcher(content);
     while (matcher.find()) {
-      Map<String, Integer> data =
-          Extractor.wrapInt(Extractor.extract(imageKeySet, matcher.group(2), "Image"));
-      lineList.add(indent(2) +
-          String.format("imageList.addAll(ImageCell.loadImageCells(%s, %s, %s, %s, %s));",
-                        FrameExtractor.asPath(matcher.group(1)),
-                        data.get("w").toString(),
-                        data.get("h").toString(),
-                        data.get("row").toString(),
-                        data.get("col").toString()
-      ));
-      matcher.appendReplacement(builder, "");
+      matcher.appendReplacement(sentinel, "");
+      String key = matcher.group(1);
+      String value = matcher.group(2);
+      result.put(key, Integer.valueOf(value));
     }
-    lineList.add("");
-    matcher.appendTail(builder);
-    return builder.toString();
+    matcher.appendTail(sentinel);
+
+    String remaining = sentinel.toString().trim();
+    if (!remaining.isEmpty()) {
+      logger.log(Level.WARNING, "NoMapping [[{0}]]\n{1}", remaining, content);
+    }
+    return IntMap.of(result);
   }
 
-  void itemBmpTag(String bmpContent) {
-    bmpContent = processImageLine(bmpContent);
-    Map<String, String> data = Extractor.extract(itemStaminaKeys, bmpContent, "stamina");
-    lineList.add(indent(2) + "Map<String, String> stamina = new HashMap<>();");
-    for (Map.Entry<String, String> entry : data.entrySet()) {
-      lineList.add(indent(2) +
-          String.format("stamina.put(%s, %s);",
-                        FrameExtractor.asPath(entry.getKey()),
-                        FrameExtractor.asPath(entry.getValue()))
-      );
+  /**
+   * Extracts every colon-separating key-value pair in given content.
+   *
+   * @param content the searching space
+   * @return a Map containing key-value pairs
+   */
+  static Map<String, String> parseStringValue(String content) {
+    Map<String, String> result = new HashMap<>(32);
+    Matcher matcher = STRING_PATTERN.matcher(content);
+    while (matcher.find()) {
+      String key = matcher.group(1);
+      String value = matcher.group(2);
+      result.put(key, value);
     }
-    return;
+    return result;
   }
 
-  void heroBmpTag(String bmpContent) {
-    bmpContent = processImageLine(bmpContent);
-    Map<String, String> data = Extractor.extract(heroStaminaKeys, bmpContent, "stamina");
-    lineList.add(indent(2) +
-        String.format("ImageCell portrait = ImageCell.loadPortrait(%s);",
-                      FrameExtractor.asPath(data.get("head")))
-    );
+  static final Pattern IMAGE_CELL_PATTERN = Pattern.compile("file[^:]*: *(\\S+) +(.*)");
+  static final Pattern STAMINA_PATTERN = Pattern.compile("(\\w+) +(\\S+)");
+
+  void processBmpTag(String bmpContent) {
+    StringBuilder remaining = new StringBuilder(256);
+    // file(0-69): sprite\template1\0.bmp  w: 79  h: 79  row: 10  col: 7
+    Matcher matcher = IMAGE_CELL_PATTERN.matcher(bmpContent);
+    while (matcher.find()) {
+      matcher.appendReplacement(remaining, "");
+      IntMap data = parseIntValue(matcher.group(2));
+      System.out.printf("ImageCell.loadImageCells(%s, %d, %d, %d, %d);%n",
+          asPath(matcher.group(1)),
+          data.pop("w"), data.pop("h"), data.pop("row"), data.pop("col"));
+    }
     // walking_frame_rate 3
-    // walking_speed 5.000000
-    // walking_speedz 2.500000
-    // ...
-    lineList.add("");
-    lineList.add(indent(2) + "Map<String, Double> stamina = new HashMap<>();");
-    Matcher matcher = staminaPattern.matcher(bmpContent);
+    // walking_speed 4.000000
+    // walking_speedz 2.000000
+    matcher.usePattern(STAMINA_PATTERN);
     while (matcher.find()) {
+      matcher.appendReplacement(remaining, "");
       if (!matcher.group(1).endsWith("_rate")) {
-        lineList.add(indent(2) +
-            String.format("stamina.put(%s, %.2f);",
-                          FrameExtractor.asPath(matcher.group(1)),
-                          Double.valueOf(matcher.group(2))
-        ));
+        stamina.put(matcher.group(1), Double.valueOf(matcher.group(2)));
       }
     }
+    matcher.appendTail(remaining);
+    // =============== HERO ===============
+    // name: Template
+    // head: sprite\template1\face.bmp
+    // small: sprite\template1\s.bmp
+    // ============== WEAPON ==============
+    // weapon_hp: 200
+    // weapon_drop_hurt: 35
+    // ========== WEAPON & ENERGY =========
+    // weapon_hit_sound: data\023.wav
+    // weapon_drop_sound: data\023.wav
+    // weapon_broken_sound: data\066.wav
+    bmpInfo.putAll(parseStringValue(remaining.toString()));
     return;
   }
 
-  void strengthTag(String strengthContent) {
+  static final Pattern STRENGTH_BLOCK_PATTERN =
+      Pattern.compile("entry *: *(\\d+) +\\S+(.*?)((?=entry)|$)", Pattern.DOTALL);
+
+  void processStrengthTag(String strengthContent) {
     //  entry: 1 normal
     //    dvx: 2  fall: 40  vrest: 10 bdefend: 16  injury: 30  effect: 3
     //  entry: 2 jump
     //    dvx: 7  fall: 70  vrest: 10  bdefend: 16   injury: 30  effect: 3
     //  ...
-    Matcher matcher = strengthBlockPattern.matcher(strengthContent);
+    Matcher matcher = STRENGTH_BLOCK_PATTERN.matcher(strengthContent);
     while (matcher.find()) {
-      Map<String, Integer> data =
-          Extractor.wrapInt(Extractor.extract(ItrExtractor.validKeys, matcher.group(2), "wpstr"));
-      String itr = String.format("Itr.strength(Itr.Kind.%s, %s)",
-                                 ItrExtractor.getKind(0, data.getOrDefault("effect", 0)).toString(),
-                                 String.join(", ", ItrExtractor.getCommonArgs(data, false))
-      );
-      lineList.add(indent(2) +
-          String.format("strength.put(Wpoint.Usage.%s, %s);", matcher.group(1).toUpperCase(), itr)
-      );
+      Wpoint.Usage usage = Wpoint.convertUsage(Integer.parseInt(matcher.group(1)));
+      IntMap data = parseIntValue(matcher.group(2));
+      data.put("kind", 0);
+      strengthMap.put(usage, Itr.extractStrength(data));
     }
     return;
   }
 
-  void insertConstructorLines() {
-    String declarationBase = "";
-    String superCallBase = "";
-    if (type.isHero) {
-      declarationBase = indent(1) +
-          "private %s(List<Frame> frameList, Map<String, Double> stamina, ImageCell portrait) {";
-      superCallBase = indent(2) + "super(%s, frameList, stamina, portrait);";
-    } else if (type.isWeapon) {
-      declarationBase = indent(1) +
-          "private %s(List<Frame> frameList, Map<String, String> stamina, Type type, Map<Wpoint.Usage, Itr> strengthMap) {";
-      superCallBase = indent(2) + "super(%s, frameList, stamina, type, strengthMap);";
-    } else {
-      declarationBase = indent(1) +
-          "private %s(List<Frame> frameList, Map<String, String> stamina) {";
-      superCallBase = indent(2) + "super(%s, frameList, stamina);";
-    }
-    lineList.add(String.format(declarationBase, identifier));
-    lineList.add(String.format(superCallBase, FrameExtractor.asPath(identifier)));
-    lineList.add(indent(1) + "}");
-    return;
-  }
+  static final Pattern BLOCK_PATTERN =
+      Pattern.compile("(?<=\\s)(\\w+):(.*?)\\1_end:", Pattern.DOTALL);
+  static final Pattern SOUND_PATTERN = Pattern.compile("sound *: *(\\S+)");
 
-  void parse(String baseClass, String content) {
-    lineList.add("package data;");
-    lineList.add("");
-    lineList.add("import java.util.ArrayList;");
-    lineList.add("import java.util.HashMap;");
-    lineList.add("import java.util.List;");
-    lineList.add("import java.util.Map;");
-    lineList.add("import base.*;");
-    lineList.add("import component.*;");
-    lineList.add("import util.ImageCell;");
-    lineList.add("");
-    lineList.add(String.format(
-        "public class %s extends lfx.game.object.%s {", identifier, baseClass
-    ));
-    lineList.add(indent(1) + String.format("private static %s singleton = null;", identifier));
-    lineList.add("");
-    insertConstructorLines();
-    lineList.add("");
-    lineList.add(indent(1) + String.format("public static synchronized %s of() {", identifier));
-    lineList.add(indent(2) + "if (singleton != null) { return singleton; }");
-    lineList.add("");
-
-    StringBuilder builder = new StringBuilder(128);
-    Matcher matcher = bmpTagPattern.matcher(content);
-    matcher.find();
-    matcher.appendReplacement(builder, "");
-    lineList.add(indent(2) + "List<ImageCell> imageList = new ArrayList<>(280);");
-    if (type.isHero) {
-      heroBmpTag(matcher.group(1));
-    } else if (type.isEnergy) {
-      itemBmpTag(matcher.group(1));
-    } else {
-      itemBmpTag(matcher.group(1));
-      lineList.add("");
-      lineList.add(indent(2) + "Map<Wpoint.Usage, Itr> strength = new HashMap<>(4);");
-      matcher.usePattern(strengthTagPattern);
-      if (matcher.find()) {
-        strengthTag(matcher.group(1));
-        matcher.appendReplacement(builder, "");
-      }
-    }
-    lineList.add("");
-    lineList.add(indent(2) + "DataCollector collector = new DataCollector(imageList, 400);");
-
-    int frameCount = 0;
-    matcher.usePattern(frameTagPattern);
+  static List<String> processFrameTag(Type type, int frameNumber, String frameContent) {
+    List<Tuple<String, String>> pendingBlocks = new ArrayList<>();
+    StringBuilder builder = new StringBuilder(1024);
+    Matcher matcher = BLOCK_PATTERN.matcher(frameContent);
     while (matcher.find()) {
+      logger.log(Level.DEBUG, matcher.group(1));
       matcher.appendReplacement(builder, "");
-      int frameNumber = Integer.parseInt(matcher.group(1));
-      if (frameNumber == 399) {  // dummy
-        continue;
+      if (!matcher.group(1).equals("bpoint")) {
+        pendingBlocks.add(new Tuple<>(matcher.group(1), matcher.group(2).trim()));
       }
-      ++frameCount;
-      lineList.add("");
-      lineList.add(indent(2) + String.format("collector.add(  // %s", matcher.group(2).trim()));
-      List<String> frameArgumentLines = FrameExtractor.getFrameArgumentLines(
-          type, frameNumber, matcher.group(3));
-      for (Iterator<String> it = frameArgumentLines.iterator(); it.hasNext(); ) {
-        lineList.add(indent(3) + it.next() + (it.hasNext() ? "," : ""));
-      }
-      lineList.add(indent(2) + ");");
     }
     matcher.appendTail(builder);
-    content = builder.toString().trim();
 
-    List<String> argList = new ArrayList<>(6);
-    argList.add("collector.getFrameList()");
-    argList.add("stamina");
-    if (type.isHero) {
-      argList.add("portrait");
-    } else if (type.isWeapon) {
-      argList.add("Type." + type.toString());
-      argList.add("strength");
+    frameContent = SOUND_PATTERN.matcher(builder.toString().trim()).replaceFirst("");
+    IntMap frameData = parseIntValue(frameContent);
+    int rawState = frameData.pop("state");
+
+    List<String> blockResult = new ArrayList<>();
+    for (Tuple<String, String> e : pendingBlocks) {
+      IntMap data = parseIntValue(e.second);
+      String content = switch (e.first) {
+        case "opoint" -> Opoint.extract(data);
+        case "wpoint" -> Wpoint.extract(data);
+        case "cpoint" -> {
+          frameData.replace("hit_a", 0, data.pop("aaction", 0));
+          yield Cpoint.extract(data);
+        }
+        case "bdy" -> Bdy.extract(data, rawState);
+        case "itr" -> Itr.extract(data, rawState, type);
+        default -> throw new IllegalArgumentException(e.toString());
+      };
+      blockResult.add(".add(%s)".formatted(content));
+      for (Map.Entry<String, Integer> x : data.entrySet()) {
+        logger.log(Level.WARNING, "{0} remains {1}\n{2}", e.first, x, e.second);
+      }
     }
-    String args = String.join(", ", argList);
 
-    lineList.add("");
-    lineList.add(indent(2) + String.format("singleton = new %s(%s);", identifier, args));
-    lineList.add(indent(2) + "singleton.registerLibrary();");
-    lineList.add(indent(2) + "return singleton;");
-    lineList.add(indent(1) + "}");
-    lineList.add("");
-    lineList.add("}");
+    List<String> result = Frame.extract(frameData, type, rawState, frameNumber);
+    result.addAll(blockResult);
+    String last = result.remove(result.size() - 1);
+    result.add(last + ";");
+    return result;
+  }
+
+  void emplaceFileContent() {
+    String importLib = "";
+    String constructor = null;
+    String preparation = null;
+    switch (type) {
+      case HERO: {
+        importLib = """
+
+        import java.util.HashMap;
+
+        import util.Vector;\
+        """;
+        constructor = """
+        private %s(Frame.Collector collector, HashMap<String, Double> stamina) {
+          super(collector, %s, stamina);
+        }
+        """.formatted(identifier, asPath(bmpInfo.get("head")));
+        List<String> statement = new ArrayList<>(16);
+        statement.add("var stamina = new HashMap<String, Double>();");
+        for (Map.Entry<String, Double> e : stamina.entrySet()) {
+          statement.add("stamina.put(\"%s\", %.2f);".formatted(e.getKey(), e.getValue()));
+        }
+        statement.add("singleton = new %s(collector, stamina);".formatted(identifier));
+        preparation = String.join("\n", statement);
+        break;
+      }
+      case LIGHT:
+      case HEAVY:
+      case SMALL:
+      case DRINK: {
+        importLib = """
+
+        import java.util.EnumMap;
+        """;
+        constructor = """
+        private %s(Frame.Collector collector, EnumMap<Wpoint.Usage, Itr> strength) {
+          super(collector, %s, strength);
+          hpMax = %d;
+          dropHurt = %d;
+          soundHit = %s;
+          soundDrop = %s;
+          soundBroken = %s;
+        }
+        """.formatted(
+            identifier, type,
+            Integer.valueOf(bmpInfo.get("weapon_hp")),
+            Integer.valueOf(bmpInfo.get("weapon_drop_hurt")),
+            asPath(bmpInfo.get("weapon_hit_sound")),
+            asPath(bmpInfo.get("weapon_drop_sound")),
+            asPath(bmpInfo.get("weapon_broken_sound")));
+
+        List<String> statement = new ArrayList<>(16);
+        statement.add("var strength = new EnumMap<Wpoint.Usage, Itr>(Wpoint.Usage.class);");
+        for (Map.Entry<Wpoint.Usage, String> e : strengthMap.entrySet()) {
+          statement.add("strength.put(%s, %s);".formatted(e.getKey(), e.getValue()));
+        }
+        statement.add("singleton = new %s(collector, strength);".formatted(identifier));
+        preparation = String.join("\n", statement);
+        break;
+      }
+      case ENERGY:
+        constructor = """
+        private %s(Frame.Collector collector) {
+          super(collector);
+          soundHit = %s;
+          soundDrop = %s;
+          soundBroken = %s;
+        }
+        """.formatted(
+            identifier,
+            asPath(bmpInfo.get("weapon_hit_sound")),
+            asPath(bmpInfo.get("weapon_drop_sound")),
+            asPath(bmpInfo.get("weapon_broken_sound")));
+        preparation = "singleton = new %s(collector);".formatted(identifier);
+        break;
+      default:
+        throw new IllegalArgumentException(type.toString());
+    }
+
+    lineList.addFirst("""
+    package data;
+    %4$s
+    import base.*;
+    import component.*;
+
+    public class %1$s extends object.%2$s {
+      private static %1$s singleton = null;
+      \n%3$s
+
+      public static %1$s register() {
+        if (singleton != null) { return singleton; }
+
+        var collector = new Frame.Collector();
+    """.formatted(identifier, baseClassName, constructor.indent(2), importLib));
+
+    lineList.addLast("""
+        // bmp content\n%s
+        return singleton;
+      }
+
+    }
+    """.formatted(preparation.indent(4)));
+    return;
+  }
+
+  void parse(String content) {
+    Pattern TAG_PATTERN = Pattern.compile("<(\\w+)(?:_begin)?>\\s+(.*?)<\\1_end>", Pattern.DOTALL);
+    Matcher matcher = TAG_PATTERN.matcher(content);
+    StringBuilder builder = new StringBuilder(128);
+    int frameCount = 0;
+    while (matcher.find()) {
+      logger.log(Level.DEBUG, "<{0}>", matcher.group(1));
+      logger.log(Level.TRACE, "\n{0}", matcher.group(2));
+      matcher.appendReplacement(builder, "");
+      switch (matcher.group(1)) {
+        case "bmp":
+          processBmpTag(matcher.group(2));
+          break;
+        case "weapon_strength_list":
+          processStrengthTag(matcher.group(2));
+          break;
+        case "frame": {
+          // <frame> 207 tired
+          // pic: 69  state: 15  wait: 2  next: 0
+          // ...
+          // <frame_end>
+          String[] part = matcher.group(2).split("\n", 2);
+          logger.log(Level.DEBUG, "[{0}]", part[0]);
+          logger.log(Level.TRACE, "\n{0}", part[1]);
+          int splitIndex = part[0].indexOf(" ");
+          int frameNumber = Integer.parseInt(part[0].substring(0, splitIndex));
+
+          lineList.add("    collector  //" + part[0].substring(splitIndex));
+          for (String s : processFrameTag(type, frameNumber, part[1])) {
+            lineList.add(" ".repeat(6) + s);
+          }
+          lineList.add("");
+          ++frameCount;
+          break;
+        }
+        default:
+          throw new IllegalArgumentException(matcher.group(1));
+      }
+    }
+
+    matcher.appendTail(builder);
+    content = builder.toString().trim();
     System.err.printf("Collect %d frames in %s. Remaining: %s%n",
                       frameCount, identifier, content.isEmpty() ? "(empty)" : content);
-    return;
+    emplaceFileContent();
   }
 
   public static void main(String[] args) {
@@ -246,7 +370,7 @@ public class Parser {
     }
     Path sourcePath = Path.of(args[0]);
     String fileName = sourcePath.getFileName().toString().split("\\.")[0];
-    Tuple<Type, String> info = OpointExtractor.getInfo(fileName);
+    Tuple<Type, String> info = Type.getInfo(fileName);
     if (info == null) {
       System.err.println("File not supported: " + args[0]);
       return;
@@ -262,10 +386,9 @@ public class Parser {
     }
 
     Parser parser = new Parser(info.first, info.second);
-    parser.parse(info.first.isHero ? "BaseHero" :
-                 info.first.isWeapon ? "BaseWeapon": "BaseEnergy", content);
+    parser.parse(content);
 
-    Path targetPath = Path.of("lfx", "data", fileName = info.second + ".java");
+    Path targetPath = Path.of("src", "data", fileName = info.second + ".java");
     try {
       Files.createDirectories(targetPath.getParent());
       Files.write(targetPath, parser.lineList,

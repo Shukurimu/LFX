@@ -1,94 +1,122 @@
 package component;
 
-import util.Util;
+import java.util.Random;
 
+/**
+ * Define frame connection -- next & hit_xx.
+ */
 public class Action {
+
+  /**
+   * Maximum amount of {@code Action} allowed.
+   */
   public static final int ACTION_LIMIT = 400;
-  public static final Action UNASSIGNED = new Action();
-  public static final Action DEFAULT = new Action();
-  public static final Action DEFAULT_REVERSE = new Action();
-  public static final Action REPEAT = new Action();
-  public static final Action REMOVAL = new Action();
-  // https://www.lf-empire.de/en/lf2-empire/data-changing/reference-pages/183-effect-3-hitfa
-  // hit_Fa:   Effect:   Picture Sequence:   Activate:   Ex.:   Extras:
-  public static final Action JOHN_CHASE = new Action();
-  // 1   Chasingball   (x-, y-, z-axis)   0-1-2-3-0 (next)
-  //     Flying, hit, hiting, rebound
-  //     John: Energy Disk
-  public static final Action DENNIS_CHASE = new Action();
-  // 2   Chasingball   (x-, y-, z-axis)   0=start (dvx!), 1&2=curves, 3&4=lines, in a group: next
-  //     Flying, hit, hiting, rebound
-  //     Dennis: Chase Ball
-  public static final Action BOOMERANG_CHASE = new Action();
-  // 3   Chasingball   (x-, z-axis)   0-1-2-3-0 (next)
-  //     Flying, hit, hiting, rebound
-  //     Boomerang weapon9
-  //     Does not change facing direction even when turning.
-  public static final Action JAN_CHASE = new Action();
-  // 4   Chasingball, healing,   (x-, y-, z-axis)   0-1-2-3-0 (next)
-  //     Flying, hit_ground, (frame 60)
-  //     Jan: Angel Created with hit_Fa: 5.
-  //     Have to be used after a frame with hit_Fa: 3.
-  public static final Action FIRZEN_CHASE = new Action();
-  // 7   Chasingball, (x-, y-(down), z-axis)   0-1-2-3-0 (next)
-  //     Flying, hit, hiting, rebound, tail, hit_ground
-  //     Firzen: Disaster Created with hit_Fa: 9.
-  //     Have to be used after a frame with hit_Fa: 3.
-  public static final Action JOHN_CHASE_FAST = new Action();
-  // 10  Movingball, (x-axis)   0-1-2-3-0 (next)
-  //     Flying, hit, hiting, rebound
-  //     John: Energy Disk
-  //     Used to move away attacks after timer is down.
-  public static final Action BAT_CHASE_FAST = new Action();
-  // 12  Chasingball (x-, y-, z-axis)   0-1-2-3-0 (next)
-  //     Flying, hit, hiting, rebound
-  //     Bat: Bats
-  //     Look at: hit_Fa: 1
-  public static final Action JULIAN_CHASE_FAST = new Action();
-  // 14  Chasingball (x-, z-axis)   0-9=lines, 50-59=curves, in a group: next
-  //     Flying (2x), hit, hiting, rebound
-  //     Julian: Skull Blasts
 
-  public final int index;  // positive
+  /**
+   * Internal cache.
+   */
+  private static final Action[] cache = new Action[ACTION_LIMIT];
+
+  /**
+   * Follows the rule of {@code wait} - {@code next} flow.
+   */
+  public static final Action UNASSIGNED = new Action(Integer.MAX_VALUE, false);
+
+  /**
+   * The object will do the same {@code Action} in next timestamp.
+   */
+  public static final Action REPEAT = new Action(0, false);
+
+  /**
+   * Asks the object to perform a proper {@code Action}.
+   * The result varies by {@code Type} and {@code State}.
+   */
+  public static final Action DEFAULT = new Action(999, false);
+
+  /**
+   * Same as {@code Action.DEFAULT} expect for changing direction.
+   */
+  public static final Action DEFAULT_REVERSE = new Action(-999, false);
+
+  /**
+   * Indicates the object will be removed from a {@code Field}.
+   */
+  public static final Action REMOVAL = new Action(1000, false);
+
+  /**
+   * The index of this {@code Action} in a {@code Frame} list.
+   */
+  public final int index;
+
+  /**
+   * Whether the object should change facing direction
+   * after transiting to this {@code Action}.
+   */
   public final boolean changeFacing;
-  private final int indexTo;  // exclusive
 
-  public Action(int rawActNumber) {
-    if (rawActNumber >= 0) {
-      index = rawActNumber;
-      changeFacing = false;
+  private Action(int index, boolean changeFacing) {
+    this.index = index;
+    this.changeFacing = changeFacing;
+  }
+
+  /**
+   * Returns an {@code Action} instance representing the specified number.
+   * Special action number cases are handled.
+   *
+   * @param value a raw action number
+   * @return a proper {@code Action} instance
+   * @throws IllegalArgumentException if the given value is invalid
+   */
+  public static Action of(int value) {
+    if (value >= ACTION_LIMIT || value <= -ACTION_LIMIT) {
+      throw new IllegalArgumentException("" + value);
+    }
+    if (value >= 0) {
+      if (cache[value] == null) {
+        return cache[value] = new Action(value, false);
+      } else {
+        return cache[value];
+      }
     } else {
-      index = -rawActNumber;
-      changeFacing = true;
+      return new Action(-value, true);
     }
-    if (index >= ACTION_LIMIT) {
-      throw new IndexOutOfBoundsException(rawActNumber);
-    }
-    indexTo = index;
   }
 
-  private Action() {
-    index = indexTo = -1;
-    changeFacing = false;
-  }
-
-  private Action(int indexFrom, int range) {
-    this.index = indexFrom;
-    this.indexTo = indexFrom + range;
-    changeFacing = false;
-  }
-
-  public boolean includes(int actionNumber) {
-    return indexTo > actionNumber && actionNumber >= index;
-  }
-
-  public Action shifts(int delta) {
+  /**
+   * Checks if this {@code Action} contains the given action number.
+   *
+   * @param actionNumber to check
+   * @return {@code true} if the action number is one of this {@code Action}
+   * @throws UnsupportedOperationException on non pre-defined {@code Action}s
+   * @see DefinedAction
+   */
+  public boolean contains(int actionNumber) {
     throw new UnsupportedOperationException();
   }
 
-  @Override
-  public boolean equals(Object o) {
-    return o instanceof Action x && x.index == index;
+  /**
+   * Returns an {@code Action} matching the query.
+   * Use cases include hidden frame counter and weapon state change.
+   *
+   * @param delta change to this {@code Action}
+   * @return the targeting {@code Action}
+   * @throws UnsupportedOperationException on non pre-defined {@code Action}s
+   * @see ReferenceAction
+   */
+  public Action shift(int delta) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns a randomly selected state of this {@code Action}.
+   *
+   * @param random the random instance to perform query
+   * @return a random {@code Action}
+   * @throws UnsupportedOperationException on non pre-defined {@code Action}s
+   * @see ReferenceAction
+   */
+  public Action shift(Random random) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -96,156 +124,190 @@ public class Action {
     return String.format("Action[%d, changeFacing=%b]", index, changeFacing);
   }
 
-  private static final Action[] generateInnerStates(Action base) {
-    Action[] array = new Action[base.indexTo - base.index];
-    for (int i = 0, act = base.index; act < base.indexTo; ++i, ++act) {
-      array[i] = new Action(act, 0);
+  private static class DefinedAction extends Action {
+    protected final int indexTo;
+
+    DefinedAction(int indexFrom, int range) {
+      super(indexFrom, false);
+      indexTo = indexFrom + range;
     }
-    return array;
+
+    @Override
+    public boolean contains(int actionNumber) {
+      return indexTo > actionNumber && actionNumber >= index;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("DefinedAction[%d:%d]", index, indexTo);
+    }
+
   }
 
-  public static final Action HERO_STANDING = new Action(0, 5);
-  public static final Action HERO_WALKING = new Action(5, 4) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
-      return innerStates[delta];
-    }
-  };
-  public static final Action HERO_RUNNING = new Action(9, 3) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
-      return innerStates[delta];
-    }
-  };
-  public static final Action HERO_HEAVY_WALK = new Action(12, 4) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
-      return innerStates[delta];
-    }
-  };
-  public static final Action HERO_HEAVY_RUN = new Action(16, 3) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int delta) {
-      return innerStates[delta];
-    }
-  };
-  public static final Action HERO_HEAVY_STOP_RUN = new Action(19, 1);
-  public static final Action HERO_WEAPON_ATK1 = new Action(20, 5);
-  public static final Action HERO_WEAPON_ATK2 = new Action(25, 5);
-  public static final Action HERO_JUMP_WEAPON_ATK = new Action(30, 5);
-  public static final Action HERO_RUN_WEAPON_ATK = new Action(35, 5);
-  public static final Action HERO_DASH_WEAPON_ATK = new Action(40, 5);
-  public static final Action HERO_LIGHT_WEAPON_THROW = new Action(45, 5);
-  public static final Action HERO_HEAVY_WEAPON_THROW = new Action(50, 2);
-  public static final Action HERO_SKY_WEAPON_THROW = new Action(52, 3);
-  public static final Action HERO_DRINK = new Action(55, 5);
-  public static final Action HERO_PUNCH1 = new Action(60, 5);
-  public static final Action HERO_PUNCH2 = new Action(65, 5);
-  public static final Action HERO_SUPER_PUNCH = new Action(70, 10);
-  public static final Action HERO_JUMP_ATK = new Action(80, 5);
-  public static final Action HERO_RUN_ATK = new Action(85, 5);
-  public static final Action HERO_DASH_ATK = new Action(90, 5);
-  public static final Action HERO_DASH_DEF = new Action(95, 0);
-  public static final Action HERO_LANDING_ACT = new Action(94, 0);
-  public static final Action HERO_FLIP1 = new Action(100, 2);
-  public static final Action HERO_ROLLING = new Action(102, 6);
-  public static final Action HERO_FLIP2 = new Action(108, 2);
-  public static final Action HERO_DEFEND = new Action(110, 1);
-  public static final Action HERO_DEFEND_HIT = new Action(111, 1);
-  public static final Action HERO_BROKEN_DEF = new Action(112, 3);
-  public static final Action HERO_PICK_LIGHT = new Action(115, 1);
-  public static final Action HERO_PICK_HEAVY = new Action(116, 4);
-  public static final Action HERO_CATCH = new Action(120, 10);
-  public static final Action HERO_CAUGHT = new Action(130, 20);
-  public static final Action HERO_FORWARD_FALL = new Action(180, 6);
-  public static final Action HERO_FORWARD_FALL1 = new Action(180, 1);
-  public static final Action HERO_FORWARD_FALL2 = new Action(181, 1);
-  public static final Action HERO_FORWARD_FALL3 = new Action(182, 1);
-  public static final Action HERO_FORWARD_FALL4 = new Action(183, 1);
-  public static final Action HERO_FORWARD_FALL5 = new Action(184, 1);
-  public static final Action HERO_FORWARD_FALLR = new Action(185, 1);
-  public static final Action HERO_BACKWARD_FALL = new Action(186, 6);
-  public static final Action HERO_BACKWARD_FALL1 = new Action(186, 1);
-  public static final Action HERO_BACKWARD_FALL2 = new Action(187, 1);
-  public static final Action HERO_BACKWARD_FALL3 = new Action(188, 1);
-  public static final Action HERO_BACKWARD_FALL4 = new Action(189, 1);
-  public static final Action HERO_BACKWARD_FALL5 = new Action(190, 1);
-  public static final Action HERO_BACKWARD_FALLR = new Action(191, 1);
-  public static final Action HERO_ICE = new Action(200, 3);
-  public static final Action HERO_UPWARD_FIRE = new Action(203, 2);
-  public static final Action HERO_DOWNWARD_FIRE = new Action(205, 2);
-  public static final Action HERO_TIRED = new Action(207, 0);
-  public static final Action HERO_JUMP = new Action(210, 2);
-  public static final Action HERO_JUMPAIR = new Action(212, 1);  // gain jumping force
-  public static final Action HERO_DASH1 = new Action(213, 1);
-  public static final Action HERO_DASH2 = new Action(214, 1);  // reverse
-  public static final Action HERO_CROUCH1 = new Action(215, 3);  // jump and flip landing
-  public static final Action HERO_STOPRUN = new Action(218, 1);
-  public static final Action HERO_CROUCH2 = new Action(219, 1);
-  public static final Action HERO_INJURE1 = new Action(220, 1);
-  public static final Action HERO_FRONTHURT = new Action(221, 1);
-  public static final Action HERO_INJURE2 = new Action(222, 1);
-  public static final Action HERO_BACKHURT = new Action(223, 1);
-  public static final Action HERO_INJURE3 = new Action(224, 2);
-  public static final Action HERO_DOP = new Action(226, 4);
-  public static final Action HERO_LYING1 = new Action(230, 1);
-  public static final Action HERO_LYING2 = new Action(231, 1);
-  public static final Action HERO_THROW_LYING_MAN = new Action(232, 3);
-  public static final Action TRANSFORM_BACK = new Action(245, 0);
+  private static class ReferenceAction extends DefinedAction {
+    protected final Action[] innerStates;
 
-  public static final Action LIGHT_IN_THE_SKY = new Action(0, 16) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int noNeed) {
-      return Util.getRandomElement(innerStates);
+    ReferenceAction(int indexFrom, int range, int innerFrom) {
+      super(indexFrom, range);
+      innerStates = new Action[range];
+      for (int i = 0; i < range; ++i) {
+        innerStates[i] = new Action(innerFrom + i, false);
+      }
     }
-  };
-  public static final Action LIGHT_ON_HAND = new Action(20, 16) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber - 20];  // drop
-    }
-  };
-  public static final Action LIGHT_THROWING = new Action(40, 16) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber - 20];  // throw
-    }
-  };
-  public static final Action LIGHT_ON_GROUND = new Action(60, 5);
-  public static final Action LIGHT_STABLE_ON_GROUND = new Action(64, 1);
-  public static final Action LIGHT_JUST_ON_GROUND = new Action(70, 3);
-  // public static final Action LIGHT_BOUNCING_NORMAL = 0;
-  // public static final Action LIGHT_BOUNCING_LIGHT = 7;
-  public static final Action HEAVY_IN_THE_SKY = new Action(0, 6) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int noNeed) {
-      return Util.getRandomElement(innerStates);
-    }
-  };
-  public static final Action HEAVY_ON_HAND = new Action(10, 1) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber - 10];  // drop
-    }
-  };
-  public static final Action HEAVY_THROWING = new Action(0, 6) {
-    final Action[] innerStates = generateInnerStates(this);
-    @Override public Action shifts(int onHandActNumber) {
-      return innerStates[onHandActNumber - 10];  // throw
-    }
-  };
-  public static final Action HEAVY_ON_GROUND = new Action(20, 1);
-  public static final Action HEAVY_STABLE_ON_GROUND = new Action(20, 1);
-  public static final Action HEAVY_JUST_ON_GROUND = new Action(21, 1);
 
-  public static final Action ENERGY_FLYING = new Action(0, 0);
-  public static final Action ENERGY_HITTING = new Action(10, 0);
-  public static final Action ENERGY_HIT = new Action(20, 0);
-  public static final Action ENERGY_REBOUND = new Action(30, 0);
-  public static final Action ENERGY_DISAPPEAR = new Action(40, 0);
+    ReferenceAction(int indexFrom, int range) {
+      this(indexFrom, range, indexFrom);
+    }
 
-  public static final Action DENNIS_CHASE_STRAIGHT = new Action(1, 2);
-  public static final Action DENNIS_CHASE_CHANGEDIR = new Action(3, 2);
-  public static final Action DENNIS_CHASE_AWAY = new Action(5, 2);
+    @Override
+    public Action shift(int delta) {
+      return innerStates[delta];
+    }
+
+    @Override
+    public Action shift(Random random) {
+      return innerStates[random.nextInt(innerStates.length)];
+    }
+
+  }
+
+  // ==================== Hero ====================
+  public static final Action HERO_STANDING = new DefinedAction(0, 5);
+  public static final Action HERO_WALKING = new ReferenceAction(5, 4);
+  public static final Action HERO_RUNNING = new ReferenceAction(9, 3);
+  public static final Action HERO_HEAVY_WALK = new ReferenceAction(12, 4);
+  public static final Action HERO_HEAVY_RUN = new ReferenceAction(16, 3);
+  public static final Action HERO_HEAVY_STOP_RUN = new DefinedAction(19, 1);
+  public static final Action HERO_WEAPON_ATK1 = new DefinedAction(20, 5);
+  public static final Action HERO_WEAPON_ATK2 = new DefinedAction(25, 5);
+  public static final Action HERO_JUMP_WEAPON_ATK = new DefinedAction(30, 5);
+  public static final Action HERO_RUN_WEAPON_ATK = new DefinedAction(35, 5);
+  public static final Action HERO_DASH_WEAPON_ATK = new DefinedAction(40, 5);
+  public static final Action HERO_LIGHT_WEAPON_THROW = new DefinedAction(45, 5);
+  public static final Action HERO_HEAVY_WEAPON_THROW = new DefinedAction(50, 2);
+  public static final Action HERO_SKY_WEAPON_THROW = new DefinedAction(52, 3);
+  public static final Action HERO_DRINK = new DefinedAction(55, 5);
+  public static final Action HERO_PUNCH1 = new DefinedAction(60, 5);
+  public static final Action HERO_PUNCH2 = new DefinedAction(65, 5);
+  public static final Action HERO_SUPER_PUNCH = new DefinedAction(70, 10);
+  public static final Action HERO_JUMP_ATK = new DefinedAction(80, 5);
+  public static final Action HERO_RUN_ATK = new DefinedAction(85, 5);
+  public static final Action HERO_DASH_ATK = new DefinedAction(90, 5);
+  public static final Action HERO_DASH_DEF = new DefinedAction(95, 0);
+  public static final Action HERO_FLIP1 = new DefinedAction(100, 2);
+  public static final Action HERO_ROLLING = new DefinedAction(102, 6);
+  public static final Action HERO_FLIP2 = new DefinedAction(108, 2);
+  public static final Action HERO_DEFEND = new DefinedAction(110, 1);
+  public static final Action HERO_DEFEND_HIT = new DefinedAction(111, 1);
+  public static final Action HERO_BROKEN_DEF = new DefinedAction(112, 3);
+  public static final Action HERO_PICK_LIGHT = new DefinedAction(115, 1);
+  public static final Action HERO_PICK_HEAVY = new DefinedAction(116, 4);
+  public static final Action HERO_CATCH = new DefinedAction(120, 10);
+  public static final Action HERO_CAUGHT = new DefinedAction(130, 20);
+  public static final Action HERO_FORWARD_FALL = new DefinedAction(180, 6);
+  public static final Action HERO_FORWARD_FALL1 = new DefinedAction(180, 1);
+  public static final Action HERO_FORWARD_FALL2 = new DefinedAction(181, 1);
+  public static final Action HERO_FORWARD_FALL3 = new DefinedAction(182, 1);
+  public static final Action HERO_FORWARD_FALL4 = new DefinedAction(183, 1);
+  public static final Action HERO_FORWARD_FALL5 = new DefinedAction(184, 1);
+  public static final Action HERO_FORWARD_FALLR = new DefinedAction(185, 1);
+  public static final Action HERO_BACKWARD_FALL = new DefinedAction(186, 6);
+  public static final Action HERO_BACKWARD_FALL1 = new DefinedAction(186, 1);
+  public static final Action HERO_BACKWARD_FALL2 = new DefinedAction(187, 1);
+  public static final Action HERO_BACKWARD_FALL3 = new DefinedAction(188, 1);
+  public static final Action HERO_BACKWARD_FALL4 = new DefinedAction(189, 1);
+  public static final Action HERO_BACKWARD_FALL5 = new DefinedAction(190, 1);
+  public static final Action HERO_BACKWARD_FALLR = new DefinedAction(191, 1);
+  public static final Action HERO_ICE = new DefinedAction(200, 3);
+  public static final Action HERO_UPWARD_FIRE = new DefinedAction(203, 2);
+  public static final Action HERO_DOWNWARD_FIRE = new DefinedAction(205, 2);
+  public static final Action HERO_TIRED = new DefinedAction(207, 0);
+  public static final Action HERO_JUMP = new DefinedAction(210, 2);
+  public static final Action HERO_JUMP_AIR = new DefinedAction(212, 1);
+  public static final Action HERO_DASH = new DefinedAction(213, 1);
+  public static final Action HERO_DASH_REVERSE = new DefinedAction(214, 1);
+  public static final Action HERO_CROUCH1 = new DefinedAction(215, 3);
+  public static final Action HERO_STOPRUN = new DefinedAction(218, 1);
+  public static final Action HERO_CROUCH2 = new DefinedAction(219, 1);
+  public static final Action HERO_INJURE1 = new DefinedAction(220, 1);
+  public static final Action HERO_FRONTHURT = new DefinedAction(221, 1);
+  public static final Action HERO_INJURE2 = new DefinedAction(222, 1);
+  public static final Action HERO_BACKHURT = new DefinedAction(223, 1);
+  public static final Action HERO_INJURE3 = new DefinedAction(224, 2);
+  public static final Action HERO_DOP = new DefinedAction(226, 4);
+  public static final Action HERO_LYING1 = new DefinedAction(230, 1);
+  public static final Action HERO_LYING2 = new DefinedAction(231, 1);
+  public static final Action HERO_THROW_LYING_MAN = new DefinedAction(232, 3);
+
+  public static final Action LANDING_ACT = new DefinedAction(94, 0);
+  public static final Action TRANSFORM_BACK = new DefinedAction(245, 0);
+
+  // ==================== Weapon ====================
+  public static final Action LIGHT_IN_THE_SKY = new ReferenceAction(0, 16);
+  public static final Action LIGHT_ON_HAND = new ReferenceAction(20, 16, 0);
+  public static final Action LIGHT_THROWING = new ReferenceAction(40, 16, 0);
+  public static final Action LIGHT_ON_GROUND = new DefinedAction(60, 5);
+  public static final Action LIGHT_STABLE_ON_GROUND = new DefinedAction(64, 1);
+  public static final Action LIGHT_JUST_ON_GROUND = new DefinedAction(70, 3);
+
+  public static final Action HEAVY_IN_THE_SKY = new ReferenceAction(0, 6);
+  public static final Action HEAVY_ON_HAND = new ReferenceAction(10, 1, 0);
+  public static final Action HEAVY_THROWING = new ReferenceAction(0, 6);
+  public static final Action HEAVY_ON_GROUND = new DefinedAction(20, 1);
+  public static final Action HEAVY_STABLE_ON_GROUND = new DefinedAction(20, 1);
+  public static final Action HEAVY_JUST_ON_GROUND = new DefinedAction(21, 1);
+
+  // ==================== Energy ====================
+  public static final Action ENERGY_FLYING = new DefinedAction(0, 0);
+  public static final Action ENERGY_HITTING = new DefinedAction(10, 0);
+  public static final Action ENERGY_HIT = new DefinedAction(20, 0);
+  public static final Action ENERGY_REBOUND = new DefinedAction(30, 0);
+  public static final Action ENERGY_DISAPPEAR = new DefinedAction(40, 0);
+
+  public static final Action DENNIS_CHASE_STRAIGHT = new DefinedAction(1, 2);
+  public static final Action DENNIS_CHASE_CHANGEDIR = new DefinedAction(3, 2);
+  public static final Action DENNIS_CHASE_AWAY = new DefinedAction(5, 2);
+
+  // ==================== Parser Utility ====================
+
+  /**
+   * Prepares for a next {@code Action}.
+   *
+   * @param rawValue raw number specified in next field
+   * @return a statement to create an {@code Action}
+   */
+  public static String processNext(int rawValue) {
+    if (rawValue == 0) {
+      return "Action.REPEAT";
+    }
+    if (rawValue == 999) {
+      return "Action.DEFAULT";
+    }
+    if (rawValue == -999) {
+      return "Action.DEFAULT_REVERSE";
+    }
+    if (rawValue == 1000) {
+      return "Action.REMOVAL";
+    }
+    return "Action.of(%d)".formatted(rawValue);
+  }
+
+  /**
+   * Prepares for a goto-like {@code Action}.
+   * Goto-like actions are those directly assigning cases,
+   * such as hit_xx, action, caughtact, etc.
+   *
+   * @param rawValue raw number specified in goto field
+   * @return a statement to create an {@code Action}
+   */
+  public static String processGoto(int rawValue) {
+    if (rawValue == 0) {
+      return "Action.UNASSIGNED";
+    }
+    if (rawValue == 999) {
+      return "Action.DEFAULT";
+    }
+    return "Action.of(%d)".formatted(rawValue);
+  }
 
 }

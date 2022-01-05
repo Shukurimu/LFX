@@ -4,6 +4,7 @@ import java.util.List;
 
 import base.Region;
 import component.Itr;
+import component.Wpoint;
 import util.Vector;
 
 public interface Weapon extends Observable {
@@ -11,9 +12,6 @@ public interface Weapon extends Observable {
   double INITIAL_MILK_MP = 500.0 / 3.0;
   Vector MILK_REGENERATION = new Vector(1.667, 1.6, 0.8);
   Vector BEER_REGENERATION = new Vector(6.000, 0.0, 0.0);
-
-  @Override
-  Weapon makeClone();
 
   boolean isHeavy();
 
@@ -23,22 +21,27 @@ public interface Weapon extends Observable {
 
   boolean isSmall();
 
-  /**
-   * Deals with the race condition on picking.
-   *
-   * @param actor the object performs the pick action
-   * @return true if successed
-   */
-  boolean tryPick(Observable actor);
-
-  void release();
-
   void destroy();
+
+  /**
+   * Sets the latest {@code Wpoint} to this object.
+   *
+   * @param wpoint of the latest state
+   */
+  void setWpoint(Wpoint wpoint);
 
   default Vector consume() {
     return Vector.ZERO;
   }
 
+  /**
+   * Applies mutually exclusive state on given items.
+   * It seems that {@code Weapon} immune to each other sometime.
+   * 1. Several items are spawned simultaneously. (e.g., arrows, shurikens)
+   * 2. If one weapon hits another in the sky, they no longer interact until landing.
+   *
+   * @param weaponList a {@code List} of {@code Weapon} should immune to each other
+   */
   static void setMutualExcluding(List<Observable> weaponList) {
     for (int i = weaponList.size() - 1; i > 0; --i) {
       Observable oi = weaponList.get(i);

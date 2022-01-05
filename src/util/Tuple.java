@@ -22,4 +22,11 @@ public final class Tuple<T, U> {
     return (Tuple<T, U>) NULLISH;
   }
 
+  @Override
+  public String toString() {
+    return String.format("(<%s>%s, <%s>%s)",
+        first.getClass().getSimpleName(), first,
+        second.getClass().getSimpleName(), second);
+  }
+
 }

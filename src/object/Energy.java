@@ -15,9 +15,6 @@ public interface Energy extends Observable {
    */
   int REFLECT_VREST = 8;
 
-  @Override
-  Energy makeClone();
-
   void rebound();
 
   void disperse();
@@ -38,6 +35,38 @@ public interface Energy extends Observable {
   //       frame 4 created upon DADA,
   //       frame 6 created upon enemy joining your team
   // 999 - ice effect frame 120-123, 125-128, 130-133, 135-138, fire effect frame 140-143
+
+  // https://www.lf-empire.de/en/lf2-empire/data-changing/reference-pages/183-effect-3-hitfa
+  // hit_Fa:   Effect:   Picture Sequence:   Activate:   Ex.:   Extras:
+  // 1   Chasingball   (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     John: Energy Disk
+  // 2   Chasingball   (x-, y-, z-axis)   0=start (dvx!), 1&2=curves, 3&4=lines, in a group: next
+  //     Flying, hit, hiting, rebound
+  //     Dennis: Chase Ball
+  // 3   Chasingball   (x-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     Boomerang weapon9
+  //     Does not change facing direction even when turning.
+  // 4   Chasingball, healing,   (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit_ground, (frame 60)
+  //     Jan: Angel Created with hit_Fa: 5.
+  //     Have to be used after a frame with hit_Fa: 3.
+  // 7   Chasingball, (x-, y-(down), z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound, tail, hit_ground
+  //     Firzen: Disaster Created with hit_Fa: 9.
+  //     Have to be used after a frame with hit_Fa: 3.
+  // 10  Movingball, (x-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     John: Energy Disk
+  //     Used to move away attacks after timer is down.
+  // 12  Chasingball (x-, y-, z-axis)   0-1-2-3-0 (next)
+  //     Flying, hit, hiting, rebound
+  //     Bat: Bats
+  //     Look at: hit_Fa: 1
+  // 14  Chasingball (x-, z-axis)   0-9=lines, 50-59=curves, in a group: next
+  //     Flying (2x), hit, hiting, rebound
+  //     Julian: Skull Blasts
 
 }
 

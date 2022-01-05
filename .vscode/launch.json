@@ -6,6 +6,16 @@
   "configurations": [
     {
       "type": "java",
+      "name": "Launch Parser",
+      "request": "launch",
+      "mainClass": "tool.Parser",
+      "args": "rawdata/template.txt",
+      "vmArgs": [
+        "-Djava.util.logging.config.file=logging.properties"
+      ]
+    },
+    {
+      "type": "java",
       "name": "Launch ConfigScene",
       "request": "launch",
       "mainClass": "platform.ConfigScene",

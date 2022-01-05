@@ -3,10 +3,12 @@ package object;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 import base.Region;
+import base.Scope;
 import base.Type;
 import component.Action;
 import component.Effect;
@@ -15,27 +17,30 @@ import component.Itr;
 import component.State;
 import component.Wpoint;
 import util.Tuple;
-import util.Util;
+import util.Vector;
 
 public class BaseWeapon extends AbstractObject implements Weapon {
   private static final System.Logger logger = System.getLogger("");
+  protected static final int DEFAULT_ITR_SCOPE =
+      Scope.ENEMY_HERO | Scope.ALL_WEAPON | Scope.ALL_ENERGY;
 
   private final Action actionOnHand;
   private final Action actionThrowing;
   private final Action actionInTheSky;
+  private final Action actionOnGround;
   private final Map<Wpoint.Usage, Itr> strength;
   private final List<Observable> mutuallyExcludedList = new ArrayList<>();
 
-  protected double dropHurt;
-  protected String soundHit;
-  protected String soundDrop;
-  protected String soundBroken;
-  protected Hero holder = null;
+  protected double dropHurt = 0.0;
+  protected String soundHit = "";
+  protected String soundDrop = "";
+  protected String soundBroken = "";
 
-  protected BaseWeapon(
-      String identifier, Type type, List<Frame> frameList,
-      Map<Wpoint.Usage, Itr> strength) {
-    super(identifier, type, frameList);
+  protected Hero holder = NullObject.HERO;
+  protected Wpoint latestWpoint = null;
+
+  protected BaseWeapon(Frame.Collector collector, Type type, Map<Wpoint.Usage, Itr> strength) {
+    super(type, collector);
     if (!type.isWeapon) {
       throw new IllegalArgumentException("Not a weapon type.");
     }
@@ -43,12 +48,14 @@ public class BaseWeapon extends AbstractObject implements Weapon {
       actionOnHand = Action.HEAVY_ON_HAND;
       actionThrowing = Action.HEAVY_THROWING;
       actionInTheSky = Action.HEAVY_IN_THE_SKY;
+      actionOnGround = Action.HEAVY_ON_GROUND;
     } else {
       actionOnHand = Action.LIGHT_ON_HAND;
       actionThrowing = Action.LIGHT_THROWING;
       actionInTheSky = Action.LIGHT_IN_THE_SKY;
+      actionOnGround = Action.LIGHT_ON_GROUND;
     }
-    this.strength = Collections.unmodifiableMap(strength);
+    this.strength = Collections.unmodifiableMap(new EnumMap<>(strength));
   }
 
   protected BaseWeapon(BaseWeapon base) {
@@ -56,7 +63,13 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     actionOnHand = base.actionOnHand;
     actionThrowing = base.actionThrowing;
     actionInTheSky = base.actionInTheSky;
+    actionOnGround = base.actionOnGround;
     strength = base.strength;
+    hpMax = base.hpMax;
+    dropHurt = base.dropHurt;
+    soundHit = base.soundHit;
+    soundDrop = base.soundDrop;
+    soundBroken = base.soundBroken;
   }
 
   public BaseWeapon makeClone() {
@@ -88,9 +101,11 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     return type == Type.SMALL;
   }
 
-  @Override
-  public void release() {
-    holder = null;
+  protected void release(Vector velocity) {
+    vx = velocity.x();
+    vy = velocity.y();
+    vz = velocity.z();
+    holder = NullObject.HERO;
     return;
   }
 
@@ -98,6 +113,12 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   public void destroy() {
     hp = 0.0;
     // TODO: create fabrics
+    return;
+  }
+
+  @Override
+  public void setWpoint(Wpoint wpoint) {
+    latestWpoint = wpoint;
     return;
   }
 
@@ -110,36 +131,34 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     }
   }
 
-  @Override
-  public boolean tryPick(Observable actor) {
-    if (!(actor instanceof Hero o)) {
-      logger.log(Level.WARNING, "NonHero %s", actor);
+  /**
+   * Deals with the race condition on picking.
+   *
+   * @param actor the object performs the pick action
+   * @return true if successed
+   */
+  protected synchronized boolean checkBeingPicked(Hero actor) {
+    if (holder == NullObject.HERO) {
+      holder = actor;
+      return true;
+    } else {
       return false;
     }
-    synchronized (this) {
-      if (holder == null) {
-        holder = o;
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override
   protected final Action updateByState() {
     return switch (frame.state) {
       case ON_HAND -> {
-        if (holder == null) {
-          yield actionOnHand.shifts(frame.curr);
+        if (holder == NullObject.HERO) {
+          yield actionOnHand.shift(frame.curr);
         }
-        Wpoint wpoint = holder.getWpoint();
         // TODO: There is no wpoint in the first frame of picking weapon (Act_punch).
-        if (wpoint == null) {
-          vx = vy = vz = 0.0;
-          release();
-          yield actionOnHand.shifts(frame.curr);
+        if (latestWpoint == null) {
+          release(Vector.ZERO);
+          yield actionOnHand.shift(frame.curr);
         } else {
-          yield moveOnHand(wpoint);
+          yield moveOnHand(latestWpoint);
         }
       }
       case IN_THE_SKY, THROWING, ON_GROUND -> Action.UNASSIGNED;
@@ -156,12 +175,13 @@ public class BaseWeapon extends AbstractObject implements Weapon {
 
   private Action moveOnHand(Wpoint wpoint) {
     setRelativePosition(holder.getRelativePosition(wpoint), frame.wpoint, wpoint.cover);
-    if (wpoint.usage == Wpoint.Usage.THROW) {
-      vx = faceRight ? wpoint.dvx : -wpoint.dvx;
-      vy = wpoint.dvy;
-      vz = holder.getInputZ() * wpoint.dvz;
-      release();
-      return actionThrowing.shifts(wpoint.weaponact.index);
+    if (wpoint.usage == Wpoint.Usage.RELEASE) {
+      release(holder.getAbsoluteVelocity(wpoint.velocity));
+      if (wpoint.velocity == Vector.ZERO) {
+        return actionInTheSky.shift(wpoint.weaponact.index);
+      } else {
+        return actionThrowing.shift(wpoint.weaponact.index);
+      }
       // TODO: hero-side release weapon reference
     } else {
       vx = vy = vz = 0.0;
@@ -173,26 +193,22 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     hp -= dropHurt;
     if (vy < type.threshold) {
       vy = 0.0;
-      return actionOnHand;
-      // return Action.HEAVY_ON_GROUND;
+      return actionOnGround;
     } else {
       vy *= type.vyLast;
-      return actionInTheSky.shifts(0);
+      return actionInTheSky.shift(random);
     }
-    // TODO: It seems that if WeaponA has applied itr on WeaponB in State.THROWING,
-    // then WeaponA will immune to WeaponB until WeaponA goes into State.ON_GROUND.
   }
 
   @Override
   protected List<Tuple<Itr, Region>> computeItrList() {
-    if (holder == null) {
+    if (holder == NullObject.HERO) {
       return super.computeItrList();
     }
     if (type == Type.HEAVY) {
       return List.of();
     }
-    Wpoint wpoint = holder.getWpoint();
-    Itr strengthItr = strength.get(wpoint.usage);
+    Itr strengthItr = strength.get(latestWpoint.usage);
     if (strengthItr == null) {
       return List.of();
     }
@@ -200,45 +216,111 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  public void receiveItr(Observable source, Itr itr, Region absoluteRegion) {
-    if (source instanceof Weapon w) {
-      mutuallyExcludedList.add(w);
-    }
-    /*
-     * for (Tuple<Observable, Itr> tuple : recvItrList) {
-     * Itr itr = tuple.second;
-     * hp -= itr.injury;
-     * vx += itr.calcDvx(vx, faceRight);
-     * vy += itr.dvy;
-     * if (itr.fall >= 0) {
-     * // nextAct = type.hitAct(fall, vx);
-     * // if (nextAct != Action.TBA) {
-     * // transitFrame(nextAct);
-     * // }
-     * if (isHeavy()) {
-     * faceRight ^= true;
-     * vx *= -type.vxLast;
-     * vz *= type.vxLast;
-     * }
-     * }
-     * if (itr.bdefend >= 100) {
-     * destroy();
-     * }
-     * }
-     */
-  }
-
-  @Override
   public void sendItr(Observable target, Itr itr) {
-    // TODO Auto-generated method stub
     if (target instanceof Weapon w) {
       mutuallyExcludedList.add(w);
     }
+    switch (itr.kind) {
+      case PUNCH:
+      case STAB:
+      case FIRE:
+      case WEAK_FIRE:
+      case ICE:
+      case WEAK_ICE:
+        if (itr.param instanceof Itr.Damage x) {
+          actionPause = Math.max(actionPause, env.getTimestamp() + x.actPause());
+          return;
+        }
+        break;
+      case SHIELD:
+        if (itr.param instanceof Action x) {
+          transitFrame(x);
+          return;
+        }
+        break;
+      case WEAPON_STRENGTH:
+        logger.log(Level.WARNING, "not implemented %s", itr);
+        return;
+      case FORCE_ACTION:
+      case BLOCK:
+      case SONATA:
+      case VORTEX:
+        return;
+      case THROWN_DAMAGE:
+      case PICK:
+      case ROLL_PICK:
+      case HEAL:
+      case GRAB_DOP:
+      case GRAB_BDY:
+        break;
+    }
+    logger.log(Level.WARNING, "%s sent unexpected: %s", this, itr);
+  }
+
+  @Override
+  public boolean receiveItr(Observable source, Itr itr, Region absoluteRegion) {
+    if (source instanceof Weapon w) {
+      mutuallyExcludedList.add(w);
+    }
+    switch (itr.kind) {
+      case PUNCH:
+      case STAB:
+      case FIRE:
+      case WEAK_FIRE:
+      case ICE:
+      case WEAK_ICE:
+      case SHIELD:
+      case THROWN_DAMAGE:
+        if (itr.param instanceof Itr.Damage x) {
+          if (x.bdefend() >= 100) {
+            destroy();
+            return true;
+          }
+          actionPause = Math.max(actionPause, env.getTimestamp() + x.actPause());
+          hp -= x.injury();
+          vx += x.calcDvx(source.isFaceRight());
+          vy += x.dvy();
+          if (x.fall() >= 0) {
+            // nextAct = type.hitAct(fall, vx);
+            // if (nextAct != Action.TBA) {
+            // transitFrame(nextAct);
+            // }
+            if (isHeavy()) {
+              faceRight ^= true;
+              vx *= -type.vxLast;
+              vz *= type.vxLast;
+            }
+          }
+        }
+        return true;
+      case ROLL_PICK:
+      case PICK:
+        if (source instanceof Hero x && checkBeingPicked(x)) {
+          return true;
+        } else {
+          return false;
+        }
+      case BLOCK:
+        buff.put(Effect.MOVE_BLOCKING, 0);
+        return true;
+      case SONATA:
+      case VORTEX:
+        logger.log(Level.INFO, "Unimplemented: %s", itr);
+        return true;
+      case FORCE_ACTION:
+      case WEAPON_STRENGTH:
+      case HEAL:
+      case GRAB_DOP:
+      case GRAB_BDY:
+        break;
+    }
+    logger.log(Level.WARNING, "%s received unexpected: %s", this, itr);
+    return false;
   }
 
   @Override
   protected Action updateKinetic() {
-    if (holder == null) {
+    if (holder == NullObject.HERO) {
       return Action.UNASSIGNED;
     }
     if (frame.dvx == Frame.RESET_VELOCITY) {
@@ -279,7 +361,7 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   protected boolean fitBoundary() {
     Region boundary = env.getItemBoundary();
     if (frame.state != State.ON_GROUND || (boundary.x1() >= px && px >= boundary.x2())) {
-      pz = Util.clamp(pz, boundary.z1(), boundary.z2());
+      pz = Math.min(Math.max(pz, boundary.z1()), boundary.z2());
       return true;
     } else {
       return false;

@@ -13,17 +13,30 @@ public interface Environment {
 
   /**
    * Calculates the velocity after friction deduction.
+   * The default friction factor is 1.
    *
    * @param vx initial x-velocity
    * @return result x-velocity
    */
-  double applyFriction(double vx);
+  default double applyFriction(double vx) {
+    return vx >= 0.0 ? Math.max(vx - 1, 0.0) : Math.min(vx + 1, 0.0);
+  }
+
+  /**
+   * Calculates the landing velocity after friction deduction.
+   *
+   * @param vx initial x-velocity
+   * @return result x-velocity
+   */
+  default double applyLandingFriction(double vx) {
+    return vx / 3.0;
+  }
 
   /**
    * Calculates the velocity after gravity effect.
    *
    * @param vy initial y-velocity
-   * @return result x-velocity
+   * @return result y-velocity
    */
   double applyGravity(double vy);
 

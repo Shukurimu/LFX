@@ -12,6 +12,7 @@ import util.Vector;
 
 public interface Observable {
   // https://www.lf-empire.de/lf2-empire/data-changing/reference-pages
+  // https://lf-empire.de/forum/showthread.php?tid=9172
 
   /**
    * Gets the identifier, usually file name, of this object.
@@ -42,11 +43,6 @@ public interface Observable {
    * @return the existence
    */
   boolean exists();
-
-  /**
-   * Gets hp and mp ratio.
-   */
-  Vector getStamina();
 
   /**
    * A convenient method used in calculating scene camera position.
@@ -115,6 +111,15 @@ public interface Observable {
   void setRelativePosition(Vector basePosition, Point point, boolean cover);
 
   /**
+   * Calculates absolute velocity based on this object.
+   * The use cases include throwing {@code Hero} and {@code Weapon}.
+   *
+   * @param relativeVelocity defined in {@code Cpoint} or {@code Opoint}
+   * @return absolute velocity
+   */
+  Vector getAbsoluteVelocity(Vector relativeVelocity);
+
+  /**
    * Gets the {@code Bdy}s this object has in this timestamp.
    *
    * @return a {@code List} of {@code Bdy} with absolute {@code Region}
@@ -130,7 +135,7 @@ public interface Observable {
 
   /**
    * Returns this scope from another's perspective.
-   * It is mainly used while checking interaction.
+   * It is mainly used in checking interaction.
    */
   int getScopeView(int targetTeamId);
 
@@ -143,13 +148,14 @@ public interface Observable {
   void sendItr(Observable target, Itr itr);
 
   /**
-   * Tell the object {@code Itr}s it received.
+   * Tells the object {@code Itr}s it received, and returns if the action successed.
    *
    * @param source         the source object
    * @param itr            the {@code Itr} information
    * @param absoluteRegion the effective region
+   * @return {@code true} if the action is successed
    */
-  void receiveItr(Observable source, Itr itr, Region absoluteRegion);
+  boolean receiveItr(Observable source, Itr itr, Region absoluteRegion);
 
   /**
    * Collects new objects spawned in this timestamp.
@@ -184,7 +190,7 @@ public interface Observable {
   /**
    * Mainly used in Opoint.
    */
-  void setVelocity(double vx, double vy, double vz);
+  void setVelocity(Vector velocity);
 
   void setProperty(int teamId, boolean faceRight);
 
@@ -192,116 +198,11 @@ public interface Observable {
    * Check all ItrArea happened in current timeunit.
    * Store the interactable ones into pending list.
    */
-  void spreadItrs(List<Observable> allObjects);
+  void spreadItrs(int timestamp, List<Observable> allObjects);
 
   /**
    * Do actions & update status.
    */
-  void run(List<Observable> allObjects);
+  void run(int timestamp, List<Observable> allObjects);
 
 }
-
-// https://stackoverflow.com/questions/56867/interface-vs-base-class
-// http://gjp4860sev.myweb.hinet.net/lf2/page10.htm
-// https://lf-empire.de/lf2-empire/data-changing/frame-elements/177-cpoint-catch-point?showall=1
-
-/*
- * protected int graspField = 0;
- * public static final int GRASP_TIME = 305; // test-value
- * public static final int GRASP_FLAG_WAITING = -1;
- * public static final int GRASP_FLAG_UPDATED = -2;
- * public static final int GRASP_FLAG_FREE = -3;
- * public static final int GRASP_FLAG_DROP = -4;
- * public static final int GRASP_FLAG_THROW = -5;
- * public static final double GRASP_DROP_DVX = +8.0;
- * public static final double GRASP_DROP_DVY = -2.5;
- * protected AbstractObject grasper = dummy;
- * protected AbstractObject graspee = dummy;
- * protected synchronized int updateGraspee() {
- * while (graspField == GRASP_FLAG_WAITING) {
- * try {
- * this.wait(1000);
- * } catch (InterruptedException expected) {
- * }
- * }
- * if (graspField == GRASP_FLAG_FREE)
- * return ACT_JUMPAIR;
- * if (graspField == GRASP_FLAG_DROP)
- * return ACT_FORWARD_FALL2;
- * final Cpoint cpoint = grasper.currFrame.cpoint;
- * if (graspField == GRASP_FLAG_THROW) {
- * vx = grasper.faceRight ? cpoint.throwvx : -cpoint.throwvx;
- * vy = cpoint.throwvy;
- * vz = catcher.getControlZ() * cpoint.throwvz;
- * status.put(Extension.Kind.THROWINJURY, new Extension(-1,
- * cpoint.throwinjury));
- * return cpoint.vaction;
- * }
- * if (cpoint.injury > 0) {
- * hpLost(cpoint.injury, false);
- * actLag = Math.max(actLag, Itr.LAG);
- * } else {
- * hpLost(-cpoint.injury, false);
- * }
- * faceRight = grasper.faceRight ^ cpoint.changedir;
- * px = grasper.faceRight ?
- * (grasper.anchorX + cpoint.x) + (currFrame.cpoint.x - currFrame.centerx):
- * (grasper.anchorX - cpoint.x) - (currFrame.cpoint.x - currFrame.centerx);
- * py = (grasper.anchorY + cpoint.y) - (currFrame.cpoint.y - currFrame.centery);
- * pz = grasper.pz;
- * graspField = GRASP_FLAG_WAITING;
- * return actLag == 0 ? cpoint.vaction : ACT_TBA;
- * }
- *
- *
- * protected final int updateGrasp() {
- * if (grasper.currFrame.state != State.GRASP || grasper.currFrame.cpoint ==
- * null ||
- * graspee.currFrame.state != State.GRASP || graspee.currFrame.cpoint == null) {
- * return ACT_DEF;
- * }
- * if (grasper == this) {
- * if (graspee.grasper != this) {
- * // re-grasped by other
- * grasper = graspee = dummy;
- * return ACT_DEF;
- * }
- * return updateGrasper();
- * } else {
- * return updateGraspee();
- * }
- * }
- *
- * private int updateGrasper() {
- * int graspeeFlag = GRASP_FLAG_WAITING;
- * graspField -= Math.abs(cpoint.decrease);
- * if (currFrame.cpoint == null) {
- * // does a combo and goes to a frame without cpoint
- * graspeeFlag = GRASP_FLAG_FREE;
- * } else if (graspField < 0 && currFrame.cpoint.decrease < 0) {
- * // will not drop graspee in cpoint with positive decrease even if timeup
- * graspeeFlag = GRASP_FLAG_DROP;
- * } else if (transition == currFrame.wait) {
- * // these functions only take effect once
- * if (currFrame.cpoint.injury > 0) {
- * actLag = Math.max(actLag, Itr.LAG);
- * }
- * if (cpoint.throwing) {
- * graspeeFlag = GRASP_FLAG_THROW;
- * }
- * if (cpoint.transform) {
- * graspeeFlag = GRASP_FLAG_THROW;
- * status.put(Extension.Kind.TRANSFORM_TO, new Extension(1,
- * graspee.identifier));
- * }
- * }
- * }
- * graspee.setPointPosition(getPointPosition(currFrame.cpoint),
- * graspee.currFrame.cpoint);
- * synchronized (graspee) {
- * graspee.graspField = graspeeFlag;
- * graspee.notify();
- * }
- * return;
- * }
- */

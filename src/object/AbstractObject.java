@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.WeakHashMap;
 
 import base.Point;
@@ -14,6 +15,7 @@ import base.Scope;
 import base.Type;
 import component.Action;
 import component.Bdy;
+import component.Cpoint;
 import component.Effect;
 import component.Frame;
 import component.Itr;
@@ -26,10 +28,7 @@ abstract class AbstractObject implements Observable {
   private static final System.Logger logger = System.getLogger("");
   private static final Map<String, Observable> library = new HashMap<>(128);
 
-  /**
-   * A human-readable text, which is usually the original file name.
-   */
-  public final String identifier;
+  protected final Random random = new Random(666L);
 
   /**
    * The type of this object.
@@ -40,6 +39,11 @@ abstract class AbstractObject implements Observable {
    * The team this object belongs to.
    */
   protected int teamId = 0;
+
+  /**
+   * The base {@code Scope} of this object.
+   */
+  protected final int baseScope;
 
   /**
    * Stores itrs in a list to avoid repeated computation.
@@ -69,7 +73,7 @@ abstract class AbstractObject implements Observable {
   /**
    * Current frame.
    */
-  protected Frame frame = Frame.DUMMY;
+  protected Frame frame = Frame.NULL_FRAME;
 
   protected boolean faceRight = true;
   protected double px = 0.0;
@@ -93,13 +97,15 @@ abstract class AbstractObject implements Observable {
   protected final Map<Effect, Integer> buff = new EnumMap<>(Effect.class);
 
   /**
+   * Victim rest (from this object's aspect).
    * This object is able to interact with others
-   * only if the value greater than current timestamp.
+   * only if corresponding value greater than current timestamp.
    */
   protected final Map<Observable, Integer> vrest = new WeakHashMap<>(128);
 
   /**
-   * vrest's global version, having higher priority than vrest.
+   * Attacker rest.
+   * This value has higher priority than vrest.
    */
   protected int arest = 0;
 
@@ -107,7 +113,7 @@ abstract class AbstractObject implements Observable {
    * Before this timestamp, the object cannot move or change action.
    * This is the freeze mechanism after hitting or being hit.
    */
-  private int actionPause = 0;
+  protected int actionPause = 0;
 
   /**
    * Indicates the remaining timeunit to transit to next frame.
@@ -116,18 +122,24 @@ abstract class AbstractObject implements Observable {
   private int transition = 0;
   private boolean newAction = true;
   protected Environment env = null;
+  protected Hero grabbingHero = null;
+  protected int grabbingTimer = 0;
 
-  protected AbstractObject(String identifier, Type type, List<Frame> frameList) {
-    this.identifier = identifier;
+  protected AbstractObject(Type type, Frame.Collector collector) {
     this.type = type;
-    this.frameList = frameList;
-    // library.put(identifier, this);
+    this.frameList = collector.toFrameList();
+    baseScope = switch (type) {
+      case HERO -> Scope.HERO;
+      case SMALL, DRINK, HEAVY, LIGHT -> Scope.WEAPON;
+      case ENERGY -> Scope.ENERGY;
+      default -> throw new IllegalArgumentException(type.toString());
+    };
   }
 
   protected AbstractObject(AbstractObject base) {
-    identifier = base.identifier;
     type = base.type;
     frameList = base.frameList;
+    baseScope = base.baseScope;
   }
 
   @Override
@@ -135,7 +147,7 @@ abstract class AbstractObject implements Observable {
 
   @Override
   public String getIdentifier() {
-    return identifier;
+    return getClass().getSimpleName();
   }
 
   @Override
@@ -151,11 +163,6 @@ abstract class AbstractObject implements Observable {
   @Override
   public boolean exists() {
     return existence;
-  }
-
-  @Override
-  public Vector getStamina() {
-    return new Vector(hp / hpMax, hp / hpMax, mp / mpMax);
   }
 
   @Override
@@ -203,10 +210,8 @@ abstract class AbstractObject implements Observable {
 
   @Override
   public Vector getRelativePosition(Point point) {
-    return new Vector(
-        anchorX + (faceRight ? point.x : -point.x),
-        anchorY + point.y,
-        pz);
+    double rx = faceRight ? (anchorX + point.x) : (anchorX - point.x);
+    return new Vector(rx, anchorY + point.y, pz);
   }
 
   @Override
@@ -220,8 +225,17 @@ abstract class AbstractObject implements Observable {
     }
     anchorY = base.y() - point.y;
     py = anchorY + frame.centery;
-    pz = cover ? base.z() - Point.Z_OFFSET : base.z() + Point.Z_OFFSET;
+    pz = cover ? base.z() - Point.Z_EPSILON : base.z() + Point.Z_EPSILON;
     return;
+  }
+
+  @Override
+  public Vector getAbsoluteVelocity(Vector relativeVelocity) {
+    return new Vector(
+        faceRight ? relativeVelocity.x() : -relativeVelocity.x(),
+        relativeVelocity.y(),
+        getInputZ() * relativeVelocity.z()
+    );
   }
 
   /**
@@ -258,7 +272,8 @@ abstract class AbstractObject implements Observable {
 
   @Override
   public int getScopeView(int targetTeamId) {
-    return Scope.getSideView(type.baseScope, targetTeamId == teamId);
+    return targetTeamId == teamId ? Scope.getTeammateView(baseScope)
+                                  : Scope.getEnemyView(baseScope);
   }
 
   /**
@@ -326,20 +341,15 @@ abstract class AbstractObject implements Observable {
 
   protected void transitNextFrame() {
     transitFrame(frame.next);
-    frame.opointList.forEach(this::opointify);
-    return;
-  }
-
-  protected void hpLost(double injury) {
-    hp -= injury;
+    opointify(frame.opoint);
     return;
   }
 
   @Override
-  public void setVelocity(double vx, double vy, double vz) {
-    this.vx = vx;
-    this.vy = vy;
-    this.vz = vz;
+  public void setVelocity(Vector velocity) {
+    vx = velocity.x();
+    vy = velocity.y();
+    vz = velocity.z();
     return;
   }
 
@@ -364,9 +374,10 @@ abstract class AbstractObject implements Observable {
       for (Tuple<Itr, Region> itrRegion : itrList) {
         Itr itr = itrRegion.first;
         Region ri = itrRegion.second;
-        if (ri.collidesWith(rb) && itr.interactsWith(bdy, scopeView)) {
+        if (ri.collidesWith(rb) &&
+            itr.interactsWith(bdy, scopeView) &&
+            that.receiveItr(this, itr, ri)) {
           sendItr(that, itr);
-          that.receiveItr(this, itr, ri);
           return itr.vrest;
         }
       }
@@ -375,8 +386,7 @@ abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void spreadItrs(List<Observable> allObjects) {
-    int timestamp = env.getTimestamp();
+  public void spreadItrs(int timestamp, List<Observable> allObjects) {
     if (arest > timestamp) {
       return;
     }
@@ -404,7 +414,32 @@ abstract class AbstractObject implements Observable {
   public abstract void sendItr(Observable target, Itr itr);
 
   @Override
-  public abstract void receiveItr(Observable source, Itr itr, Region absoluteRegion);
+  public abstract boolean receiveItr(Observable source, Itr itr, Region absoluteRegion);
+
+  /**
+   * Default implmentation for grabbing state.
+   * This method only changes self status.
+   *
+   * @return new {@code Action} after this timestamp
+   */
+  protected Action moveGrabbing() {
+    Cpoint cpoint = frame.cpoint;
+    if (cpoint.decrease > 0) {
+      grabbingTimer -= cpoint.decrease;
+      // Does not drop on positive decrease.
+    } else {
+      grabbingTimer += cpoint.decrease;
+      if (grabbingTimer < 0) {
+        grabbingHero.setCpoint(Cpoint.DROP);
+        return Action.DEFAULT;
+      }
+    }
+    if (cpoint.injury > 0) {
+      applyActionPause(Itr.DEFAULT_DAMAGE_PAUSE);
+    }
+    grabbingHero.setCpoint(cpoint);
+    return Action.UNASSIGNED;
+  }
 
   /**
    * Updates hp, mp, and other inner states.
@@ -436,8 +471,7 @@ abstract class AbstractObject implements Observable {
   protected abstract boolean fitBoundary();
 
   @Override
-  public void run(List<Observable> allObjects) {
-    final int timestamp = env.getTimestamp();
+  public void run(int timestamp, List<Observable> allObjects) {
     Action nextAct = updateStamina();
 
     if (actionPause > timestamp) {
@@ -467,38 +501,34 @@ abstract class AbstractObject implements Observable {
     return;
   }
 
+  protected void applyActionPause(int value) {
+    actionPause = Math.max(actionPause, env.getTimestamp() + value);
+    return;
+  }
+
   /**
    * Performs an {@code Opoint} instruction.
+   *
+   * @param opoint the {@code Opoint} instance
    */
   protected void opointify(Opoint opoint) {
-    if (!opoint.release) {
-      logger.log(Level.INFO, "NotImplemented: Holding Opoint");
+    if (opoint == null) {
       return;
     }
 
-    double vzStart = 0.0;
-    double vzStep = 0.0;
-    if (opoint.amount > 1) {
-      vzStart = Opoint.Z_RANGE * (getInputZ() - 1.0);
-      vzStep = 2.0 * Opoint.Z_RANGE / (opoint.amount - 1);
-    }
-
+    Vector baseVelocity = getAbsoluteVelocity(opoint.velocity);
     Vector basePosition = getRelativePosition(opoint);
     Observable origin = library.get(opoint.oid).makeClone();
     List<Observable> cloneList = new ArrayList<>();
-    for (int i = 0; i < opoint.amount; ++i) {
-      boolean facing = opoint.direction.getFacing(faceRight);
+    for (Vector velocity : opoint.getInitialVelocities(baseVelocity)) {
       Observable clone = origin.makeClone();
-      clone.setProperty(teamId, facing);
-      clone.setVelocity(
-          facing ? opoint.dvx : -opoint.dvx,
-          opoint.dvy,
-          vzStart + vzStep * i);
+      clone.setProperty(teamId, faceRight ^ opoint.opposideDirection);
+      clone.setVelocity(velocity);
       clone.setRelativePosition(basePosition, Point.ORIGIN, true);
+      cloneList.add(clone);
     }
 
-    // Weapons immune to each other if spawned simultaneously. (e.g., arrows, shurikens)
-    if (opoint.amount > 1 && origin.getType().isWeapon) {
+    if (cloneList.size() > 1 && origin.getType().isWeapon) {
       Weapon.setMutualExcluding(cloneList);
     }
     logger.log(Level.INFO, cloneList);
@@ -506,25 +536,6 @@ abstract class AbstractObject implements Observable {
     return;
   }
 
-  /*
-  protected void createArmours() {
-    Vector basePosition = getAbsolutePosition();
-    double[] rvx = {1.0, 1.0, -1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
-    double[] rvz = {1.0, -1.0, 1.0, -1.0, Util.randomBounds(-0.4, 0.4)};
-    List<Observable> cloneList = Library.instance().getArmourSetList();
-    int index = 0;
-    for (Observable clone : cloneList) {
-      clone.setProperty(teamId, Util.randomBool());
-      clone.setVelocity((Util.randomBounds(0.0, 9.0) + 6.0) * rvx[index],
-                        (Util.randomBounds(0.0, 3.0) - 8.0),
-                        (Util.randomBounds(0.0, 4.0) + 3.0) * rvz[index]
-      );
-      clone.setPosition(basePosition, Point.ORIGIN, Point.Z_OFFSET);
-      ++index;
-    }
-    spawnedObjectList.addAll(cloneList);
-    return;
-  }*/
   @Override
   public List<? extends Observable> getSpawnedObjectList() {
     return spawnedObjectList;
@@ -532,7 +543,7 @@ abstract class AbstractObject implements Observable {
 
   @Override
   public String toString() {
-    return String.format("%s %s@%x [%d]", type, identifier, hashCode(), teamId);
+    return String.format("%s %s@%x [%d]", type, getIdentifier(), hashCode(), teamId);
   }
 
 }

@@ -2,80 +2,158 @@ package component;
 
 import base.Region;
 import base.Scope;
+import base.Type;
+import util.IntMap;
 
+/**
+ * Define the frame element -- itr.
+ * https://lf-empire.de/lf2-empire/param-changing/frame-elements/174-itr-interaction?showall=1
+ * https://lf-empire.de/lf2-empire/param-changing/reference-pages/181-effects
+ */
 public class Itr {
+  public static final Itr NULL_ITR = new Itr(Kind.PUNCH, Region.EMPTY, 0, 0, null);
+  // https://lf-empire.de/forum/showthread.php?tid=8740
+  public static final int DEFAULT_DAMAGE_PAUSE = 3;
+  public static final int DEFAULT_DEFEND_PAUSE = 5;
+  public static final int DEFAULT_DVY = -7;
+  public static final Grab COMMON_WALKING_GRAB = new Grab(Action.HERO_CATCH, Action.HERO_CAUGHT);
 
   public enum Kind {
-    // https://www.lf-empire.de/lf2-empire/data-changing/reference-pages/181-effects
-    PUNCH           ("data/001.wav"),  // kind: 0  effect: 0
-    STAB            ("data/032.wav"),  // kind: 0  effect: 1
-    FIRE            ("data/070.wav"),  // kind: 0  effect: 2
-    WEAK_FIRE       ("data/070.wav"),  // kind: 0  effect: 20.21
-    ICE             ("data/065.wav"),  // kind: 0  effect: 3
-    WEAK_ICE        ("data/065.wav"),  // kind: 0  effect: 30
-    GRAB_DOP        (null),  // kind: 1
-    PICK            (null),  // kind: 2
-    GRAB_BDY        (null),  // kind: 3
-    THROWN_DAMAGE   (null),  // kind: 4
-    WEAPON_STRENGTH (null),  // kind: 5
-    FORCE_ACTION    (null),  // kind: 6
-    ROLL_PICK       (null),  // kind: 7
-    HEAL            (null),  // kind: 8
-    SHIELD          (null),  // kind: 9
-    SONATA          (null),  // kind: 10
-    BLOCK           (null),  // kind: 14
-    VORTEX          (null);  // kind: 15
+    PUNCH           (Damage.class),  // kind: 0  effect: 0
+    STAB            (Damage.class),  // kind: 0  effect: 1
+    FIRE            (Damage.class),  // kind: 0  effect: 2
+    WEAK_FIRE       (Damage.class),  // kind: 0  effect: 20.21
+    ICE             (Damage.class),  // kind: 0  effect: 3
+    WEAK_ICE        (Damage.class),  // kind: 0  effect: 30
+    THROWN_DAMAGE   (Damage.class),   // kind: 4
+    WEAPON_STRENGTH (Damage.class),   // kind: 5
+    SHIELD          (Damage.class),   // kind: 9
+    GRAB_DOP        (Grab.class),     // kind: 1
+    GRAB_BDY        (Grab.class),     // kind: 3
+    FORCE_ACTION    (Integer.class),  // kind: 6
+    PICK            (Integer.class),  // kind: 2
+    ROLL_PICK       (Integer.class),  // kind: 7
+    HEAL            (Integer.class),  // kind: 8
+    SONATA          (Integer.class),  // kind: 10
+    BLOCK           (Integer.class),  // kind: 14
+    VORTEX          (Integer.class);  // kind: 15
 
-    public final String soundPath;
+    /**
+     * The data type this {@code Kind} expecting.
+     */
+    public final Class<?> paramClass;
 
-    private Kind(String soundPath) {
-      this.soundPath = soundPath;
+    private Kind(Class<?> paramClass) {
+      this.paramClass = paramClass;
+    }
+
+    @Override
+    public String toString() {
+      return String.join(
+          ".", getDeclaringClass().getEnclosingClass().getSimpleName(),
+          getDeclaringClass().getSimpleName(), name());
+    }
+
+  }
+
+  public static record Damage(
+      int dvx, int dvy,
+      int fall, int bdefend, int injury,
+      boolean explosive, int actPause) {
+
+    public double calcDvx(boolean sourceFaceRight) {
+      return sourceFaceRight ? dvx : -dvx;
+    }
+
+  }
+
+  public static Damage attack(
+      int dvx, int dvy, int fall, int bdefend, int injury) {
+    return new Damage(dvx, dvy, fall, bdefend, injury, false, DEFAULT_DAMAGE_PAUSE);
+  }
+
+  public static Damage explosion(
+      int dvx, int dvy, int fall, int bdefend, int injury) {
+    return new Damage(dvx, dvy, fall, bdefend, injury, true, DEFAULT_DAMAGE_PAUSE);
+  }
+
+  public static Damage smoothAttack(
+      int dvx, int dvy, int fall, int bdefend, int injury) {
+    return new Damage(dvx, dvy, fall, bdefend, injury, false, 0);
+  }
+
+  public static Damage smoothExplosion(
+      int dvx, int dvy, int fall, int bdefend, int injury) {
+    return new Damage(dvx, dvy, fall, bdefend, injury, true, 0);
+  }
+
+  public static record Grab(Action caughtingact, Action caughtact) {}
+
+  public static Grab grab(int caughtingact, int caughtact) {
+    if (Action.HERO_CATCH.index == caughtingact &&
+        Action.HERO_CAUGHT.index == caughtact) {
+      return COMMON_WALKING_GRAB;
+    } else {
+      return new Grab(Action.of(caughtingact), Action.of(caughtact));
     }
   }
 
-  public static final Itr NULL_ITR = new Itr(Kind.PUNCH, Region.EMPTY, 0, 1);
-
-  /***/
+  /**
+   * The {@code Kind} of this {@code Itr}.
+   */
   public final Kind kind;
+
   /**
    * A relative {@code Region} representing x, y, w, h, zwidth.
    */
   public final Region relative;
+
   /**
-   * The scope of this {@code Itr} that can be applied to.
+   * The scope of this {@code Itr} that can interact with some {@code Bdy}.
    */
   public final int scope;
+
   /**
    * A negative value means arest.
    */
   public final int vrest;
+
   /**
    * Due to the variety of {@code Itr}, an {@code Object} is used.
    * The underlying logics vary by {@code Kind}.
    */
-  public final Object data;
+  public final Object param;
 
-  public Itr(Kind kind, Region relative, int scope, int vrest, Object data) {
-    if (vrest == 0) {
-      throw new IllegalArgumentException("Vrest cannot be zero.");
-    }
+  private Itr(Kind kind, Region relative, int scope, int vrest, Object param) {
     this.kind = kind;
     this.relative = relative;
     this.scope = scope;
     this.vrest = vrest;
-    this.data = data;
+    this.param = param;
   }
 
-  public Itr(Kind kind, Region relative, int scope, int vrest) {
-    this(kind, relative, scope, vrest, null);
+  public static Itr of(Kind kind, Region relative, int scope, int vrest, Object param) {
+    if (vrest == 0) {
+      throw new IllegalArgumentException("vrest cannot be zero.");
+    }
+    if (!kind.paramClass.isInstance(param)) {
+      throw new IllegalArgumentException(String.format(
+          "Kind %s expects param of class %s, but %s is found.",
+          kind, kind.paramClass, param.getClass()
+      ));
+    }
+    return new Itr(kind, relative, scope, vrest, param);
+  }
+
+  public static Itr of(Kind kind, Region relative, int scope, int vrest) {
+    return of(kind, relative, scope, vrest, null);
   }
 
   public boolean interactsWith(Bdy bdy, int bdyScopeView) {
-    bdyScopeView = Scope.getBothView(bdyScopeView);
-    if ((bdyScopeView & scope) == 0) {
-      return false;
+    if ((bdy.attributes & Bdy.FRIENDLY_FIREABLE) != 0) {
+      bdyScopeView |= Scope.getTeammateView(bdyScopeView);
     }
-    return true;
+    return (bdyScopeView & scope) != 0;
   }
 
   @Override
@@ -83,86 +161,157 @@ public class Itr {
     return String.format("Itr[%s, %s, scope=%x, vrest=%d]", kind, relative, scope, vrest);
   }
 
-}
+  // ==================== Parser Utility ====================
 
-/*
- * // https://lf-empire.de/lf2-empire/data-changing/frame-elements/174-itr-interaction?showall=1
- *
- * public static String state18(String originalScope, boolean is18) {
- * if (!is18) return originalScope;
- * char[] newScope = originalScope.toCharArray();
- * newScope[3] = (newScope[2] == '1') ? '1' : newScope[3];
- * newScope[5] = (newScope[4] == '1') ? '1' : newScope[5];
- * newScope[7] = (newScope[6] == '1') ? '1' : newScope[7];
- * return String.valueOf(newScope);
- * }
- * public static String[] parserKindMap(int originalKind, int originalEffect,
- * int originalState) {
- * boolean is18 = originalState == 18;
- * switch (originalKind) {
- * case 0:
- * switch (originalEffect) {
- * case 1:
- * return new String[] { STAB.parserText(), state18("0b101110", is18) };
- * case 2:
- * return new String[] {// State19 Effect2 works as same as Effect20 (IMO)
- * ((originalState == 19) ? FIRE2 : FIRE).parserText(), state18("0b101110",
- * is18) };
- * case 20:
- * return new String[] { FIRE2.parserText(), state18("0b001110", is18) };
- * case 21:
- * return new String[] { FIRE2.parserText(), state18("0b101110", false) };
- * case 22:
- * return new String[] { EXFIRE.parserText(), state18("0b101110", false) };
- * case 23:
- * return new String[] { EXPLO.parserText(), state18("0b101110", is18) };
- * case 3:
- * return new String[] { ICE.parserText(), state18("0b101110", is18) };
- * case 30:
- * return new String[] { ICE2.parserText(), state18("0b101110", is18) };
- * case 4:
- * return new String[] { PUNCH.parserText(), state18("0b111100", is18) };
- * default:
- * return new String[] { OTHER.parserText(), state18("0b101110", is18) };
- * }
- * case 4:
- * return new String[] { FALLING.parserText(), state18("0b111101", is18) };
- * case 9:
- * return new String[] { REFLECT.parserText(), state18("0b111110", is18) };
- * case 10:
- * case 11:
- * return new String[] { SONATA.parserText(), state18("0b001110", is18) };
- * case 16:
- * return new String[] { SPICE.parserText(), state18("0b000010", is18) };
- * case 8:
- * return new String[] { HEAL.parserText(), state18("0b000011", is18) };
- * case 1:
- * return new String[] { GRASPDOP.parserText(), state18("0b000010", is18),
- * "CatchType" };
- * case 3:
- * return new String[] { GRASPBDY.parserText(), state18("0b000010", is18),
- * "CatchType" };
- * case 2:
- * return new String[] { PICKSTAND.parserText(),state18("0b001100", is18),
- * "StrongType" };
- * case 7:
- * return new String[] { PICKROLL.parserText(), state18("0b001100", is18),
- * "StrongType" };
- * case 6:
- * return new String[] { LETSP.parserText(), state18("0b000010", is18),
- * "StrongType" };
- * case 14:
- * return new String[] { FENCE.parserText(), state18("0b111111", is18),
- * "StrongType" };
- * case 15:
- * return new String[] { VORTEX.parserText(), state18("0b001110", is18),
- * "StrongType" };
- * case 5:
- * return new String[] { WPSTREN.parserText(), state18("0b000000", is18),
- * "StrongType" };
- * default:
- * System.out.printf("\tUnknown kind %s\n", originalKind);
- * return null;
- * }
- * }
- */
+  private static String grabParam(IntMap data) {
+    int caughtingact = data.pop("catchingact");
+    int caughtact = data.pop("caughtact");
+    if (Action.HERO_CATCH.index == caughtingact && Action.HERO_CAUGHT.index == caughtact) {
+      return "Itr.COMMON_WALKING_GRAB";
+    } else {
+      return "Itr.grab(%d, %d)".formatted(caughtingact, caughtact);
+    }
+  }
+
+  private static String damageParam(IntMap data, boolean explosive, boolean noPause) {
+    String method = switch ((explosive ? 2 : 0) | (noPause ? 1 : 0)) {
+      case 0b00 -> "Itr.attack";
+      case 0b01 -> "Itr.smoothAttack";
+      case 0b10 -> "Itr.explosion";
+      case 0b11 -> "Itr.smoothExplosion";
+      default -> "impossible";
+    };
+    return "%s(%d, %d, %d, %d, %d)".formatted(
+        method, data.pop("dvx", 0), data.pop("dvy", -7),
+        data.pop("fall", 20), data.pop("bdefend", 0), data.pop("injury", 0));
+  }
+
+  private static String extractGivenRegion(IntMap data, int rawState, Type type, String region) {
+    String scope = "DEFAULT_ITR_SCOPE";  // defined in BaseXXX
+    String param = null;
+    Kind kind = switch (data.pop("kind")) {
+      case 0 -> {
+        int effect = data.pop("effect", 0);
+        param = damageParam(data, effect == 22 || effect == 23, false);
+        yield switch (effect) {
+          case 0 -> Kind.PUNCH;
+          case 1 -> Kind.STAB;
+          case 2 -> rawState == 19 ? Kind.WEAK_FIRE : Kind.FIRE;
+          case 3 -> Kind.ICE;
+          case 4 -> {
+            scope = "Scope.ALL_NON_HERO";
+            yield Kind.PUNCH;
+          }
+          case 20 -> {
+            scope = "Scope.ALL_HERO";
+            yield Kind.WEAK_FIRE;
+          }
+          case 21 -> Kind.WEAK_FIRE;
+          case 22 -> Kind.FIRE;
+          case 23 -> Kind.PUNCH;
+          case 30 -> Kind.WEAK_ICE;
+          default -> throw new IllegalArgumentException("effect");
+        };
+      }
+      case 4 -> {
+        scope = "Scope.TEAMMATE_HERO";
+        param = damageParam(data, false, false);
+        yield Kind.THROWN_DAMAGE;
+      }
+      case 5 -> {
+        param = damageParam(data, false, false);
+        yield Kind.WEAPON_STRENGTH;
+      }
+      case 9 -> {
+        param = damageParam(data, false, false);
+        yield Kind.SHIELD;
+      }
+      case 16 -> {
+        scope = "Scope.ENEMY_HERO";
+        param = damageParam(data, false, false);
+        yield Kind.ICE;
+      }
+      case 1 -> {
+        scope = "Scope.ENEMY_HERO";
+        param = grabParam(data);
+        yield Kind.GRAB_DOP;
+      }
+      case 3 -> {
+        scope = "Scope.ENEMY_HERO";
+        param = grabParam(data);
+        yield Kind.GRAB_BDY;
+      }
+      case 2 -> {
+        scope = "Scope.ALL_WEAPON";
+        yield Kind.PICK;
+      }
+      case 7 -> {
+        scope = "Scope.ALL_WEAPON";
+        yield Kind.ROLL_PICK;
+      }
+      case 6 -> {
+        scope = "Scope.ENEMY_HERO";
+        yield Kind.FORCE_ACTION;
+      }
+      case 8 -> {
+        scope = "Scope.ALL_HERO";
+        param = Integer.toString(data.pop("dvx"));
+        yield Kind.HEAL;
+      }
+      case 10, 11 -> {
+        scope = "Scope.ENEMY_HERO | Scope.ALL_WEAPON";
+        yield Kind.SONATA;
+      }
+      case 14 -> {
+        scope = "Scope.EVERYTHING";
+        yield Kind.BLOCK;
+      }
+      case 15 -> {
+        scope = "Scope.COMMON_HITTABLE";
+        yield Kind.VORTEX;
+      }
+      default -> throw new IllegalArgumentException("kind");
+    };
+
+    int vrest = type.isHero ? -7 : 9;
+    int rawVrest = data.pop("vrest", 0);
+    if (rawVrest != 0) {
+      vrest = rawVrest;
+    }
+    int rawArest = data.pop("arest", 0);
+    if (rawArest != 0) {
+      vrest = -rawArest;
+    }
+
+    if (param == null) {
+      return "Itr.of(%s, %s, %s, %d)".formatted(kind, region, scope, vrest);
+    } else {
+      return "Itr.of(%s, %s, %s, %d, %s)".formatted(kind, region, scope, vrest, param);
+    }
+  }
+
+  /**
+   * Extracts and prepares {@code Itr} setting.
+   *
+   * @param data     a map containing key-value pairs
+   * @param rawState original state of the enclosing frame
+   * @param type     the {@code Type} of the owner of enclosing frame
+   * @return a statement to create an {@code Itr}
+   * @throws IllegalArgumentException for invalid kind
+   */
+  public static String extract(IntMap data, int rawState, Type type) {
+    return extractGivenRegion(data, rawState, type, Region.extract(data));
+  }
+
+  /**
+   * Extracts and prepares {@code Itr} setting for Weapon's strength.
+   *
+   * @param data a map containing key-value pairs
+   * @return a statement to create an {@code Itr}
+   * @throws IllegalArgumentException for invalid kind
+   */
+  public static String extractStrength(IntMap data) {
+    return extractGivenRegion(data, 0, Type.LIGHT, "Region.EMPTY");
+  }
+
+}

@@ -1,7 +1,7 @@
 package object;
 
 import base.Controller;
-import component.Wpoint;
+import component.Cpoint;
 
 public interface Hero extends Observable, Playable {
   double DEFEND_INJURY_REDUCTION = 0.10;
@@ -13,56 +13,52 @@ public interface Hero extends Observable, Playable {
   double ICED_FALLDOWN_DAMAGE = 10.0;
   double SONATA_FALLDOWN_DAMAGE = 10.0;
 
-  @Override
-  Hero makeClone();
-
   /**
    * Sets the {@code Controller} for this object.
    */
   void setController(Controller controller);
 
   /**
-   * Gets the {@code Wpoint} of current {@code Frame}.
-   */
-  Wpoint getWpoint();
-
-  /**
-   * Deals with the race condition on grabbing.
+   * Sets the latest {@code Cpoint} to this object.
    *
-   * @param actor the object performs the grab action
-   * @return true if successed
+   * @param cpoint of the latest state
    */
-  boolean tryGrab(Observable actor);
+  void setCpoint(Cpoint cpoint);
 
   /**
    * The transition of walking and running do not follow standard wait-next rule.
-   * They use a hidden frame counter to manager instead.
+   * They use a hidden frame counter to manage instead.
    */
   class HiddenFrameCounter {
     private int index = -1;
-    private final int[] indexes;
+    private final int[] values;
 
-    private HiddenFrameCounter(int[] indexes) {
-      this.indexes = indexes;
+    private HiddenFrameCounter(int frameRate, int[] order) {
+      values = new int[frameRate * order.length];
+      for (int i = 0; i < order.length; ++i) {
+        for (int j = 0; j < frameRate; ++j) {
+          values[frameRate * i + j] = order[i];
+        }
+      }
     }
 
     public int next() {
-      if (++index == indexes.length) {
+      if (++index == values.length) {
         index = 0;
       }
-      return indexes[index];
+      return values[index];
     }
 
     public int reset() {
-      return indexes[index = 0];
+      return values[index = 0];
     }
 
-    public static HiddenFrameCounter forWalking() {
-      return new HiddenFrameCounter(new int[] { 2, 3, 2, 1, 0, 1 });
+    public static HiddenFrameCounter forWalking(int frameRate) {
+      return new HiddenFrameCounter(frameRate, new int[] { 2, 3, 2, 1, 0, 1 });
     }
 
-    public static HiddenFrameCounter forRunning() {
-      return new HiddenFrameCounter(new int[] { 0, 1, 2, 1 });
+    public static HiddenFrameCounter forRunning(int frameRate) {
+      return new HiddenFrameCounter(frameRate, new int[] { 0, 1, 2, 1 });
     }
 
   }

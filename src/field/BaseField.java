@@ -55,11 +55,6 @@ public class BaseField implements Field {
   private int[] keyPressedTimes = new int[5];
 
   /**
-   * Factor of friction from ground.
-   */
-  protected double friction = 1.0;
-
-  /**
    * Factor of gravity.
    */
   protected double gravity = 1.7;
@@ -76,14 +71,11 @@ public class BaseField implements Field {
         -ITEM_ADDITIONAL_WIDTH, boundWidth + ITEM_ADDITIONAL_WIDTH, 0, 0, boundTop, boundBottom);
   }
 
+  // ==================== Environment ====================
+
   @Override
   public boolean isUnlimitedMode() {
     return (keyPressedTimes[0] & 1) == 1;
-  }
-
-  @Override
-  public double applyFriction(double vx) {
-    return vx >= 0.0 ? Math.max(vx - friction, 0.0) : Math.min(vx + friction, 0.0);
   }
 
   @Override
@@ -110,6 +102,8 @@ public class BaseField implements Field {
   public Region getItemBoundary() {
     return itemBoundary;
   }
+
+  // ==================== Field ====================
 
   @Override
   public void switchUnlimitedMode() {
@@ -149,9 +143,9 @@ public class BaseField implements Field {
   public void stepOneFrame() {
     ++timestamp;
     objectList.sort(Field::processOrder);
-    objectList.forEach(o -> o.spreadItrs(objectView));
+    objectList.forEach(o -> o.spreadItrs(timestamp, objectView));
     objectList.forEach(o -> {
-      o.run(objectView);
+      o.run(timestamp, objectView);
       pendingList.addAll(o.getSpawnedObjectList());
     });
     objectList.addAll(pendingList);
