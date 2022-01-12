@@ -1,4 +1,4 @@
-package setting;
+package base;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -6,6 +6,7 @@ import java.time.ZoneId;
 public class InputMonitor implements Comparable<InputMonitor> {
   private static final Instant DEFAULT_PRESSED_INSTANT = Instant.now().plusSeconds(86400L);
   private static final ZoneId DEFAULT_ZONE_ID = ZoneId.systemDefault();
+
   private Instant timePressedPrevious = DEFAULT_PRESSED_INSTANT;
   private Instant timePressedCurrent = DEFAULT_PRESSED_INSTANT;
   private int pressCount = 0;
@@ -35,9 +36,16 @@ public class InputMonitor implements Comparable<InputMonitor> {
     return timePressedCurrent.isAfter(instant);
   }
 
-  public boolean pressedBetween(Instant excludedBegin, Instant excludedEnd) {
-    return timePressedCurrent.isAfter(excludedBegin)
-        && timePressedCurrent.isBefore(excludedEnd);
+  /**
+   * Checks if the pressed event happened in a range.
+   *
+   * @param begin excluded range start
+   * @param end   excluded range end
+   * @return {@code true} if pressed in the given {@code Instant} range
+   */
+  public boolean pressedBetween(Instant begin, Instant end) {
+    return timePressedCurrent.isAfter(begin)
+        && timePressedCurrent.isBefore(end);
   }
 
   @Override
@@ -54,5 +62,14 @@ public class InputMonitor implements Comparable<InputMonitor> {
         Instant.now().atZone(DEFAULT_ZONE_ID)
     );
   }
+
+  public static final InputMonitor NULL_MONITOR = new InputMonitor () {
+    @Override public void setPressed() {}
+    @Override public void setReleased() {}
+    @Override public boolean isPressed() { return false; }
+    @Override public boolean isDoublePressed(long validIntervalMs) { return false; }
+    @Override public boolean pressedAfter(Instant instant) { return false; }
+    @Override public boolean pressedBetween(Instant begin, Instant end) { return false; }
+  };
 
 }

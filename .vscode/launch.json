@@ -31,7 +31,7 @@
       "type": "java",
       "name": "Launch Main",
       "request": "launch",
-      "mainClass": "lfx.platform.Main",
+      "mainClass": "platform.Main",
       "vmArgs": [
         "--module-path",
         "C:/Program Files/Java/javafx-sdk-17.0.0.1/lib",

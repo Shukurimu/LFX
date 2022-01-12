@@ -6,10 +6,12 @@ import base.Controller;
 import base.Point;
 import base.Region;
 import base.Type;
+import component.Action;
 import component.Bdy;
 import component.Cpoint;
 import component.Itr;
 import component.Wpoint;
+import field.Environment;
 import util.Tuple;
 import util.Vector;
 
@@ -29,6 +31,11 @@ public final class NullObject implements Hero, Weapon, Energy {
   @Override
   public String getIdentifier() {
     return getClass().getSimpleName();
+  }
+
+  @Override
+  public List<Tuple<String, int[]>> getPictureInfo() {
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -57,7 +64,7 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
-  public Vector getImageAnchor() {
+  public Vector getSceneCoordinate() {
     return Vector.ZERO;
   }
 
@@ -137,6 +144,16 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
+  public void setEnvironment(Environment env) {
+    throw new UnsupportedOperationException(getIdentifier());
+  }
+
+  @Override
+  public void setEnvironment(Environment env, Action action) {
+    throw new UnsupportedOperationException(getIdentifier());
+  }
+
+  @Override
   public void setProperty(int teamId, boolean faceRight) {
     throw new UnsupportedOperationException(getIdentifier());
   }
@@ -154,8 +171,8 @@ public final class NullObject implements Hero, Weapon, Energy {
   // ==================== Playable ====================
 
   @Override
-  public String getPortrait() {
-    return null;
+  public String getPortraitPath() {
+    return "";
   }
 
   // ==================== Hero ====================

@@ -1,5 +1,7 @@
 package field;
 
+import java.util.List;
+
 import base.Type;
 import object.Observable;
 
@@ -11,6 +13,20 @@ public interface Field extends Environment {
   double WIDTH_DIV2 = FIELD_WIDTH / 2.0;
   double WIDTH_DIV24 = FIELD_WIDTH / 24.0;
   double CAMERA_SPEED_THRESHOLD = 0.9;
+
+  /**
+   * Returns total objects on this {@code Field}.
+   *
+   * @return the amount of objects
+   */
+  int getObjectCount();
+
+  /**
+   * Emplaces given object to a random position.
+   *
+   * @param o the object to set
+   */
+  void emplace(Observable o);
 
   /** F6 */
   void switchUnlimitedMode();
@@ -44,6 +60,15 @@ public interface Field extends Environment {
    * This method is called every timeunit.
    */
   void stepOneFrame();
+
+  /**
+   * Calculates camera position.
+   *
+   * @param tracingList the objects that will be focused on
+   * @param currentPos  current camera position
+   * @return new camera position
+   */
+  double calcCameraPos(List<Observable> tracingList, double currentPos);
 
   // https://lf-empire.de/images/lf2-empire/dc-tutor/ratio.png
   // CRAZY! ratio = int(x * int(i * 1.5 + 1.0))

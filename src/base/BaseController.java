@@ -1,25 +1,35 @@
-package setting;
+package base;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import base.Controller;
-import base.KeyOrder;
-
-public abstract class AbstractController implements Controller {
+public class BaseController implements Controller {
   private static final long VALID_PREPRESS_MS = 100L;
   private static final long VALID_INTERVAL_MS = 200L;
   private static final KeyOrder[] keyOrderArray = KeyOrder.values();
+
+  private final InputMonitor monitorUp;
+  private final InputMonitor monitorDown;
+  private final InputMonitor monitorLeft;
+  private final InputMonitor monitorRight;
+  private final InputMonitor monitorAttack;
+  private final InputMonitor monitorJump;
+  private final InputMonitor monitorDefend;
   private final List<Map.Entry<Input, InputMonitor>> inputSequenceBuffer;
-  private final Map<Input, InputMonitor> inputMap;
   private Instant validComboFrom = Instant.EPOCH;
   private Instant validFrom = Instant.MAX;
   private Instant validTo = Instant.MAX;
 
-  protected AbstractController(Map<Input, InputMonitor> inputMap) {
-    this.inputMap = inputMap;
+  public BaseController(Map<Input, InputMonitor> inputMap) {
+    monitorUp = inputMap.get(Input.Up);
+    monitorDown = inputMap.get(Input.Down);
+    monitorLeft = inputMap.get(Input.Left);
+    monitorRight = inputMap.get(Input.Right);
+    monitorAttack = inputMap.get(Input.Attack);
+    monitorJump = inputMap.get(Input.Jump);
+    monitorDefend = inputMap.get(Input.Defend);
     inputSequenceBuffer = new ArrayList<>(inputMap.entrySet());
   }
 
@@ -56,52 +66,47 @@ public abstract class AbstractController implements Controller {
 
   @Override
   public boolean press_U() {
-    return inputMap.get(Input.Up).isPressed();
+    return monitorUp.isPressed();
   }
 
   @Override
   public boolean press_D() {
-    return inputMap.get(Input.Down).isPressed();
+    return monitorDown.isPressed();
   }
 
   @Override
   public boolean press_L() {
-    return inputMap.get(Input.Left).isPressed();
+    return monitorLeft.isPressed();
   }
 
   @Override
   public boolean press_R() {
-    return inputMap.get(Input.Right).isPressed();
+    return monitorRight.isPressed();
   }
 
   @Override
   public boolean press_a() {
-    InputMonitor monitor = inputMap.get(Input.Attack);
-    return monitor.pressedBetween(validFrom, validTo);
+    return monitorAttack.pressedBetween(validFrom, validTo);
   }
 
   @Override
   public boolean press_j() {
-    InputMonitor monitor = inputMap.get(Input.Jump);
-    return monitor.pressedBetween(validFrom, validTo);
+    return monitorJump.pressedBetween(validFrom, validTo);
   }
 
   @Override
   public boolean press_d() {
-    InputMonitor monitor = inputMap.get(Input.Defend);
-    return monitor.pressedBetween(validFrom, validTo);
+    return monitorDefend.pressedBetween(validFrom, validTo);
   }
 
   public boolean pressRunL() {
-    InputMonitor monitor = inputMap.get(Input.Left);
-    return monitor.pressedBetween(validFrom, validTo)
-        && monitor.isDoublePressed(VALID_INTERVAL_MS);
+    return monitorLeft.pressedBetween(validFrom, validTo)
+        && monitorLeft.isDoublePressed(VALID_INTERVAL_MS);
   }
 
   public boolean pressRunR() {
-    InputMonitor monitor = inputMap.get(Input.Right);
-    return monitor.pressedBetween(validFrom, validTo)
-        && monitor.isDoublePressed(VALID_INTERVAL_MS);
+    return monitorRight.pressedBetween(validFrom, validTo)
+        && monitorRight.isDoublePressed(VALID_INTERVAL_MS);
   }
 
   @Override

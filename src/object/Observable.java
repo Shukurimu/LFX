@@ -5,8 +5,10 @@ import java.util.List;
 import base.Point;
 import base.Region;
 import base.Type;
+import component.Action;
 import component.Bdy;
 import component.Itr;
+import field.Environment;
 import util.Tuple;
 import util.Vector;
 
@@ -20,6 +22,8 @@ public interface Observable {
    * @return object's identifier
    */
   String getIdentifier();
+
+  List<Tuple<String, int[]>> getPictureInfo();
 
   /**
    * Gets the {@code Type} of this object.
@@ -63,7 +67,7 @@ public interface Observable {
    *
    * @return a {@code Vector} represents the coordinate of image
    */
-  Vector getImageAnchor();
+  Vector getSceneCoordinate();
 
   /**
    * Returns the index of image this object showing now.
@@ -192,6 +196,8 @@ public interface Observable {
    */
   void setVelocity(Vector velocity);
 
+  void setEnvironment(Environment env);
+  void setEnvironment(Environment env, Action action);
   void setProperty(int teamId, boolean faceRight);
 
   /**

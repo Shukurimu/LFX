@@ -1,4 +1,4 @@
-package map;
+package platform;
 
 import java.util.List;
 
@@ -11,6 +11,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
+import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 import object.Playable;
@@ -29,7 +30,7 @@ public class StatusBoard extends Canvas {
   private static final double MP_FILL_Y = BAR_MARGIN * 2.0 + BAR_HEIGHT;
   private static final double HP_TEXT_Y = HP_FILL_Y + BAR_HEIGHT / 2.0;
   private static final double MP_TEXT_Y = MP_FILL_Y + BAR_HEIGHT / 2.0;
-  private static final Color BACKGROUND_COLOR = Color.ROYALBLUE;
+  private static final Color BACKGROUND_COLOR = Color.CORNFLOWERBLUE;
   private static final Color CONTAINER_COLOR = BACKGROUND_COLOR.darker();
   private static final LinearGradient HP_BAR_BASE;
   private static final LinearGradient HP_BAR_CURR;
@@ -77,11 +78,13 @@ public class StatusBoard extends Canvas {
     ));
   }
 
-  public StatusBoard(Playable target) {
+  private StatusBoard(Playable target) {
     super(CANVAS_WIDTH, CANVAS_HEIGHT);
     this.target = target;
-    Image portrait = null;// : target.getPortrait();
     gc = this.getGraphicsContext2D();
+  }
+
+  private void initialize(Image portrait) {
     gc.setFill(BACKGROUND_COLOR);
     gc.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     gc.drawImage(portrait, PADDING, PADDING, ICON_SIZE, ICON_SIZE);
@@ -90,14 +93,28 @@ public class StatusBoard extends Canvas {
     gc.strokeRect(PADDING - 1.0, PADDING - 1.0, ICON_SIZE + 2.0, ICON_SIZE + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, HP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, MP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
+    gc.setFont(Font.font("Verdana"));
+    gc.setStroke(Color.MAROON);
     gc.setTextBaseline(VPos.CENTER);
     gc.setTextAlign(TextAlignment.RIGHT);
+    return;
+  }
+
+  public static StatusBoard of(Playable target, Image portrait) {
+    StatusBoard s = new StatusBoard(target);
+    s.initialize(portrait);
+    return s;
+  }
+
+  public static StatusBoard ofEmpty() {
+    StatusBoard s = new StatusBoard(Playable.SELECTION_IDLE) {
+      @Override public void update() {}
+    };
+    s.initialize(null);
+    return s;
   }
 
   public void update() {
-    if (!target.active()) {
-      return;
-    }
     target.fillStatus(status);
     double hp2Length = status[0] / status[1] * BAR_WIDTH;
     double hp1Length = status[2] / status[3] * BAR_WIDTH;

@@ -1,108 +1,126 @@
 package platform;
 
-import java.util.ArrayList;
-import java.util.function.Consumer;
 import java.util.List;
+import java.util.stream.Stream;
+
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
+import javafx.scene.Parent;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+
 import base.Controller;
 import map.Background;
-import object.Playable;
 
-public class PickingScene implements GuiScene {
-  private final GridPane guiContainer = new GridPane();
-  private final List<PlayerCardView> cardViewList = new ArrayList<>(4);
+public class PickingScene extends AbstractScreen {
+  private static final Font TEXT_FONT = Font.font(24.0);
+  private static final double ICON_SIZE = 180.0;
 
-  private static class PlayerCardView extends PlayerCard {
-    static final Font TEXT_FONT = Font.font(24.0);
-    static final double ICON_SIZE = 180.0;
-    private final VBox guiComponent;
-    private final Label name = new Label();
-    private final Label hero = new Label();
-    private final Label team = new Label();
-    private final ImageView icon = new ImageView();
+  private final List<PlayerCardView> playerCardViewList;
+  private final List<PlayerCard> playerCardList;
+  private final List<Controller> controllerList;
+  private final Controller unionController;
+  private final BooleanProperty pickingReady = new SimpleBooleanProperty();
 
-    PlayerCardView(Controller controller) {
-      super(controller);
+  private static class PlayerCardView extends VBox {
+    final Text name = new Text("Player");
+    final Text hero = new Text();
+    final Text team = new Text();
+    final ImageView icon = new ImageView();
+
+    PlayerCardView() {
+      super(6.0);
       name.setFont(TEXT_FONT);
-      icon.setFitWidth(ICON_SIZE);
-      icon.setFitHeight(ICON_SIZE);
       hero.setFont(TEXT_FONT);
       team.setFont(TEXT_FONT);
-      guiComponent = new VBox(/* spacing */ 6.0, name, icon, hero, team);
-      guiComponent.setAlignment(Pos.CENTER);  // defaults to Pos.TOP_LEFT
-      guiComponent.setMinHeight(300);
+      icon.setFitWidth(ICON_SIZE);
+      icon.setFitHeight(ICON_SIZE);
+      setAlignment(Pos.CENTER);
+      setMinHeight(300);
+      getChildren().addAll(name, icon, hero, team);
     }
 
-    @Override
-    public void update() {
-      super.update();
-      Playable playable = getPlayable();
-      // icon.setImage(playable.getPortrait().get());
-      hero.setText(playable.getIdentifier());
-      team.setText(getTeamText());
+    void update(PlayerCard playerCard) {
+      String identifier = playerCard.getPlayableIdentifier();
+      hero.setText(identifier);
+      team.setText(playerCard.getTeamText());
+      icon.setImage(ResourceManager.portraitLibrary.get(identifier));
       return;
     }
 
   }
 
-  public PickingScene(List<Controller> controllerList) {
-    double columnWidth = WINDOW_WIDTH / controllerList.size();
-    ColumnConstraints columnConstraints = new ColumnConstraints(columnWidth);
-    for (Controller controller : controllerList) {
-      PlayerCardView cardView = new PlayerCardView(controller);
-      cardViewList.add(cardView);
-      guiContainer.addRow(1, cardView.guiComponent);
-      guiContainer.getColumnConstraints().add(columnConstraints);
-      GridPane.setHalignment(cardView.guiComponent, HPos.CENTER);
-    }
+  public PickingScene() {
+    controllerList = ResourceManager.controllerList;
+    unionController = Controller.union(controllerList);
 
-    Label head = new Label("ALL PICK");
-    head.setMinHeight(80.0);
-    head.setFont(Font.font(null, FontWeight.BOLD, 52.0));
-    guiContainer.add(head, 0, 0, controllerList.size(), 1);
-    GridPane.setHalignment(head, HPos.CENTER);
-
-    Label tail = new Label("<untitled>");
-    tail.setMinHeight(60.0);
-    tail.setFont(Font.font(null, FontWeight.MEDIUM, 20.0));
-    guiContainer.add(tail, 0, 2, controllerList.size(), 1);
-    GridPane.setHalignment(tail, HPos.RIGHT);
-
-    guiContainer.setHgap(0.0);
-    guiContainer.setVgap(16.0);
+    List<String> heroChoice = List.copyOf(ResourceManager.portraitLibrary.keySet());
+    playerCardList = controllerList.stream().map(c -> new PlayerCard(c, heroChoice)).toList();
+    playerCardViewList = Stream.generate(PlayerCardView::new).limit(4).toList();
   }
 
   @Override
-  public Scene makeScene(Consumer<Scene> sceneChanger) {
-    Scene scene = new Scene(guiContainer, WINDOW_WIDTH, WINDOW_HEIGHT);
-    Consumer<Scene> pickingSceneBridge = (Scene nouse) -> {
-      cardViewList.forEach(c -> c.reset());
-      sceneChanger.accept(scene);
-    };
-    scene.setOnKeyPressed(event -> {
-      KeyboardController.press(event.getCode());
-      cardViewList.forEach(c -> c.update());
-      if (PlayerCard.isReady(cardViewList)) {
-        Background bg = new Background();
-        VersusArena arena = new VersusArena(bg, PlayerCard.getHeroList(cardViewList));
-        sceneChanger.accept(arena.makeScene(pickingSceneBridge));
+  public void keyHandler(KeyCode keyCode) {
+    if (pickingReady.get()) {
+      unionController.update();
+      if (unionController.press_j()) {
+        pickingReady.set(false);
+        return;
       }
-    });
-    scene.setOnKeyReleased(event -> {
-      KeyboardController.release(event.getCode());
-    });
-    // Force initialization to display proper contents.
-    cardViewList.forEach(c -> c.update());
-    return scene;
+      if (!unionController.press_a()) {
+        return;
+      }
+      System.out.println("Stop here");
+      Background bg = new Background();
+      VersusArena arena = new VersusArena(bg);
+      for (PlayerCard playerCard : playerCardList) {
+        arena.addByPlayerCard(playerCard);
+      }
+      AbstractScreen.sceneChanger.accept(arena.makeScene());
+    } else {
+      for (int i = 0; i < 4; ++i) {
+        PlayerCard playerCard = playerCardList.get(i);
+        playerCard.update();
+        playerCardViewList.get(i).update(playerCard);
+      }
+      pickingReady.set(PlayerCard.isReady(playerCardList));
+    }
+  }
+
+  @Override
+  protected Parent makeParent() {
+    GridPane guiContainer = new GridPane();
+
+    Text header = new Text("ALL PICK");
+    header.setFont(Font.font(null, FontWeight.BOLD, 52.0));
+    guiContainer.add(header, 0, 0, 4, 1);
+    GridPane.setHalignment(header, HPos.CENTER);
+
+    Text footer = new Text();
+    footer.textProperty().bind(Bindings.convert(pickingReady));
+    footer.setFont(Font.font(null, FontWeight.MEDIUM, 20.0));
+    guiContainer.add(footer, 0, 2, 4, 1);
+    GridPane.setHalignment(footer, HPos.RIGHT);
+
+    ColumnConstraints columnConstraints = new ColumnConstraints(WINDOW_WIDTH / 4.0);
+    for (PlayerCardView view : playerCardViewList) {
+      guiContainer.addRow(1, view);
+      guiContainer.getColumnConstraints().add(columnConstraints);
+      GridPane.setHalignment(view, HPos.CENTER);
+    }
+
+    guiContainer.setHgap(0.0);
+    guiContainer.setVgap(16.0);
+    return guiContainer;
   }
 
 }

@@ -15,4 +15,9 @@ public record Vector(double x, double y, double z) {
     return Math.sqrt(v1a * v1a + v1b * v1b - v2a * v2a);
   }
 
+  @Override
+  public String toString() {
+    return String.format("Vector[x=%.2f, y=%.2f, z=%.2f]", x, y, z);
+  }
+
 }

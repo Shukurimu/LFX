@@ -12,7 +12,8 @@ public enum KeyOrder {
   hit_Lj ("dLj"),
   hit_a  ("a"),
   hit_j  ("j"),
-  hit_d  ("d");
+  hit_d  ("d"),
+  NONE   (".");
 
   /**
    * The representing key sequence of this {@code KeyOrder}.

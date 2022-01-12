@@ -1,99 +1,91 @@
 package platform;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+
 import base.Controller;
-import object.Hero;
 import object.Playable;
-import util.ElementSelector;
-import util.Selectable;
+import util.Selector;
 
 public class PlayerCard {
-  private static final Map<Integer, String> TEAM_TEXT = Map.of(
-      0, "Independent",
-      1, "Team 1",
-      2, "Team 2",
-      3, "Team 3",
-      4, "Team 4"
-  );
-  private final Controller controller;
-  private final Selectable<PickingPhase> pickingPhaseSelector =
-      new ElementSelector<>(false, PickingPhase.values());
-  private final Selectable<Playable> playableSelector = new PlayableSelector();
-  private final Selectable<Integer> teamIdSelector = new ElementSelector<>(0, 1, 2, 3, 4);
-  private final Map<PickingPhase, Selectable<?>> settings = new EnumMap<>(PickingPhase.class);
 
-  protected PlayerCard(Controller controller) {
-    this.controller = controller;
-    settings.put(PickingPhase.SELECTING_HERO, playableSelector);
-    settings.put(PickingPhase.SELECTING_TEAM, teamIdSelector);
+  enum Phase {
+    UNASSIGNED     (0, true),
+    SELECTING_HERO (0, false),
+    SELECTING_TEAM (0, false),
+    FINISHED       (1, true);
+
+    public final int playerCount;
+    public final boolean stable;
+
+    private Phase(int playerCount, boolean stable) {
+      this.playerCount = playerCount;
+      this.stable = stable;
+    }
+
+    static final List<Phase> ORDER = List.of(UNASSIGNED, SELECTING_HERO, SELECTING_TEAM, FINISHED);
+
   }
 
-  protected Playable getPlayable() {
-    return pickingPhaseSelector.get() == PickingPhase.UNASSIGNED ?
-        Playable.SELECTION_IDLE : playableSelector.get();
+  final Controller controller;
+  private final Selector<Phase> phaseSelector = new Selector<>(false, Phase.ORDER);
+  private final Selector<String> heroSelector;
+  private final Selector<Integer> teamSelector = new Selector<>(true, List.of(0, 1, 2, 3, 4));
+  private final Map<Phase, Selector<?>> manager = new EnumMap<>(Phase.class);
+
+  public PlayerCard(Controller controller, List<String> heroChoice) {
+    this.controller = controller;
+    heroSelector = new Selector<>(true, heroChoice);
+    manager.put(Phase.UNASSIGNED, Selector.NULLISH);
+    manager.put(Phase.SELECTING_HERO, heroSelector);
+    manager.put(Phase.SELECTING_TEAM, teamSelector);
+    manager.put(Phase.FINISHED, Selector.NULLISH);
+  }
+
+  protected String getPlayableIdentifier() {
+    return switch (phaseSelector.current()) {
+      case UNASSIGNED -> Playable.SELECTION_IDLE.getIdentifier();
+      case SELECTING_HERO, SELECTING_TEAM, FINISHED -> heroSelector.current();
+    };
   }
 
   protected String getTeamText() {
-    return pickingPhaseSelector.get().displayTeamText ? TEAM_TEXT.get(teamIdSelector.get()) : "";
-  }
-
-  public void reset() {
-    pickingPhaseSelector.setDefault();
-    return;
+    return switch (phaseSelector.current()) {
+      case UNASSIGNED, SELECTING_HERO -> "";
+      case SELECTING_TEAM, FINISHED -> {
+        Integer teamId = teamSelector.current();
+        yield teamId.equals(0) ? "Independent" : "Team " + teamId;
+      }
+    };
   }
 
   protected void update() {
     controller.update();
     if (controller.press_a()) {
-      pickingPhaseSelector.setNext();
+      phaseSelector.next();
     } else if (controller.press_j()) {
-      pickingPhaseSelector.setPrevious();
+      phaseSelector.previous();
     } else if (controller.press_L()) {
-      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setPrevious();
+      manager.get(phaseSelector.current()).previous();
     } else if (controller.press_R()) {
-      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setNext();
+      manager.get(phaseSelector.current()).next();
     } else if (controller.press_U()) {
-      settings.getOrDefault(pickingPhaseSelector.get(), Selectable.EMPTY).setDefault();
-    } else {
-      return;
+      manager.get(phaseSelector.current()).set(0);
     }
-    controller.consume();
     return;
   }
 
-  public static boolean isReady(Iterable<? extends PlayerCard> playerCards) {
+  public static boolean isReady(List<PlayerCard> playerCards) {
     int playerCount = 0;
     for (PlayerCard card : playerCards) {
-      PickingPhase phase = card.pickingPhaseSelector.get();
+      Phase phase = card.phaseSelector.current();
       if (!phase.stable) {
         return false;
       }
       playerCount += phase.playerCount;
     }
     return playerCount > 0;
-  }
-
-  /**
-   * Builds the Hero this PlayerCard refering to with other properties.
-   *
-   * @return  targeting Hero, or null if unavailable
-   */
-  private Hero makeHero() {
-    if (pickingPhaseSelector.get() != PickingPhase.FINISHED) {
-      return null;
-    }
-    return null;
-  }
-
-  public static List<Hero> getHeroList(Iterable<? extends PlayerCard> playerCards) {
-    List<Hero> heroList = new ArrayList<>(4);
-    for (PlayerCard card : playerCards) {
-      heroList.add(card.makeHero());
-    }
-    return heroList;
   }
 
 }

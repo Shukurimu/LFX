@@ -39,6 +39,7 @@ public class Parser {
   final LinkedList<String> lineList = new LinkedList<>();
   final Map<String, Double> stamina = new LinkedHashMap<>();
   final Map<String, String> bmpInfo = new LinkedHashMap<>();
+  final List<String> pictureInfo = new ArrayList<>();
   final Map<Wpoint.Usage, String> strengthMap = new EnumMap<>(Wpoint.Usage.class);
   int indentLevel = 0;
 
@@ -114,9 +115,11 @@ public class Parser {
     while (matcher.find()) {
       matcher.appendReplacement(remaining, "");
       IntMap data = parseIntValue(matcher.group(2));
-      System.out.printf("ImageCell.loadImageCells(%s, %d, %d, %d, %d);%n",
+      pictureInfo.add(
+          String.format("util.Tuple.of(%s, new int[] { %d, %d, %d, %d })",
           asPath(matcher.group(1)),
-          data.pop("w"), data.pop("h"), data.pop("row"), data.pop("col"));
+          data.pop("w"), data.pop("h"), data.pop("row"), data.pop("col"))
+      );
     }
     // walking_frame_rate 3
     // walking_speed 4.000000
@@ -218,7 +221,6 @@ public class Parser {
     switch (type) {
       case HERO: {
         importLib = """
-
         import java.util.HashMap;
 
         import util.Vector;\
@@ -242,7 +244,6 @@ public class Parser {
       case SMALL:
       case DRINK: {
         importLib = """
-
         import java.util.EnumMap;
         """;
         constructor = """
@@ -292,19 +293,27 @@ public class Parser {
 
     lineList.addFirst("""
     package data;
-    %4$s
+
+    import java.util.List;
+    %3$s
     import base.*;
     import component.*;
 
     public class %1$s extends object.%2$s {
       private static %1$s singleton = null;
-      \n%3$s
+      \n%4$s
+      @Override public List<util.Tuple<String, int[]>> getPictureInfo() {
+        return List.of(
+          %5$s
+        );
+      }
 
       public static %1$s register() {
         if (singleton != null) { return singleton; }
 
         var collector = new Frame.Collector();
-    """.formatted(identifier, baseClassName, constructor.indent(2), importLib));
+    """.formatted(identifier, baseClassName, importLib, constructor.indent(2),
+                  String.join(",\n" + " ".repeat(6), pictureInfo)));
 
     lineList.addLast("""
         // bmp content\n%s

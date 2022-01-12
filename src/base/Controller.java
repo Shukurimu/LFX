@@ -1,6 +1,25 @@
 package base;
 
+import java.util.List;
+
 public interface Controller {
+
+  enum Input {
+    Up     ("U"),
+    Down   ("D"),
+    Left   ("L"),
+    Right  ("R"),
+    Attack ("a"),
+    Jump   ("j"),
+    Defend ("d");
+
+    public final String symbol;
+
+    private Input(String symbol) {
+      this.symbol = symbol;
+    }
+
+  }
 
   /**
    * Asks this {@code Controller} to retrieve the latest state.
@@ -112,7 +131,7 @@ public interface Controller {
   Controller NULL_CONTROLLER = new Controller() {
     @Override public void update() {}
     @Override public void consume() {}
-    @Override public KeyOrder getKeyOrder() { return null; }
+    @Override public KeyOrder getKeyOrder() { return KeyOrder.NONE; }
     @Override public boolean press_U() { return false; }
     @Override public boolean press_D() { return false; }
     @Override public boolean press_L() { return false; }
@@ -129,5 +148,21 @@ public interface Controller {
     @Override public boolean getFacing(boolean originalFacing) { return true; }
     @Override public boolean reverseFacing(boolean originalFacing) { return false; }
   };
+
+  static Controller union(List<Controller> group) {
+    return new Controller() {
+      @Override public void consume() { group.forEach(c -> c.consume()); }
+      @Override public void update() { group.forEach(c -> c.update()); }
+      @Override public KeyOrder getKeyOrder() { return KeyOrder.NONE; }
+      @Override public boolean press_U() { return group.stream().anyMatch(c -> c.press_U()); }
+      @Override public boolean press_D() { return group.stream().anyMatch(c -> c.press_D()); }
+      @Override public boolean press_L() { return group.stream().anyMatch(c -> c.press_L()); }
+      @Override public boolean press_R() { return group.stream().anyMatch(c -> c.press_R()); }
+      @Override public boolean press_a() { return group.stream().anyMatch(c -> c.press_a()); }
+      @Override public boolean press_j() { return group.stream().anyMatch(c -> c.press_j()); }
+      @Override public boolean press_d() { return group.stream().anyMatch(c -> c.press_d()); }
+      @Override public boolean pressRun() { return false; }
+    };
+  }
 
 }

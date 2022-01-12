@@ -24,11 +24,16 @@ import field.Environment;
 import util.Tuple;
 import util.Vector;
 
-abstract class AbstractObject implements Observable {
+public abstract class AbstractObject implements Observable {
   private static final System.Logger logger = System.getLogger("");
   private static final Map<String, Observable> library = new HashMap<>(128);
 
   protected final Random random = new Random(666L);
+
+  /**
+   * The identifier of this object, which is usually the original file name.
+   */
+  public final String identifier;
 
   /**
    * The type of this object.
@@ -126,6 +131,7 @@ abstract class AbstractObject implements Observable {
   protected int grabbingTimer = 0;
 
   protected AbstractObject(Type type, Frame.Collector collector) {
+    this.identifier = getClass().getSimpleName();
     this.type = type;
     this.frameList = collector.toFrameList();
     baseScope = switch (type) {
@@ -137,17 +143,20 @@ abstract class AbstractObject implements Observable {
   }
 
   protected AbstractObject(AbstractObject base) {
+    identifier = base.identifier;
     type = base.type;
     frameList = base.frameList;
     baseScope = base.baseScope;
   }
 
   @Override
-  public abstract AbstractObject makeClone();
+  public String getIdentifier() {
+    return identifier;
+  }
 
   @Override
-  public String getIdentifier() {
-    return getClass().getSimpleName();
+  public List<Tuple<String, int[]>> getPictureInfo() {
+    return List.of();
   }
 
   @Override
@@ -176,7 +185,7 @@ abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public Vector getImageAnchor() {
+  public Vector getSceneCoordinate() {
     return new Vector(anchorX, anchorY, pz);
   }
 
@@ -354,6 +363,19 @@ abstract class AbstractObject implements Observable {
   }
 
   @Override
+  public void setEnvironment(Environment env) {
+    setEnvironment(env, Action.DEFAULT);
+    return;
+  }
+
+  @Override
+  public void setEnvironment(Environment env, Action action) {
+    this.env = env;
+    AbstractObject.this.transitFrame(action);
+    return;
+  }
+
+  @Override
   public void setProperty(int teamId, boolean faceRight) {
     this.teamId = teamId;
     this.faceRight = faceRight;
@@ -522,6 +544,7 @@ abstract class AbstractObject implements Observable {
     List<Observable> cloneList = new ArrayList<>();
     for (Vector velocity : opoint.getInitialVelocities(baseVelocity)) {
       Observable clone = origin.makeClone();
+      clone.setEnvironment(env, opoint.action);
       clone.setProperty(teamId, faceRight ^ opoint.opposideDirection);
       clone.setVelocity(velocity);
       clone.setRelativePosition(basePosition, Point.ORIGIN, true);
@@ -543,7 +566,7 @@ abstract class AbstractObject implements Observable {
 
   @Override
   public String toString() {
-    return String.format("%s %s@%x [%d]", type, getIdentifier(), hashCode(), teamId);
+    return String.format("%s %s@%x [%d]", type, identifier, hashCode(), teamId);
   }
 
 }

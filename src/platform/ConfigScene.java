@@ -1,7 +1,6 @@
 package platform;
 
 import java.util.ArrayList;
-import java.util.function.Consumer;
 import java.util.List;
 
 import javafx.application.Application;
@@ -21,30 +20,23 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
+import base.Controller;
 import setting.Configure;
-import setting.Input;
 
-public class ConfigScene extends Application implements GuiScene {
+public class ConfigScene extends Application {
   public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
   public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
+  public static final double CONFIG_BUTTON_WIDTH = 120;
 
-  private final GridPane pane;
-  private final Configure configure;
-  private final List<Button> keyButtonList;
+  private List<Button> keyButtonList;
   private Button focusing = null;
 
-  public ConfigScene() {
-    pane = null;
-    configure = null;
-    keyButtonList = null;
-  }
-
-  public ConfigScene(Consumer<String> finishFunction) {
-    pane = new GridPane();
+  GridPane makePane() {
+    GridPane pane = new GridPane();
     for (int index : new int[] { 1, 2, 3, 4 }) {
       pane.add(makeNameText("Player " + index), index, 0);
     }
-    for (Input input : Input.values()) {
+    for (Controller.Input input : Controller.Input.values()) {
       pane.add(makeNameText(input.name()), 0, input.ordinal() + 1);
     }
 
@@ -59,27 +51,30 @@ public class ConfigScene extends Application implements GuiScene {
       }
     }
 
-    configure = Configure.load();
-    setButtonText(configure.getKeyboardSetting());
+    Configure configure = Configure.load();
+    setButtonText(configure.getInputSetting());
 
     pane.add(makeActionButton("Default", event -> {
       if (focusing != null) {
         focusing.setTextFill(UNFOCUSED_TEXT_FILL);
         focusing = null;
       }
-      setButtonText(Input.getDefault());
+      setButtonText(Configure.defaultInputSetting());
     }), 2, 12);
     pane.add(makeActionButton("Save", event -> {
-      configure.setKeyboardSetting(getButtonText());
-      finishFunction.accept(configure.save());
+      configure.setInputSetting(getButtonText());
+      System.out.println(configure.save());
+      Platform.exit();
     }), 3, 12);
     pane.add(makeActionButton("Cancel", event -> {
-      finishFunction.accept("Cancelled");
+      System.out.println("Cancelled");
+      Platform.exit();
     }), 4, 12);
     pane.setAlignment(Pos.CENTER);
     pane.setHgap(9.0);
     pane.setVgap(6.0);
     pane.getChildren().forEach(fxNode -> fxNode.setFocusTraversable(false));
+    return pane;
   }
 
   List<String[]> getButtonText() {
@@ -144,19 +139,10 @@ public class ConfigScene extends Application implements GuiScene {
   }
 
   @Override
-  public Scene makeScene(Consumer<Scene> sceneChanger) {
-    Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
-    scene.setOnKeyPressed(this::keyPressHandler);
-    return scene;
-  }
-
-  @Override
   public void start(Stage primaryStage) {
-    ConfigScene configScene = new ConfigScene((String result) -> {
-      System.out.println(result);
-      Platform.exit();
-    });
-    primaryStage.setScene(configScene.makeScene(null));
+    Scene scene = new Scene(makePane(), 700, 400);
+    scene.setOnKeyPressed(this::keyPressHandler);
+    primaryStage.setScene(scene);
     primaryStage.setTitle("Little Fighter X - Setting");
     primaryStage.setX(600.0);
     primaryStage.show();

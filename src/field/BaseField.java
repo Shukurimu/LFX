@@ -4,12 +4,15 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import base.Region;
 import object.Observable;
 
 public class BaseField implements Field {
   private static final System.Logger logger = System.getLogger("");
+
+  protected final Random random = new Random(888L);
 
   /**
    * The boundary of camera moving.
@@ -106,6 +109,22 @@ public class BaseField implements Field {
   // ==================== Field ====================
 
   @Override
+  public int getObjectCount() {
+    return objectList.size();
+  }
+
+  @Override
+  public void emplace(Observable o) {
+    Region boundary = getHeroBoundary();
+    double width = boundary.x2();
+    double px = random.nextDouble(width * 0.4, width * 0.6);
+    double pz = random.nextDouble(boundary.z1(), boundary.z2());
+    o.setAbsolutePosition(px, 0.0, pz);
+    objectList.add(o);
+    return;
+  }
+
+  @Override
   public void switchUnlimitedMode() {
     ++keyPressedTimes[0];
     return;
@@ -142,6 +161,7 @@ public class BaseField implements Field {
   @Override
   public void stepOneFrame() {
     ++timestamp;
+    pendingList.clear();
     objectList.sort(Field::processOrder);
     objectList.forEach(o -> o.spreadItrs(timestamp, objectView));
     objectList.forEach(o -> {
@@ -149,22 +169,15 @@ public class BaseField implements Field {
       pendingList.addAll(o.getSpawnedObjectList());
     });
     objectList.addAll(pendingList);
-    pendingList.clear();
     return;
   }
 
-  /**
-   * Calculates camera position.
-   * Moving policy is modified from F.LF.
-   *
-   * @param tracingList the objects that will be focused on
-   * @param currentPos  current camera position
-   * @return new camera position
-   */
-  protected double calcCameraPos(List<Observable> tracingList, double currentPos) {
+  @Override
+  public double calcCameraPos(List<Observable> tracingList, double currentPos) {
     if (tracingList.isEmpty()) {
       return cameraWindow * 0.5;
     }
+    // Moving policy is modified from F.LF.
     double position = 0.0;
     int facingWeight = 0;
     for (Observable o : tracingList) {

@@ -7,21 +7,17 @@ public interface Playable {
       "Deep", "John", "Henry", "Rudolf", "Louis",
       "Firen", "Freeze", "Dennis", "Woody", "Davis");
 
-  String getPortrait();
+  String getPortraitPath();
 
   String getIdentifier();
-
-  default boolean active() {
-    return true;
-  }
 
   default void fillStatus(double[] placeholder) {}
 
   static Playable SELECTION_IDLE = new Playable() {
 
     @Override
-    public String getPortrait() {
-      return null;// ImageCell.getSelectionIdleImage();
+    public String getPortraitPath() {
+      return "";
     }
 
     @Override
@@ -29,18 +25,13 @@ public interface Playable {
       return "";
     }
 
-    @Override
-    public boolean active() {
-      return false;
-    }
-
   };
 
   static Playable SELECTION_RANDOM = new Playable() {
 
     @Override
-    public String getPortrait() {
-      return null;// ImageCell.getSelectionRandomImage();
+    public String getPortraitPath() {
+      return "";
     }
 
     @Override

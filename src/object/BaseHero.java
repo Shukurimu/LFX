@@ -120,6 +120,17 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
+  public void fillStatus(double[] status) {
+    status[0] = hp2nd;
+    status[1] = hpMax;
+    status[2] = hp;
+    status[3] = hpMax;
+    status[4] = mp;
+    status[5] = mpMax;
+    return;
+  }
+
+  @Override
   public void setCpoint(Cpoint cpoint) {
     latestCpoint = cpoint;
     return;
@@ -137,7 +148,8 @@ public class BaseHero extends AbstractObject implements Hero {
   @Override
   protected void transitFrame(Action action) {
     Action orderAction = frame.combo.getOrDefault(controller.getKeyOrder(), action);
-    Cost cost = frameList.get(orderAction.index).cost;
+    Cost cost = Cost.FREE;
+    // TODO: Cost cost = frameList.get(orderAction.index).cost;
     if (cost == Cost.FREE || env.isUnlimitedMode()) {
       super.transitFrame(orderAction);
     } else if (mp >= cost.mp() && hp >= cost.hp()) {
@@ -165,7 +177,8 @@ public class BaseHero extends AbstractObject implements Hero {
       vy += dashSpeed.y();
       vz = controller.valueZ() * dashSpeed.z();
     }
-    Cost cost = frameList.get(frame.next.index).cost;
+    Cost cost = Cost.FREE;
+    // TODO: Cost cost = frameList.get(frame.next.index).cost;
     if (cost.mp() >= 0 || env.isUnlimitedMode()) {
       super.transitFrame(frame.next);
       return;
@@ -586,7 +599,7 @@ public class BaseHero extends AbstractObject implements Hero {
   protected List<Tuple<Itr, Region>> computeItrList() {
     List<Tuple<Itr, Region>> itrList = super.computeItrList();
     // itrList.addAll(weapon.getStrengthItrs(frame.wpoint.usage));
-    logger.log(Level.INFO, "Implement weapon strength.");
+    // logger.log(Level.INFO, "Implement weapon strength.");
     return itrList;
   }
 
@@ -748,7 +761,7 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public String getPortrait() {
+  public String getPortraitPath() {
     return portrait;
   }
 

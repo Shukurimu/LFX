@@ -146,7 +146,7 @@ public class Itr {
   }
 
   public static Itr of(Kind kind, Region relative, int scope, int vrest) {
-    return of(kind, relative, scope, vrest, null);
+    return of(kind, relative, scope, vrest, Integer.valueOf(0));
   }
 
   public boolean interactsWith(Bdy bdy, int bdyScopeView) {

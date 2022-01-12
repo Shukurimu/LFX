@@ -2,6 +2,7 @@ package platform;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.effect.InnerShadow;
@@ -17,8 +18,18 @@ public final class Main extends Application {
 
   @Override
   public void start(Stage primaryStage) {
-    ResourceLoadingTask loadingTask =
-        new ResourceLoadingTask((Scene scene) -> primaryStage.setScene(scene));
+    AbstractScreen.sceneChanger = (Scene scene) -> primaryStage.setScene(scene);
+
+    Task<Void> loadTask = ResourceManager.loadTask();
+    loadTask.setOnSucceeded(event -> {
+      System.err.println("Succeeded");
+      Screen pickingScene = new PickingScene();
+      primaryStage.setScene(pickingScene.makeScene());
+    });
+    loadTask.setOnFailed(event -> {
+      System.err.println("Failed");
+      loadTask.getException().printStackTrace();
+    });
 
     Text banner = new Text("Little Fighter X");
     banner.setEffect(new InnerShadow(6.0, 3.0, 3.0, Color.DARKORCHID));
@@ -28,20 +39,20 @@ public final class Main extends Application {
     Text author = new Text("(._.)");
 
     Text messageText = new Text("");
-    messageText.textProperty().bind(loadingTask.messageProperty());
+    messageText.textProperty().bind(loadTask.messageProperty());
 
     Button playButton = new Button("Game Start");
     playButton.setFont(Font.font(null, FontWeight.BLACK, 32));
     playButton.setOnAction(event -> {
       primaryStage.setResizable(false);
       playButton.setVisible(false);
-      new Thread(loadingTask).start();
+      new Thread(loadTask).start();
     });
 
     VBox guiContainer = new VBox(16.0, banner, author, playButton, messageText);
     guiContainer.setAlignment(Pos.CENTER);  // defaults to Pos.TOP_LEFT
 
-    Scene startScene = new Scene(guiContainer, GuiScene.WINDOW_WIDTH, GuiScene.WINDOW_HEIGHT);
+    Scene startScene = new Scene(guiContainer, AbstractScreen.WINDOW_WIDTH, AbstractScreen.WINDOW_HEIGHT);
     primaryStage.setResizable(false);
     primaryStage.setScene(startScene);
     primaryStage.setTitle("Little Fighter X");
