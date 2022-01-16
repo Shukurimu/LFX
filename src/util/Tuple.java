@@ -37,9 +37,7 @@ public final class Tuple<T, U> {
 
   @Override
   public String toString() {
-    return String.format("(<%s>%s, <%s>%s)",
-        first.getClass().getSimpleName(), first,
-        second.getClass().getSimpleName(), second);
+    return String.format("(%s, %s)", first, second);
   }
 
 }

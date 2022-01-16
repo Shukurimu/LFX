@@ -15,30 +15,34 @@ public interface Environment {
    * Calculates the velocity after friction deduction.
    * The default friction factor is 1.
    *
-   * @param vx initial x-velocity
-   * @return result x-velocity
+   * @param v initial velocity
+   * @return result velocity
    */
-  default double applyFriction(double vx) {
-    return vx >= 0.0 ? Math.max(vx - 1, 0.0) : Math.min(vx + 1, 0.0);
+  default double applyFriction(double v) {
+    return v >= 0.0 ? Math.max(0.0, v - 1.0) : Math.min(0.0, v + 1.0);
   }
 
   /**
    * Calculates the landing velocity after friction deduction.
+   * The default landing friction factor is 3.
    *
-   * @param vx initial x-velocity
-   * @return result x-velocity
+   * @param v initial velocity
+   * @return result velocity
    */
-  default double applyLandingFriction(double vx) {
-    return vx / 3.0;
+  default double applyLandingFriction(double v) {
+    return v / 3.0;
   }
 
   /**
    * Calculates the velocity after gravity effect.
+   * The default gravity factor is 1.7.
    *
    * @param vy initial y-velocity
    * @return result y-velocity
    */
-  double applyGravity(double vy);
+  default double applyGravity(double vy) {
+    return vy + 1.7;
+  }
 
   /**
    * Gets an id in which there is no teammate.
@@ -67,6 +71,14 @@ public interface Environment {
    * @return a {@code Region} whose {@code y1} and {@code y2} have no use
    */
   Region getItemBoundary();
+
+  Environment NULL_ENVIRONMENT = new Environment() {
+    @Override public boolean isUnlimitedMode() { return false; }
+    @Override public int requestIndependentTeamId() { return 0; }
+    @Override public int getTimestamp() { throw new UnsupportedOperationException(); }
+    @Override public Region getHeroBoundary() { return Region.EMPTY; }
+    @Override public Region getItemBoundary() { return Region.EMPTY; }
+  };
 
   // https://www.lf-empire.de/lf2-empire/data-changing/reference-pages/186-sound-list
   // m_cancel.wav   Menu Sound - Abort

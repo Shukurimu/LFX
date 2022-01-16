@@ -10,26 +10,27 @@ public enum State {
   UNIMPLEMENTED,
   // ==================== Shared ====================
   NORMAL,
-  LANDING_ACT,     // state: 100
-  TELEPORT_ENEMY,  // state: 400
-  TELEPORT_TEAM,   // state: 401
-  TEST_TRANSFORM,  // state: 500
-  DO_TRANSFORM,    // state: 501
+  LANDING_ACT,
+  TELEPORT_ENEMY,
+  TELEPORT_TEAM,
+  TEST_TRANSFORM,
+  DO_TRANSFORM,
   // ==================== Hero ====================
-  STAND,       // state: 0
-  WALK,        // state: 1
-  RUN,         // state: 2
-  JUMP,        // state: 4
-  DASH,        // state: 5
-  FLIP,        // state: 6
-  DEFEND,      // state: 7
-  GRABBING,    // state: 9
-  GRABBED,     // state: 10
-  FALL,        // state: 12
-  ICE,         // state: 13
-  LYING,       // state: 14
-  DRINK,       // state: 17
-  FIRE,        // state: 18
+  STAND,
+  WALK,
+  RUN,
+  JUMP,
+  DASH,
+  FLIP,
+  DEFEND,
+  GRABBING,
+  GRABBED,
+  FALL,
+  ICE,
+  LYING,
+  DANCE_OF_PAIN,
+  DRINK,
+  FIRE,
   // ==================== Weapon ====================
   IN_THE_SKY,
   ON_HAND,
@@ -102,7 +103,7 @@ public enum State {
       case 13 -> State.NORMAL;
       case 14 -> State.LYING;
       case 15 -> State.NORMAL;
-      case 16 -> State.NORMAL;
+      case 16 -> State.DANCE_OF_PAIN;
       case 17 -> State.DRINK;
       case 18 -> State.NORMAL;
       case 19 -> State.NORMAL;  // (Firen firerun) use dvz and visual effect

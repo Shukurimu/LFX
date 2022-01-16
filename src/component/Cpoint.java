@@ -48,7 +48,7 @@ public class Cpoint extends Point {
    * 2. Perform transformation.
    */
   public static final Cpoint DROP =
-      new Cpoint(0, 0, Action.HERO_FORWARD_FALL2, Action.UNASSIGNED, 0, 0, Vector.of(8, -3), 0);
+      new Cpoint(0, 0, Action.HERO_FACEUP_FALL2, Action.UNASSIGNED, 0, 0, Vector.of(8, -3), 0);
 
   /**
    * Unintentionally release the target.

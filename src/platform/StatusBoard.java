@@ -47,7 +47,7 @@ public class StatusBoard extends Canvas {
         new Stop(0.0, Color.CRIMSON),
         new Stop(0.4, Color.DARKORANGE),
         new Stop(0.7, Color.GOLD),
-        new Stop(1.0, Color.MEDIUMSPRINGGREEN)
+        new Stop(1.0, Color.LIMEGREEN)
     );
     HP_BAR_CURR = new LinearGradient(
         BAR_BEGIN, HP_FILL_Y, BAR_BEGIN + BAR_WIDTH, HP_FILL_Y + BAR_HEIGHT,
@@ -93,8 +93,11 @@ public class StatusBoard extends Canvas {
     gc.strokeRect(PADDING - 1.0, PADDING - 1.0, ICON_SIZE + 2.0, ICON_SIZE + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, HP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
     gc.strokeRect(BAR_BEGIN - 1.0, MP_FILL_Y - 1.0, BAR_WIDTH + 2.0, BAR_HEIGHT + 2.0);
+    gc.setFill(CONTAINER_COLOR);
+    gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
     gc.setFont(Font.font("Verdana"));
-    gc.setStroke(Color.MAROON);
+    gc.setStroke(Color.WHITE);
     gc.setTextBaseline(VPos.CENTER);
     gc.setTextAlign(TextAlignment.RIGHT);
     return;
@@ -121,6 +124,10 @@ public class StatusBoard extends Canvas {
     double mp0Length = status[4] / status[5] * BAR_WIDTH;
     gc.setFill(CONTAINER_COLOR);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
+    gc.fillRect(BAR_BEGIN, MP_FILL_Y, BAR_WIDTH, BAR_HEIGHT);
+    if (status[2] <= 0.0) {
+      return;
+    }
     gc.setFill(HP_BAR_BASE);
     gc.fillRect(BAR_BEGIN, HP_FILL_Y, hp2Length, BAR_HEIGHT);
     gc.setFill(HP_BAR_CURR);

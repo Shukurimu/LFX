@@ -1,6 +1,8 @@
 package component;
 
+import java.util.List;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 /**
  * Define frame connection -- next & hit_xx.
@@ -15,7 +17,8 @@ public class Action {
   /**
    * Internal cache.
    */
-  private static final Action[] cache = new Action[ACTION_LIMIT];
+  private static final List<Action> cache =
+      IntStream.range(0, ACTION_LIMIT).mapToObj(i -> new Action(i, false)).toList();
 
   /**
    * Follows the rule of {@code wait} - {@code next} flow.
@@ -72,11 +75,7 @@ public class Action {
       throw new IllegalArgumentException("" + value);
     }
     if (value >= 0) {
-      if (cache[value] == null) {
-        return cache[value] = new Action(value, false);
-      } else {
-        return cache[value];
-      }
+      return cache.get(value);
     } else {
       return new Action(-value, true);
     }
@@ -204,20 +203,20 @@ public class Action {
   public static final Action HERO_PICK_HEAVY = new DefinedAction(116, 4);
   public static final Action HERO_CATCH = new DefinedAction(120, 10);
   public static final Action HERO_CAUGHT = new DefinedAction(130, 20);
-  public static final Action HERO_FORWARD_FALL = new DefinedAction(180, 6);
-  public static final Action HERO_FORWARD_FALL1 = new DefinedAction(180, 1);
-  public static final Action HERO_FORWARD_FALL2 = new DefinedAction(181, 1);
-  public static final Action HERO_FORWARD_FALL3 = new DefinedAction(182, 1);
-  public static final Action HERO_FORWARD_FALL4 = new DefinedAction(183, 1);
-  public static final Action HERO_FORWARD_FALL5 = new DefinedAction(184, 1);
-  public static final Action HERO_FORWARD_FALLR = new DefinedAction(185, 1);
-  public static final Action HERO_BACKWARD_FALL = new DefinedAction(186, 6);
-  public static final Action HERO_BACKWARD_FALL1 = new DefinedAction(186, 1);
-  public static final Action HERO_BACKWARD_FALL2 = new DefinedAction(187, 1);
-  public static final Action HERO_BACKWARD_FALL3 = new DefinedAction(188, 1);
-  public static final Action HERO_BACKWARD_FALL4 = new DefinedAction(189, 1);
-  public static final Action HERO_BACKWARD_FALL5 = new DefinedAction(190, 1);
-  public static final Action HERO_BACKWARD_FALLR = new DefinedAction(191, 1);
+  public static final Action HERO_FACEUP_FALL = new DefinedAction(180, 6);
+  public static final Action HERO_FACEUP_FALL1 = new DefinedAction(180, 1);
+  public static final Action HERO_FACEUP_FALL2 = new DefinedAction(181, 1);
+  public static final Action HERO_FACEUP_FALL3 = new DefinedAction(182, 1);
+  public static final Action HERO_FACEUP_FALL4 = new DefinedAction(183, 1);
+  public static final Action HERO_FACEUP_FALL5 = new DefinedAction(184, 1);
+  public static final Action HERO_FACEUP_FALLR = new DefinedAction(185, 1);
+  public static final Action HERO_FACEDOWN_FALL = new DefinedAction(186, 6);
+  public static final Action HERO_FACEDOWN_FALL1 = new DefinedAction(186, 1);
+  public static final Action HERO_FACEDOWN_FALL2 = new DefinedAction(187, 1);
+  public static final Action HERO_FACEDOWN_FALL3 = new DefinedAction(188, 1);
+  public static final Action HERO_FACEDOWN_FALL4 = new DefinedAction(189, 1);
+  public static final Action HERO_FACEDOWN_FALL5 = new DefinedAction(190, 1);
+  public static final Action HERO_FACEDOWN_FALLR = new DefinedAction(191, 1);
   public static final Action HERO_ICE = new DefinedAction(200, 3);
   public static final Action HERO_UPWARD_FIRE = new DefinedAction(203, 2);
   public static final Action HERO_DOWNWARD_FIRE = new DefinedAction(205, 2);
@@ -227,6 +226,8 @@ public class Action {
   public static final Action HERO_DASH = new DefinedAction(213, 1);
   public static final Action HERO_DASH_REVERSE = new DefinedAction(214, 1);
   public static final Action HERO_CROUCH1 = new DefinedAction(215, 3);
+  public static final Action HERO_DASH2 = new DefinedAction(216, 1);
+  public static final Action HERO_DASH_REVERSE2 = new DefinedAction(217, 1);
   public static final Action HERO_STOPRUN = new DefinedAction(218, 1);
   public static final Action HERO_CROUCH2 = new DefinedAction(219, 1);
   public static final Action HERO_INJURE1 = new DefinedAction(220, 1);
@@ -235,8 +236,8 @@ public class Action {
   public static final Action HERO_BACKHURT = new DefinedAction(223, 1);
   public static final Action HERO_INJURE3 = new DefinedAction(224, 2);
   public static final Action HERO_DOP = new DefinedAction(226, 4);
-  public static final Action HERO_LYING1 = new DefinedAction(230, 1);
-  public static final Action HERO_LYING2 = new DefinedAction(231, 1);
+  public static final Action HERO_FACEUP_LYING = new DefinedAction(230, 1);
+  public static final Action HERO_FACEDOWN_LYING = new DefinedAction(231, 1);
   public static final Action HERO_THROW_LYING_MAN = new DefinedAction(232, 3);
 
   public static final Action LANDING_ACT = new DefinedAction(94, 0);

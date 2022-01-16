@@ -89,10 +89,11 @@ public class FieldScene extends BaseField {
     return;
   }
 
-  public void addPlayer(Hero o, Controller controller) {
+  public void addPlayer(Hero o, Controller controller, int teamId) {
     logger.log(Level.INFO, o);
     o.setEnvironment(this);
     o.setController(controller);
+    o.setProperty(teamId == 0 ? requestIndependentTeamId() : teamId, random.nextBoolean());
     emplace(o);
     addNode(o);
     spectatingObjects.add(o);

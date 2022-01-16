@@ -123,11 +123,11 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   }
 
   @Override
-  protected int checkInteraction(Observable that) {
+  protected int checkInteraction(List<Tuple<Itr, Region>> itrList, Observable that) {
     if (mutuallyExcludedList.contains(that)) {
       return 0;
     } else {
-      return super.checkInteraction(that);
+      return super.checkInteraction(itrList, that);
     }
   }
 
@@ -232,12 +232,6 @@ public class BaseWeapon extends AbstractObject implements Weapon {
           return;
         }
         break;
-      case SHIELD:
-        if (itr.param instanceof Action x) {
-          transitFrame(x);
-          return;
-        }
-        break;
       case WEAPON_STRENGTH:
         logger.log(Level.WARNING, "not implemented %s", itr);
         return;
@@ -246,6 +240,7 @@ public class BaseWeapon extends AbstractObject implements Weapon {
       case SONATA:
       case VORTEX:
         return;
+      case SHIELD:
       case THROWN_DAMAGE:
       case PICK:
       case ROLL_PICK:
@@ -323,22 +318,11 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     if (holder == NullObject.HERO) {
       return Action.UNASSIGNED;
     }
-    if (frame.dvx == Frame.RESET_VELOCITY) {
-      vx = 0.0;
-    } else {
-      vx = frame.calcVX(vx, faceRight);
-    }
-    if (frame.dvy == Frame.RESET_VELOCITY) {
-      vy = 0.0;
-    } else {
-      vy = frame.dvy;
-    }
-    if (frame.dvz == Frame.RESET_VELOCITY) {
-      vz = 0.0;
-    }
-    if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
+    vx = frame.calcVx(vx, faceRight);
+    vy = frame.calcVy(vy);
+    vz = frame.calcVz(vz, 0.0);
+    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < env.getTimestamp()) {
       px += vx;
-      py += vy;
       pz += vz;
     }
     if (py < 0.0) {

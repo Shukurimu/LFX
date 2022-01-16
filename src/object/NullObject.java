@@ -104,11 +104,6 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
-  public List<Tuple<Itr, Region>> getItrs() {
-    return List.of();
-  }
-
-  @Override
   public int getScopeView(int targetTeamId) {
     return 0;
   }
@@ -140,11 +135,6 @@ public final class NullObject implements Hero, Weapon, Energy {
 
   @Override
   public void setVelocity(Vector velocity) {
-    throw new UnsupportedOperationException(getIdentifier());
-  }
-
-  @Override
-  public void setEnvironment(Environment env) {
     throw new UnsupportedOperationException(getIdentifier());
   }
 

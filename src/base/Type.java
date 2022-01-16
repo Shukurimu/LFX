@@ -40,8 +40,8 @@ public enum Type {
 
   // ==================== Parser Utility ====================
 
-  private static Map<Integer, String> oid2identifier = null;
-  private static Map<String, Tuple<Type, String>> fileInfo = null;
+  private static Map<Integer, String> oid2identifier = Map.of();
+  private static Map<String, Tuple<Type, String>> fileInfo = Map.of();
 
   /**
    * Gets the corresponding identifier of given oid.
@@ -50,7 +50,7 @@ public enum Type {
    * @return the identifier
    */
   public static String getIdentifier(int oid) {
-    if (oid2identifier == null) {
+    if (oid2identifier.isEmpty()) {
       parseDataTxt();
     }
     return oid2identifier.get(oid);
@@ -63,7 +63,7 @@ public enum Type {
    * @return {@code Type} and identifier of the file
    */
   public static Tuple<Type, String> getInfo(String fileName) {
-    if (fileInfo == null) {
+    if (fileInfo.isEmpty()) {
       parseDataTxt();
     }
     return fileInfo.get(fileName);

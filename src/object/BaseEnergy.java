@@ -120,22 +120,11 @@ public class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected Action updateKinetic() {
-    if (frame.dvx == Frame.RESET_VELOCITY) {
-      vx = 0.0;
-    } else {
-      vx = frame.calcVX(vx, faceRight);
-    }
-    if (frame.dvy == Frame.RESET_VELOCITY) {
-      vy = 0.0;
-    } else {
-      vy = frame.dvy;
-    }
-    if (frame.dvz == Frame.RESET_VELOCITY) {
-      vz = 0.0;
-    }
-    if (!buff.containsKey(Effect.MOVE_BLOCKING)) {
+    vx = frame.calcVx(vx, faceRight);
+    vy = frame.calcVy(vy);
+    vz = frame.calcVz(vz, 0.0);
+    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < env.getTimestamp()) {
       px += vx;
-      py += vy;
       pz += vz;
     }
     return Action.UNASSIGNED;
@@ -151,9 +140,13 @@ public class BaseEnergy extends AbstractObject implements Energy {
   }
 
   @Override
-  protected void transitNextFrame() {
-    transitFrame(hp > 0.0 ? frame.next
-        : frame.combo.getOrDefault(KeyOrder.hit_d, frame.next));
+  protected void transitNextFrame(Frame targetFrame, boolean changeFacing) {
+    Action fallbackAction = frame.combo.getOrDefault(KeyOrder.hit_d, Action.UNASSIGNED);
+    if (hp <= 0.0 && fallbackAction != Action.UNASSIGNED) {
+      super.transitGoto(fallbackAction);
+    } else {
+      super.transitNextFrame(targetFrame, changeFacing);
+    }
     return;
   }
 

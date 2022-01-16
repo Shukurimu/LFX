@@ -59,7 +59,7 @@ public class VersusArena extends AbstractScreen {
       Hero clone = focus = (Hero) x.makeClone();
       board = StatusBoard.of(clone, ResourceManager.portraitLibrary.get(identifier));
       Controller controller = playerCard.controller;
-      field.addPlayer(clone, controller);
+      field.addPlayer(clone, controller, playerCard.getTeamId());
     } else {
       board = StatusBoard.ofEmpty();
     }
@@ -70,14 +70,8 @@ public class VersusArena extends AbstractScreen {
     field.stepOneFrame();
     statusBoardList.forEach(s -> s.update());
     middleText2.setText(focus.getAbsolutePosition().toString());
-    bottomText1.setText("FxNode: %d   MapTime %d".formatted(
-        field.getObjectCount(), field.getTimestamp()));
-    bottomText2.setText(
-          String.format("(%s) %s",
-                        javafx.application.Platform.isFxApplicationThread() ? "Fx" : "NonFx",
-                        Thread.currentThread().getName()
-          )
-    );
+    bottomText1.setText("Time %d".formatted(field.getTimestamp()));
+    bottomText2.setText("Node %d".formatted(field.getObjectCount()));
     return;
   }
 

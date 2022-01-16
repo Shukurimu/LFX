@@ -61,7 +61,7 @@ public class BaseController implements Controller {
         return order;
       }
     }
-    return null;
+    return KeyOrder.NONE;
   }
 
   @Override

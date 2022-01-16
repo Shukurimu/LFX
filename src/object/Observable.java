@@ -131,13 +131,6 @@ public interface Observable {
   List<Tuple<Bdy, Region>> getBdys();
 
   /**
-   * Gets the {@code Itr}s this object has in this timestamp.
-   *
-   * @return a {@code List} of {@code Itr} with absolute {@code Region}
-   */
-  List<Tuple<Itr, Region>> getItrs();
-
-  /**
    * Returns this scope from another's perspective.
    * It is mainly used in checking interaction.
    */
@@ -196,7 +189,10 @@ public interface Observable {
    */
   void setVelocity(Vector velocity);
 
-  void setEnvironment(Environment env);
+  default void setEnvironment(Environment env) {
+    setEnvironment(env, Action.DEFAULT);
+  }
+
   void setEnvironment(Environment env, Action action);
   void setProperty(int teamId, boolean faceRight);
 

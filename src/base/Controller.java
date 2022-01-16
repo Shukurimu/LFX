@@ -35,7 +35,7 @@ public interface Controller {
   /**
    * Gets the latest valid {@code KeyOrder}.
    *
-   * @return a valid {@code KeyOrder}, or {@code null} if unavailable or outdated.
+   * @return a {@code KeyOrder}
    */
   KeyOrder getKeyOrder();
 

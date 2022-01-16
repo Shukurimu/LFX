@@ -7,7 +7,6 @@ public interface Hero extends Observable, Playable {
   double DEFEND_INJURY_REDUCTION = 0.10;
   double DEFEND_DVX_REDUCTION = 0.10;
   double FALLING_BOUNCE_VY = -4.25; // guess
-  double LANDING_VELOCITY_REMAIN = 0.5; // guess
   double CONTROL_VZ = 2.5; // press U or D; test
   double DIAGONAL_VX_RATIO = 1.0 / 1.4; // test
   double ICED_FALLDOWN_DAMAGE = 10.0;

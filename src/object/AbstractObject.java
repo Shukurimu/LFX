@@ -56,11 +56,6 @@ public abstract class AbstractObject implements Observable {
   protected final List<Tuple<Bdy, Region>> bdyList = new ArrayList<>();
 
   /**
-   * Stores itrs in a list to avoid repeated computation.
-   */
-  protected final List<Tuple<Itr, Region>> itrList = new ArrayList<>();
-
-  /**
    * The x-coordinate of picture left.
    */
   protected double anchorX = 0.0;
@@ -126,8 +121,8 @@ public abstract class AbstractObject implements Observable {
    */
   private int transition = 0;
   private boolean newAction = true;
-  protected Environment env = null;
-  protected Hero grabbingHero = null;
+  protected Environment env = Environment.NULL_ENVIRONMENT;
+  protected Hero grabbingHero = NullObject.HERO;
   protected int grabbingTimer = 0;
 
   protected AbstractObject(Type type, Frame.Collector collector) {
@@ -275,11 +270,6 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public List<Tuple<Itr, Region>> getItrs() {
-    return itrList;
-  }
-
-  @Override
   public int getScopeView(int targetTeamId) {
     return targetTeamId == teamId ? Scope.getTeammateView(baseScope)
                                   : Scope.getEnemyView(baseScope);
@@ -323,34 +313,52 @@ public abstract class AbstractObject implements Observable {
    */
   protected abstract Action getDefaultAction();
 
-  protected void transitFrame(Action action) {
-    if (action == Action.REMOVAL) {
-      existence = false;
-      return;
-    }
-
-    if (action == Action.REPEAT) {
-      newAction = false;
-    } else {
-      newAction = true;
-      if (action == Action.DEFAULT) {
-        action = getDefaultAction();
-      } else if (action == Action.DEFAULT_REVERSE) {
-        action = getDefaultAction();
-        faceRight ^= true;
-      }
-      frame = frameList.get(action.index);
-      faceRight ^= action.changeFacing;
-    }
-
+  protected void transitGotoFrame(Frame targetFrame, boolean changeFacing) {
+    frame = targetFrame;
+    faceRight ^= changeFacing;
     transition = frame.wait;
-    logger.log(Level.TRACE, "%s %d", action, transition);
+    newAction = true;
+    logger.log(Level.TRACE, "Goto {0}", targetFrame);
     return;
   }
 
-  protected void transitNextFrame() {
-    transitFrame(frame.next);
+  protected void transitGoto(Action action) {
+    if (action == Action.DEFAULT) {
+      action = getDefaultAction();
+    }
+    transitGotoFrame(frameList.get(action.index), action.changeFacing);
+    return;
+  }
+
+  protected void transitNextFrame(Frame targetFrame, boolean changeFacing) {
+    if (targetFrame == Frame.REMOVAL_FRAME) {
+      existence = false;
+      return;
+    }
+    frame = targetFrame;
+    faceRight ^= changeFacing;
+    transition = frame.wait;
+    newAction = true;
     opointify(frame.opoint);
+    return;
+  }
+
+  protected void transitNext() {
+    Action action = frame.next;
+    if (action == Action.DEFAULT_REVERSE) {
+      action = getDefaultAction();
+      transitNextFrame(frameList.get(action.index), true);
+    } else if (action == Action.DEFAULT) {
+      action = getDefaultAction();
+      transitNextFrame(frameList.get(action.index), false);
+    } else if (action == Action.REMOVAL) {
+      transitNextFrame(Frame.REMOVAL_FRAME, false);
+    } else if (action == Action.REPEAT) {
+      transitNextFrame(frame, false);
+      newAction = false;
+    } else {
+      transitNextFrame(frameList.get(action.index), action.changeFacing);
+    }
     return;
   }
 
@@ -363,15 +371,9 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void setEnvironment(Environment env) {
-    setEnvironment(env, Action.DEFAULT);
-    return;
-  }
-
-  @Override
   public void setEnvironment(Environment env, Action action) {
     this.env = env;
-    AbstractObject.this.transitFrame(action);
+    transitGoto(action);
     return;
   }
 
@@ -388,7 +390,7 @@ public abstract class AbstractObject implements Observable {
    * @param that the target object is going to check
    * @return the non zero {@code vrest} value if there is a successful match
    */
-  protected int checkInteraction(Observable that) {
+  protected int checkInteraction(List<Tuple<Itr, Region>> itrList, Observable that) {
     int scopeView = that.getScopeView(teamId);
     for (Tuple<Bdy, Region> bdyRegion : that.getBdys()) {
       Bdy bdy = bdyRegion.first;
@@ -408,8 +410,13 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void spreadItrs(int timestamp, List<Observable> allObjects) {
+  public final void spreadItrs(int timestamp, List<Observable> allObjects) {
     if (arest > timestamp) {
+      return;
+    }
+
+    List<Tuple<Itr, Region>> itrList = computeItrList();
+    if (itrList.isEmpty()) {
       return;
     }
 
@@ -420,7 +427,7 @@ public abstract class AbstractObject implements Observable {
       if (vrest.getOrDefault(that, 0) > timestamp) {
         continue;
       }
-      int resultVrest = checkInteraction(that);
+      int resultVrest = checkInteraction(itrList, that);
       if (resultVrest < 0) {
         arest = timestamp - resultVrest;
         break;
@@ -505,18 +512,17 @@ public abstract class AbstractObject implements Observable {
     if (nextAct == Action.UNASSIGNED) {
       nextAct = updateByState();
     }
+    newAction = false;
     if (nextAct != Action.UNASSIGNED) {
-      transitFrame(nextAct);
+      transitGoto(nextAct);
     } else if (--transition < 0) {
-      transitNextFrame();
+      transitNext();
     }
 
     if (fitBoundary()) {
       updateImageAnchor();
       bdyList.clear();
       bdyList.addAll(computeBdyList());
-      itrList.clear();
-      itrList.addAll(computeItrList());
     } else {
       existence = false;
     }
@@ -538,9 +544,13 @@ public abstract class AbstractObject implements Observable {
       return;
     }
 
+    Observable origin = library.getOrDefault(opoint.oid, NullObject.DUMMY);
+    if (origin == NullObject.DUMMY) {
+      logger.log(Level.WARNING, "{0} is not registered.", opoint.oid);
+      return;
+    }
     Vector baseVelocity = getAbsoluteVelocity(opoint.velocity);
     Vector basePosition = getRelativePosition(opoint);
-    Observable origin = library.get(opoint.oid).makeClone();
     List<Observable> cloneList = new ArrayList<>();
     for (Vector velocity : opoint.getInitialVelocities(baseVelocity)) {
       Observable clone = origin.makeClone();
@@ -566,7 +576,7 @@ public abstract class AbstractObject implements Observable {
 
   @Override
   public String toString() {
-    return String.format("%s %s@%x [%d]", type, identifier, hashCode(), teamId);
+    return String.format("%s[%d]%x", identifier, teamId, hashCode());
   }
 
 }

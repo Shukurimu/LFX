@@ -73,6 +73,11 @@ public record Region(double x1, double x2, double y1, double y2, double z1, doub
         && y1 < another.y2 && y2 > another.y1;
   }
 
+  @Override
+  public String toString() {
+    return String.format("Region[%.0f ~ %.0f, %.0f ~ %.0f, %.0f ~ %.0f]", x1, x2, y1, y2, z1, z2);
+  }
+
   // ==================== Parser Utility ====================
 
   /**

@@ -50,6 +50,10 @@ public class PlayerCard {
     };
   }
 
+  protected int getTeamId() {
+    return teamSelector.current().intValue();
+  }
+
   protected String getTeamText() {
     return switch (phaseSelector.current()) {
       case UNASSIGNED, SELECTING_HERO -> "";

@@ -58,11 +58,6 @@ public class BaseField implements Field {
   private int[] keyPressedTimes = new int[5];
 
   /**
-   * Factor of gravity.
-   */
-  protected double gravity = 1.7;
-
-  /**
    * Current timestamp.
    */
   protected int timestamp = 0;
@@ -79,11 +74,6 @@ public class BaseField implements Field {
   @Override
   public boolean isUnlimitedMode() {
     return (keyPressedTimes[0] & 1) == 1;
-  }
-
-  @Override
-  public double applyGravity(double vy) {
-    return vy + gravity;
   }
 
   @Override

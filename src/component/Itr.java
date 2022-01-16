@@ -11,7 +11,7 @@ import util.IntMap;
  * https://lf-empire.de/lf2-empire/param-changing/reference-pages/181-effects
  */
 public class Itr {
-  public static final Itr NULL_ITR = new Itr(Kind.PUNCH, Region.EMPTY, 0, 0, null);
+  public static final Itr NULL_ITR = new Itr(Kind.PUNCH, Region.EMPTY, 0, 0, Integer.valueOf(0));
   // https://lf-empire.de/forum/showthread.php?tid=8740
   public static final int DEFAULT_DAMAGE_PAUSE = 3;
   public static final int DEFAULT_DEFEND_PAUSE = 5;
@@ -158,7 +158,7 @@ public class Itr {
 
   @Override
   public String toString() {
-    return String.format("Itr[%s, %s, scope=%x, vrest=%d]", kind, relative, scope, vrest);
+    return String.format("Itr[%s, %s, scope=%x, vrest=%d]", kind.name(), relative, scope, vrest);
   }
 
   // ==================== Parser Utility ====================
@@ -188,7 +188,7 @@ public class Itr {
 
   private static String extractGivenRegion(IntMap data, int rawState, Type type, String region) {
     String scope = "DEFAULT_ITR_SCOPE";  // defined in BaseXXX
-    String param = null;
+    String param = "";
     Kind kind = switch (data.pop("kind")) {
       case 0 -> {
         int effect = data.pop("effect", 0);
@@ -283,7 +283,7 @@ public class Itr {
       vrest = -rawArest;
     }
 
-    if (param == null) {
+    if (param.isEmpty()) {
       return "Itr.of(%s, %s, %s, %d)".formatted(kind, region, scope, vrest);
     } else {
       return "Itr.of(%s, %s, %s, %d, %s)".formatted(kind, region, scope, vrest, param);

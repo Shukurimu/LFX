@@ -12,6 +12,7 @@ import util.IntMap;
 
 public class Frame {
   public static final Frame NULL_FRAME = new Frame();
+  public static final Frame REMOVAL_FRAME = new Frame();
   public static final int RESET_VELOCITY = 550;
 
   public final State state;
@@ -56,7 +57,7 @@ public class Frame {
     this.cpoint = cpoint;
   }
 
-  /** Constructor for NULL_FRAME. */
+  /** Constructor for special frames. */
   private Frame() {
     state = State.NORMAL;
     curr = wait = 999999;
@@ -73,7 +74,14 @@ public class Frame {
     cpoint = null;
   }
 
-  public double calcVX(double vx, boolean faceRight) {
+  /**
+   * Calculates the result of dvx on given conditions.
+   *
+   * @param vx        original x-velocity
+   * @param faceRight object's facing
+   * @return the result x-velocity
+   */
+  public double calcVx(double vx, boolean faceRight) {
     if (dvx == RESET_VELOCITY) {
       return 0.0;
     }
@@ -84,6 +92,42 @@ public class Frame {
     double absDvx = faceRight ? dvx : -dvx;
     return absDvx < 0 ? (vx < 0.0 ? Math.min(absDvx, vx) : absDvx)
                       : (vx > 0.0 ? Math.max(absDvx, vx) : absDvx);
+  }
+
+  /**
+   * Calculates the result of dvy on given conditions.
+   * In LF2 even the frame with dvy = -1 causes the character flying for a while,
+   * so dvy takes effect before the calculation of gravity.
+   *
+   * @param vy original y-velocity
+   * @return the result y-velocity
+   */
+  public double calcVy(double vy) {
+    if (dvy == RESET_VELOCITY) {
+      return 0.0;
+    }
+    if (dvy == 0) {
+      return vy;
+    }
+    return dvy < 0 ? (vy < 0.0 ? Math.min(dvy, vy) : dvy)
+                   : (vy > 0.0 ? Math.max(dvy, vy) : dvy);
+  }
+
+  /**
+   * Calculates the result of dvz on given conditions.
+   *
+   * @param vz     original z-velocity
+   * @param inputZ player's z-direction input (-1, 0, +1)
+   * @return the result z-velocity
+   */
+  public double calcVz(double vz, double inputZ) {
+    if (dvz == RESET_VELOCITY) {
+      return 0.0;
+    }
+    if (dvz == 0) {
+      return vz;
+    }
+    return dvz * inputZ;
   }
 
   @Override
@@ -172,7 +216,7 @@ public class Frame {
       return this;
     }
 
-    private Frame build() {
+    Frame build() {
       return new Frame(
           state, curr, wait, next,
           pic, centerx, centery,
@@ -182,6 +226,11 @@ public class Frame {
 
   }
 
+  private static final Builder NULL_FRAME_BUILDER =
+      new Builder(0, State.UNIMPLEMENTED, 0, Action.DEFAULT) {
+        @Override Frame build() { return NULL_FRAME; }
+      };
+
   /**
    * A helper class to manage a {@code Frame} series.
    */
@@ -189,7 +238,7 @@ public class Frame {
     private final List<Builder> builderList;
 
     public Collector() {
-      builderList = new ArrayList<>(Collections.nCopies(Action.ACTION_LIMIT, null));
+      builderList = new ArrayList<>(Collections.nCopies(Action.ACTION_LIMIT, NULL_FRAME_BUILDER));
     }
 
     public Builder addFrame(int actionNumber, State state, int wait, Action next) {
@@ -199,7 +248,7 @@ public class Frame {
     }
 
     public List<Frame> toFrameList() {
-      return builderList.stream().map(x -> x == null ? NULL_FRAME : x.build()).toList();
+      return builderList.stream().map(x -> x.build()).toList();
     }
 
   }
@@ -237,7 +286,7 @@ public class Frame {
       dvz = data.pop("hit_j", 50) - 50;
       mp = data.pop("hit_a", 0);
     }
-    if ((dvz | dvy | dvz) != 0) {
+    if ((dvx | dvy | dvz) != 0) {
       result.add(".move(%d, %d, %d)".formatted(dvx, dvy, dvz));
     }
 
