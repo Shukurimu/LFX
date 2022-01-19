@@ -14,11 +14,11 @@ import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-import object.Playable;
+import ecosystem.Playable;
 
-public class StatusBoard extends Canvas {
-  public static final double CANVAS_WIDTH = 794 / 4;
-  public static final double CANVAS_HEIGHT = 60;
+public class ViewerBoard extends Canvas {
+  public static final double CANVAS_WIDTH = Screen.WINDOW_WIDTH / 4;
+  public static final double CANVAS_HEIGHT = Screen.SPECTATOR_HEIGHT;
   private static final double PADDING = 5.0;
   private static final double ICON_SIZE = CANVAS_HEIGHT - PADDING * 2.0;
   private static final double BAR_BEGIN = ICON_SIZE + PADDING * 2.0;
@@ -78,7 +78,7 @@ public class StatusBoard extends Canvas {
     ));
   }
 
-  private StatusBoard(Playable target) {
+  private ViewerBoard(Playable target) {
     super(CANVAS_WIDTH, CANVAS_HEIGHT);
     this.target = target;
     gc = this.getGraphicsContext2D();
@@ -103,14 +103,14 @@ public class StatusBoard extends Canvas {
     return;
   }
 
-  public static StatusBoard of(Playable target, Image portrait) {
-    StatusBoard s = new StatusBoard(target);
+  public static ViewerBoard of(Playable target, Image portrait) {
+    ViewerBoard s = new ViewerBoard(target);
     s.initialize(portrait);
     return s;
   }
 
-  public static StatusBoard ofEmpty() {
-    StatusBoard s = new StatusBoard(Playable.SELECTION_IDLE) {
+  public static ViewerBoard ofEmpty() {
+    ViewerBoard s = new ViewerBoard(Playable.SELECTION_IDLE) {
       @Override public void update() {}
     };
     s.initialize(null);

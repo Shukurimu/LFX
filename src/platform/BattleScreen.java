@@ -3,6 +3,7 @@ package platform;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -10,36 +11,38 @@ import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
+import javafx.geometry.VPos;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.Parent;
-import javafx.scene.SubScene;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 
 import base.Controller;
+import ecosystem.Hero;
+import ecosystem.Library;
+import ecosystem.Observable;
 import map.Background;
-import object.Hero;
-import object.Observable;
-import util.Tuple;
 
-public class VersusArena extends AbstractScreen {
+public class BattleScreen extends AbstractScreen {
   private static final System.Logger logger = System.getLogger("");
+  public static final double DEFAULT_MSPF = 1000.0 / 30.0;  // DPS
 
-  private final List<StatusBoard> statusBoardList = new ArrayList<>(8);
+  private final List<ViewerBoard> statusBoardList = new ArrayList<>(8);
   private final Text middleText1 = makeText(Color.AQUA, HPos.LEFT);
   private final Text middleText2 = makeText(Color.VIOLET, HPos.RIGHT);
   private final Text bottomText1 = makeText(Color.GOLD, HPos.LEFT);
   private final Text bottomText2 = makeText(Color.LIME, HPos.RIGHT);
-  private final Timeline render;
   private final FieldScene field;
+  private final Timeline render;
   private Hero focus = null;
 
-  public VersusArena(Background bg) {
+  BattleScreen(Background bg) {
     field = new FieldScene(bg.width, bg.top, bg.bottom);
     // fieldGroup.getChildren().addAll(bg.elementList);
+    middleText1.textProperty().bind(Bindings.format("Camera %.2f", field.getCameraXProperty()));
     render = new Timeline(new KeyFrame(new Duration(DEFAULT_MSPF), this::keyFrameHandler));
   }
 
@@ -47,21 +50,22 @@ public class VersusArena extends AbstractScreen {
     Text text = new Text();
     text.setFill(color);
     GridPane.setHalignment(text, hPos);
+    GridPane.setValignment(text, VPos.CENTER);
     return text;
   }
 
-  public void addByPlayerCard(PlayerCard playerCard) {
-    String identifier = playerCard.getPlayableIdentifier();
-    Tuple<Observable, List<Image>> data = ResourceManager.library.get(identifier);
-    StatusBoard board;
-    if (data != null && data.first instanceof Hero x) {
+  public void addByDraftCard(DraftCard draftCard) {
+    String identifier = draftCard.getPlayableIdentifier();
+    Optional<Observable> result = Library.getPrototype(identifier);
+    ViewerBoard board;
+    if (result.isPresent() && result.get() instanceof Hero x) {
       logger.log(Level.INFO, x);
       Hero clone = focus = (Hero) x.makeClone();
-      board = StatusBoard.of(clone, ResourceManager.portraitLibrary.get(identifier));
-      Controller controller = playerCard.controller;
-      field.addPlayer(clone, controller, playerCard.getTeamId());
+      board = ViewerBoard.of(clone, ResourceManager.getPortrait(identifier));
+      Controller controller = draftCard.controller;
+      field.addPlayer(clone, controller, draftCard.getTeamId());
     } else {
-      board = StatusBoard.ofEmpty();
+      board = ViewerBoard.ofEmpty();
     }
     statusBoardList.add(board);
   }
@@ -98,7 +102,7 @@ public class VersusArena extends AbstractScreen {
       case F4:
         render.stop();
         System.out.println("GoBack by pressing F4.");
-        sceneChanger.accept(null);
+        gotoPrevious();
         break;
       case F5:
         // Reset rate if pressed while game paused.
@@ -125,19 +129,21 @@ public class VersusArena extends AbstractScreen {
     return;
   };
 
-
   @Override
   protected Parent makeParent() {
     GridPane guiContainer = new GridPane();
-    SubScene objectLayer = field.getScene();
-    middleText1.textProperty().bind(Bindings.format("Camera %.2f", field.getCameraXProperty()));
     statusBoardList.forEach(s -> guiContainer.addRow(0, s));
     guiContainer.add(middleText1, 0, 1, 2, 1);
     guiContainer.add(middleText2, 2, 1, 2, 1);
-    guiContainer.add(objectLayer, 0, 2, 4, 1);
+    guiContainer.add(field.getScene(), 0, 2, 4, 1);
     guiContainer.add(bottomText1, 0, 3, 2, 1);
     guiContainer.add(bottomText2, 2, 3, 2, 1);
-    // TODO: rename Background
+    guiContainer.getRowConstraints().addAll(
+      new RowConstraints(SPECTATOR_HEIGHT),
+      new RowConstraints(TEXT_INFO_HEIGHT),
+      new RowConstraints(BATTLE_FIELD_HEIGHT),
+      new RowConstraints(TEXT_INFO_HEIGHT)
+    );
     guiContainer.setBackground(new javafx.scene.layout.Background(
         new javafx.scene.layout.BackgroundFill(Color.BLACK, null, null)
     ));

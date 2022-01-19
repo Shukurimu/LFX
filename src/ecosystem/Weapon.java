@@ -1,11 +1,11 @@
-package object;
+package ecosystem;
 
 import java.util.List;
 
 import base.Region;
+import base.Vector;
 import component.Itr;
 import component.Wpoint;
-import util.Vector;
 
 public interface Weapon extends Observable {
   double INITIAL_MP = 750.0;

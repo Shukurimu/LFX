@@ -1,14 +1,14 @@
 package platform;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.effect.InnerShadow;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.Scene;
+import javafx.scene.Parent;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -18,13 +18,19 @@ public final class Main extends Application {
 
   @Override
   public void start(Stage primaryStage) {
-    AbstractScreen.sceneChanger = (Scene scene) -> primaryStage.setScene(scene);
+    AbstractScreen.setPrimaryStage(primaryStage);
+
+    final VBox guiContainer = new VBox(16.0);
+    final Screen mainScreen = new AbstractScreen() {
+      @Override protected Parent makeParent() { return guiContainer; }
+      @Override protected void keyHandler(KeyCode keyCode) {}
+    };
 
     Task<Void> loadTask = ResourceManager.loadTask();
     loadTask.setOnSucceeded(event -> {
       System.err.println("Succeeded");
-      Screen pickingScene = new PickingScene();
-      primaryStage.setScene(pickingScene.makeScene());
+      Screen pickingScene = new PickingScreen();
+      primaryStage.setScene(pickingScene.getScene());
     });
     loadTask.setOnFailed(event -> {
       System.err.println("Failed");
@@ -36,25 +42,30 @@ public final class Main extends Application {
     banner.setFill(Color.AQUA);
     banner.setFont(Font.font("Lucida Calligraphy", FontWeight.BLACK, 80));
 
-    Text author = new Text("(._.)");
-
     Text messageText = new Text("");
-    messageText.textProperty().bind(loadTask.messageProperty());
 
     Button playButton = new Button("Game Start");
     playButton.setFont(Font.font(null, FontWeight.BLACK, 32));
+    playButton.setFocusTraversable(false);
     playButton.setOnAction(event -> {
+      playButton.setDisable(true);
+      AbstractScreen.setEscapeExit();
+      messageText.textProperty().bind(loadTask.messageProperty());
       primaryStage.setResizable(false);
-      playButton.setVisible(false);
       new Thread(loadTask).start();
     });
 
-    VBox guiContainer = new VBox(16.0, banner, author, playButton, messageText);
-    guiContainer.setAlignment(Pos.CENTER);  // defaults to Pos.TOP_LEFT
+    Button configButton = new Button("Configuration");
+    configButton.setFont(Font.font(20.0));
+    configButton.setFocusTraversable(false);
+    configButton.setOnAction(event -> {
+      mainScreen.gotoNext(new ConfigScreen(messageText.textProperty()));
+    });
 
-    Scene startScene = new Scene(guiContainer, AbstractScreen.WINDOW_WIDTH, AbstractScreen.WINDOW_HEIGHT);
+    guiContainer.setAlignment(Pos.CENTER);
+    guiContainer.getChildren().addAll(banner, playButton, configButton, messageText);
     primaryStage.setResizable(false);
-    primaryStage.setScene(startScene);
+    primaryStage.setScene(mainScreen.getScene());
     primaryStage.setTitle("Little Fighter X");
     primaryStage.setX(600.0);
     primaryStage.show();
@@ -64,7 +75,7 @@ public final class Main extends Application {
   @Override
   public void stop() {
     System.out.println("[Exit]");
-    Platform.exit();
+    javafx.application.Platform.exit();
     return;
   }
 

@@ -1,16 +1,15 @@
-package object;
+package ecosystem;
 
 import java.util.List;
 
 import base.Point;
 import base.Region;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Bdy;
 import component.Itr;
-import field.Environment;
 import util.Tuple;
-import util.Vector;
 
 public interface Observable {
   // https://www.lf-empire.de/lf2-empire/data-changing/reference-pages
@@ -189,11 +188,11 @@ public interface Observable {
    */
   void setVelocity(Vector velocity);
 
-  default void setEnvironment(Environment env) {
-    setEnvironment(env, Action.DEFAULT);
+  default void initTerrain(Terrain terrain) {
+    initTerrain(terrain, Action.DEFAULT);
   }
 
-  void setEnvironment(Environment env, Action action);
+  void initTerrain(Terrain terrain, Action action);
   void setProperty(int teamId, boolean faceRight);
 
   /**

@@ -19,10 +19,10 @@ import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 
 import base.Controller;
-import field.BaseField;
-import object.Hero;
-import object.Observable;
-import util.Vector;
+import base.Vector;
+import ecosystem.BaseField;
+import ecosystem.Hero;
+import ecosystem.Observable;
 
 public class FieldScene extends BaseField {
   private static final System.Logger logger = System.getLogger("");
@@ -84,14 +84,14 @@ public class FieldScene extends BaseField {
   }
 
   private void addNode(Observable object) {
-    List<Image> pictureList = ResourceManager.library.get(object.getIdentifier()).second;
+    List<Image> pictureList = ResourceManager.getPictureList(object.getIdentifier());
     objectViewList.add(new ObjectView(object, pictureList));
     return;
   }
 
   public void addPlayer(Hero o, Controller controller, int teamId) {
     logger.log(Level.INFO, o);
-    o.setEnvironment(this);
+    o.initTerrain(this);
     o.setController(controller);
     o.setProperty(teamId == 0 ? requestIndependentTeamId() : teamId, random.nextBoolean());
     emplace(o);

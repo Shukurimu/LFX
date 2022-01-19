@@ -1,4 +1,4 @@
-package object;
+package ecosystem;
 
 import java.util.List;
 
@@ -6,14 +6,13 @@ import base.Controller;
 import base.Point;
 import base.Region;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Bdy;
 import component.Cpoint;
 import component.Itr;
 import component.Wpoint;
-import field.Environment;
 import util.Tuple;
-import util.Vector;
 
 public final class NullObject implements Hero, Weapon, Energy {
   public static final NullObject DUMMY = new NullObject();
@@ -139,7 +138,7 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
-  public void setEnvironment(Environment env, Action action) {
+  public void initTerrain(Terrain terrain, Action action) {
     throw new UnsupportedOperationException(getIdentifier());
   }
 

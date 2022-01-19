@@ -1,4 +1,4 @@
-package object;
+package ecosystem;
 
 import java.lang.System.Logger.Level;
 import java.util.List;
@@ -9,6 +9,7 @@ import base.KeyOrder;
 import base.Region;
 import base.Scope;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Cost;
 import component.Cpoint;
@@ -17,7 +18,6 @@ import component.Frame;
 import component.Itr;
 import component.State;
 import util.Tuple;
-import util.Vector;
 
 public class BaseHero extends AbstractObject implements Hero {
   private static final System.Logger logger = System.getLogger("");
@@ -153,7 +153,7 @@ public class BaseHero extends AbstractObject implements Hero {
   @Override
   protected void transitNextFrame(Frame targetFrame, boolean changeFacing) {
     Cost cost = targetFrame.cost;
-    if (cost.mp() >= 0 || env.isUnlimitedMode()) {
+    if (cost.mp() >= 0 || terrain.isUnlimitedMode()) {
       super.transitNextFrame(targetFrame, changeFacing);
       return;
     }
@@ -224,7 +224,7 @@ public class BaseHero extends AbstractObject implements Hero {
       return Action.DEFAULT;
     }
     Cost cost = frameList.get(orderAction.index).cost;
-    if (cost == Cost.FREE || env.isUnlimitedMode()) {
+    if (cost == Cost.FREE || terrain.isUnlimitedMode()) {
       return orderAction;
     } else if (mp >= cost.mp() && hp >= cost.hp()) {
       mp -= cost.mp();
@@ -244,7 +244,7 @@ public class BaseHero extends AbstractObject implements Hero {
       return Action.HERO_DRINK;
     } else if (weapon.isHeavy()) {
       return Action.HERO_HEAVY_WEAPON_THROW;
-    } else if (buff.getOrDefault(Effect.FORCE_SUPER_PUNCH, 0) > env.getTimestamp()) {
+    } else if (buff.getOrDefault(Effect.FORCE_SUPER_PUNCH, 0) > terrain.getTimestamp()) {
       return Action.HERO_SUPER_PUNCH;
     } else {
       return random.nextBoolean() ? Action.HERO_PUNCH1 : Action.HERO_PUNCH2;
@@ -526,7 +526,7 @@ public class BaseHero extends AbstractObject implements Hero {
     vy = frame.calcVy(vy);
     vz = frame.calcVz(vz, controller.valueZ());
 
-    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < env.getTimestamp()) {
+    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < terrain.getTimestamp()) {
       px += vx;
       pz += vz;
     }
@@ -535,19 +535,19 @@ public class BaseHero extends AbstractObject implements Hero {
     boolean afterOnGround = py >= 0.0;
     if (beforeOnGround && afterOnGround) {
       py = 0.0;
-      vx = env.applyFriction(vx);
-      vz = env.applyFriction(vz);
+      vx = terrain.applyFriction(vx);
+      vz = terrain.applyFriction(vz);
       return Action.UNASSIGNED;
     }
 
     if (!afterOnGround) {
-      vy = env.applyGravity(vy);
+      vy = terrain.applyGravity(vy);
       return Action.UNASSIGNED;
     }
 
     py = 0.0;
-    vx = env.applyLandingFriction(vx);
-    vz = env.applyLandingFriction(vz);
+    vx = terrain.applyLandingFriction(vx);
+    vz = terrain.applyLandingFriction(vz);
 
     Integer storedValue = buff.remove(Effect.THROWN_ATTACK);
     if (storedValue != null) {
@@ -607,7 +607,7 @@ public class BaseHero extends AbstractObject implements Hero {
 
   @Override
   protected boolean fitBoundary() {
-    Region boundary = env.getHeroBoundary();
+    Region boundary = terrain.getHeroBoundary();
     px = Math.min(Math.max(px, boundary.x1()), boundary.x2());
     pz = Math.min(Math.max(pz, boundary.z1()), boundary.z2());
     return true;
@@ -716,7 +716,7 @@ public class BaseHero extends AbstractObject implements Hero {
    * @return true if successed
    */
   protected synchronized boolean checkBeingGrabbed(Observable actor) {
-    if (grabbedTimestamp < env.getTimestamp()) {
+    if (grabbedTimestamp < terrain.getTimestamp()) {
       grabbedBy = actor;
       // TODO: release weapon and grabbingHero
       return true;
@@ -764,13 +764,13 @@ public class BaseHero extends AbstractObject implements Hero {
       case WEAPON_STRENGTH:
         break;
       case FORCE_ACTION:
-        buff.put(Effect.FORCE_SUPER_PUNCH, env.getTimestamp() + 1);
+        buff.put(Effect.FORCE_SUPER_PUNCH, terrain.getTimestamp() + 1);
         return true;
       case HEAL:
-        buff.put(Effect.HEALING, env.getTimestamp() + 100);
+        buff.put(Effect.HEALING, terrain.getTimestamp() + 100);
         return true;
       case BLOCK:
-        buff.put(Effect.MOVE_BLOCKING, env.getTimestamp() + 1);
+        buff.put(Effect.MOVE_BLOCKING, terrain.getTimestamp() + 1);
         return true;
       case SONATA:
       case VORTEX:

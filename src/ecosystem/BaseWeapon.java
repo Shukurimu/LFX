@@ -1,4 +1,4 @@
-package object;
+package ecosystem;
 
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -10,6 +10,7 @@ import java.util.Map;
 import base.Region;
 import base.Scope;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Effect;
 import component.Frame;
@@ -17,7 +18,6 @@ import component.Itr;
 import component.State;
 import component.Wpoint;
 import util.Tuple;
-import util.Vector;
 
 public class BaseWeapon extends AbstractObject implements Weapon {
   private static final System.Logger logger = System.getLogger("");
@@ -228,7 +228,7 @@ public class BaseWeapon extends AbstractObject implements Weapon {
       case ICE:
       case WEAK_ICE:
         if (itr.param instanceof Itr.Damage x) {
-          actionPause = Math.max(actionPause, env.getTimestamp() + x.actPause());
+          actionPause = Math.max(actionPause, terrain.getTimestamp() + x.actPause());
           return;
         }
         break;
@@ -271,7 +271,7 @@ public class BaseWeapon extends AbstractObject implements Weapon {
             destroy();
             return true;
           }
-          actionPause = Math.max(actionPause, env.getTimestamp() + x.actPause());
+          actionPause = Math.max(actionPause, terrain.getTimestamp() + x.actPause());
           hp -= x.injury();
           vx += x.calcDvx(source.isFaceRight());
           vy += x.dvy();
@@ -321,17 +321,17 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     vx = frame.calcVx(vx, faceRight);
     vy = frame.calcVy(vy);
     vz = frame.calcVz(vz, 0.0);
-    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < env.getTimestamp()) {
+    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < terrain.getTimestamp()) {
       px += vx;
       pz += vz;
     }
     if (py < 0.0) {
-      vy = env.applyGravity(vy) * type.gravityRatio;
+      vy = terrain.applyGravity(vy) * type.gravityRatio;
       return Action.UNASSIGNED;
     } else {
       py = 0.0;
-      vx = env.applyFriction(vx * type.vxLast);
-      vz = env.applyFriction(vz * type.vxLast);
+      vx = terrain.applyFriction(vx * type.vxLast);
+      vz = terrain.applyFriction(vz * type.vxLast);
       return landing();
     }
   }
@@ -343,7 +343,7 @@ public class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected boolean fitBoundary() {
-    Region boundary = env.getItemBoundary();
+    Region boundary = terrain.getItemBoundary();
     if (frame.state != State.ON_GROUND || (boundary.x1() >= px && px >= boundary.x2())) {
       pz = Math.min(Math.max(pz, boundary.z1()), boundary.z2());
       return true;

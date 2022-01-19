@@ -5,18 +5,40 @@ import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Scale;
 
-public interface Screen {
-  public static final double CONFIG_BUTTON_WIDTH = 120;
-  public static final double DEFAULT_FPS = 30.0;
-  public static final double DEFAULT_MSPF = 1000.0 / DEFAULT_FPS;
-  public static final double CANVAS_WIDTH = 794 / 4;
-  public static final double CANVAS_HEIGHT = 60;
-  public static final double TEXTLABEL_HEIGHT = 20;
-  public static final double WINDOW_WIDTH = 794;
-  public static final double WINDOW_HEIGHT = (550 - 128) + CANVAS_HEIGHT + TEXTLABEL_HEIGHT * 2;
-  public static final double PORTRAIT_SIZE = 180;
+import ecosystem.Field;
 
-  Scene makeScene();
+public interface Screen {
+  double SPECTATOR_HEIGHT = 60;
+  double TEXT_INFO_HEIGHT = 20;
+  double BATTLE_FIELD_HEIGHT = Field.FIELD_HEIGHT;
+  double WINDOW_WIDTH = 794;
+  double WINDOW_HEIGHT = SPECTATOR_HEIGHT + TEXT_INFO_HEIGHT * 2 + BATTLE_FIELD_HEIGHT;
+
+  /**
+   * Sets the previous {@code Scene}.
+   *
+   * @param previousScreen the {@code Screen} of previous {@code Scene}
+   */
+  void setPrevious(Screen previousScreen);
+
+  /**
+   * Changes the {@code Scene} to previous one.
+   */
+  void gotoPrevious();
+
+  /**
+   * Changes the {@code Scene} to the given one.
+   *
+   * @param nextScreen the {@code Screen} of next {@code Scene}
+   */
+  void gotoNext(Screen nextScreen);
+
+  /**
+   * Gets the {@code Scene} of thie {@code Screen}.
+   *
+   * @return a {@code Scene}
+   */
+  Scene getScene();
 
   default Scene sceneWrapper(Parent parent, double computePrefWidth, double computePrefHeight) {
     double width = 1600;
@@ -24,6 +46,5 @@ public interface Screen {
     parent.getTransforms().setAll(new Scale(width / computePrefWidth, height / computePrefHeight));
     return new Scene(parent, width, height, Color.BLACK);
   }
-
 
 }

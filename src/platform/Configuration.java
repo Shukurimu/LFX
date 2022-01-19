@@ -1,4 +1,4 @@
-package setting;
+package platform;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -8,7 +8,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Configure {
+public final class Configuration {
   static final String CONFIG_PATH = "setting.txt";
   static final Charset CHARSET = Charset.forName("utf-8");
   static final String CHAR_SEPARATOR = " ";
@@ -21,11 +21,11 @@ public class Configure {
 
   private List<String[]> inputSetting;
 
-  private Configure(List<String[]> inputSetting) {
+  private Configuration(List<String[]> inputSetting) {
     this.inputSetting = inputSetting;
   }
 
-  public static Configure load() {
+  public static Configuration load() {
     List<String[]> inputSetting;
     try (FileReader fileReader = new FileReader(CONFIG_PATH, CHARSET);
          BufferedReader reader = new BufferedReader(fileReader)) {
@@ -34,7 +34,7 @@ public class Configure {
       inputSetting = defaultInputSetting();
       expection.printStackTrace();
     }
-    return new Configure(inputSetting);
+    return new Configuration(inputSetting);
   }
 
   public List<String[]> getInputSetting() {

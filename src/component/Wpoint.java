@@ -1,8 +1,8 @@
 package component;
 
 import base.Point;
+import base.Vector;
 import util.IntMap;
-import util.Vector;
 
 /**
  * Define the frame element -- wpoint.

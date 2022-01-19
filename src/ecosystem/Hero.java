@@ -1,4 +1,4 @@
-package object;
+package ecosystem;
 
 import base.Controller;
 import component.Cpoint;

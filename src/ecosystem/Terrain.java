@@ -1,8 +1,8 @@
-package field;
+package ecosystem;
 
 import base.Region;
 
-public interface Environment {
+public interface Terrain {
 
   /**
    * Check for unlimited mode.
@@ -45,13 +45,6 @@ public interface Environment {
   }
 
   /**
-   * Gets an id in which there is no teammate.
-   *
-   * @return a team id
-   */
-  int requestIndependentTeamId();
-
-  /**
    * Gets current timestamp.
    *
    * @return current timestamp
@@ -72,9 +65,8 @@ public interface Environment {
    */
   Region getItemBoundary();
 
-  Environment NULL_ENVIRONMENT = new Environment() {
+  Terrain NULL_TERRAIN = new Terrain() {
     @Override public boolean isUnlimitedMode() { return false; }
-    @Override public int requestIndependentTeamId() { return 0; }
     @Override public int getTimestamp() { throw new UnsupportedOperationException(); }
     @Override public Region getHeroBoundary() { return Region.EMPTY; }
     @Override public Region getItemBoundary() { return Region.EMPTY; }

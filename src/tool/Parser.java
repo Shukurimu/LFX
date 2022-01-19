@@ -21,9 +21,9 @@ import component.Frame;
 import component.Itr;
 import component.Opoint;
 import component.Wpoint;
-import object.BaseEnergy;
-import object.BaseHero;
-import object.BaseWeapon;
+import ecosystem.BaseEnergy;
+import ecosystem.BaseHero;
+import ecosystem.BaseWeapon;
 import util.IntMap;
 import util.Tuple;
 
@@ -222,8 +222,6 @@ public class Parser {
       case HERO: {
         importLib = """
         import java.util.HashMap;
-
-        import util.Vector;\
         """;
         constructor = """
         private %s(Frame.Collector collector, HashMap<String, Double> stamina) {
@@ -299,7 +297,7 @@ public class Parser {
     import base.*;
     import component.*;
 
-    public class %1$s extends object.%2$s {
+    public class %1$s extends ecosystem.%2$s {
       private static %1$s singleton = null;
       \n%4$s
       @Override public List<util.Tuple<String, int[]>> getPictureInfo() {

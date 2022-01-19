@@ -1,4 +1,4 @@
-package object;
+package ecosystem;
 
 import java.lang.System.Logger.Level;
 import java.util.List;
@@ -7,11 +7,11 @@ import base.KeyOrder;
 import base.Region;
 import base.Scope;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Effect;
 import component.Frame;
 import component.Itr;
-import util.Vector;
 
 public class BaseEnergy extends AbstractObject implements Energy {
   private static final System.Logger logger = System.getLogger("");
@@ -123,7 +123,7 @@ public class BaseEnergy extends AbstractObject implements Energy {
     vx = frame.calcVx(vx, faceRight);
     vy = frame.calcVy(vy);
     vz = frame.calcVz(vz, 0.0);
-    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < env.getTimestamp()) {
+    if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < terrain.getTimestamp()) {
       px += vx;
       pz += vz;
     }
@@ -167,7 +167,7 @@ public class BaseEnergy extends AbstractObject implements Energy {
 
   @Override
   protected boolean fitBoundary() {
-    Region boundary = env.getItemBoundary();
+    Region boundary = terrain.getItemBoundary();
     if (boundary.x1() >= px && px >= boundary.x2()) {
       // Refresh countdown timer if in boundary.
       destroyCountdown = DESTROY_TIME;

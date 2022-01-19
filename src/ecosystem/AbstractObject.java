@@ -1,11 +1,11 @@
-package object;
+package ecosystem;
 
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.WeakHashMap;
 
@@ -13,6 +13,7 @@ import base.Point;
 import base.Region;
 import base.Scope;
 import base.Type;
+import base.Vector;
 import component.Action;
 import component.Bdy;
 import component.Cpoint;
@@ -20,13 +21,10 @@ import component.Effect;
 import component.Frame;
 import component.Itr;
 import component.Opoint;
-import field.Environment;
 import util.Tuple;
-import util.Vector;
 
 public abstract class AbstractObject implements Observable {
   private static final System.Logger logger = System.getLogger("");
-  private static final Map<String, Observable> library = new HashMap<>(128);
 
   protected final Random random = new Random(666L);
 
@@ -121,7 +119,7 @@ public abstract class AbstractObject implements Observable {
    */
   private int transition = 0;
   private boolean newAction = true;
-  protected Environment env = Environment.NULL_ENVIRONMENT;
+  protected Terrain terrain = Terrain.NULL_TERRAIN;
   protected Hero grabbingHero = NullObject.HERO;
   protected int grabbingTimer = 0;
 
@@ -371,8 +369,8 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void setEnvironment(Environment env, Action action) {
-    this.env = env;
+  public void initTerrain(Terrain terrain, Action action) {
+    this.terrain = terrain;
     transitGoto(action);
     return;
   }
@@ -493,7 +491,7 @@ public abstract class AbstractObject implements Observable {
   protected abstract Action updateByState();
 
   /**
-   * If the object still alive, fits the boundary to env and returns true.
+   * If the object still alive, fits the boundary to terrain and returns true.
    *
    * @return false if the object should be deleted
    */
@@ -530,7 +528,7 @@ public abstract class AbstractObject implements Observable {
   }
 
   protected void applyActionPause(int value) {
-    actionPause = Math.max(actionPause, env.getTimestamp() + value);
+    actionPause = Math.max(actionPause, terrain.getTimestamp() + value);
     return;
   }
 
@@ -544,24 +542,25 @@ public abstract class AbstractObject implements Observable {
       return;
     }
 
-    Observable origin = library.getOrDefault(opoint.oid, NullObject.DUMMY);
-    if (origin == NullObject.DUMMY) {
+    Optional<Observable> result = Library.getPrototype(opoint.oid);
+    if (result.isEmpty()) {
       logger.log(Level.WARNING, "{0} is not registered.", opoint.oid);
       return;
     }
+
     Vector baseVelocity = getAbsoluteVelocity(opoint.velocity);
     Vector basePosition = getRelativePosition(opoint);
     List<Observable> cloneList = new ArrayList<>();
     for (Vector velocity : opoint.getInitialVelocities(baseVelocity)) {
-      Observable clone = origin.makeClone();
-      clone.setEnvironment(env, opoint.action);
+      Observable clone = result.get().makeClone();
+      clone.initTerrain(terrain, opoint.action);
       clone.setProperty(teamId, faceRight ^ opoint.opposideDirection);
       clone.setVelocity(velocity);
       clone.setRelativePosition(basePosition, Point.ORIGIN, true);
       cloneList.add(clone);
     }
 
-    if (cloneList.size() > 1 && origin.getType().isWeapon) {
+    if (cloneList.size() > 1 && result.get().getType().isWeapon) {
       Weapon.setMutualExcluding(cloneList);
     }
     logger.log(Level.INFO, cloneList);

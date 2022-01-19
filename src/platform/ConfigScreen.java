@@ -3,35 +3,36 @@ package platform;
 import java.util.ArrayList;
 import java.util.List;
 
-import javafx.application.Application;
-import javafx.application.Platform;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
-import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import javafx.stage.Stage;
 
 import base.Controller;
-import setting.Configure;
 
-public class ConfigScene extends Application {
-  public static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
-  public static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
-  public static final double CONFIG_BUTTON_WIDTH = 120;
+public class ConfigScreen extends AbstractScreen {
+  private static final Color FOCUSED_TEXT_FILL = Color.DODGERBLUE;
+  private static final Color UNFOCUSED_TEXT_FILL = Color.BLACK;
+  private static final double CONFIG_BUTTON_WIDTH = 120;
 
-  private List<Button> keyButtonList;
+  private final StringProperty message;
+  private final List<Button> keyButtonList = new ArrayList<>(28);
   private Button focusing = null;
 
-  GridPane makePane() {
+  ConfigScreen(StringProperty message) {
+    this.message = message;
+  }
+
+  @Override
+  protected GridPane makeParent() {
     GridPane pane = new GridPane();
     for (int index : new int[] { 1, 2, 3, 4 }) {
       pane.add(makeNameText("Player " + index), index, 0);
@@ -40,7 +41,6 @@ public class ConfigScene extends Application {
       pane.add(makeNameText(input.name()), 0, input.ordinal() + 1);
     }
 
-    keyButtonList = new ArrayList<>(28);
     for (int colIndex = 1; colIndex <= 4; ++colIndex) {
       for (int rowIndex = 1; rowIndex <= 7; ++rowIndex) {
         Button button = new Button();
@@ -51,24 +51,24 @@ public class ConfigScene extends Application {
       }
     }
 
-    Configure configure = Configure.load();
-    setButtonText(configure.getInputSetting());
+    Configuration configuration = Configuration.load();
+    setButtonText(configuration.getInputSetting());
 
     pane.add(makeActionButton("Default", event -> {
       if (focusing != null) {
         focusing.setTextFill(UNFOCUSED_TEXT_FILL);
         focusing = null;
       }
-      setButtonText(Configure.defaultInputSetting());
+      setButtonText(Configuration.defaultInputSetting());
     }), 2, 12);
     pane.add(makeActionButton("Save", event -> {
-      configure.setInputSetting(getButtonText());
-      System.out.println(configure.save());
-      Platform.exit();
+      configuration.setInputSetting(getButtonText());
+      message.set(configuration.save());
+      gotoPrevious();
     }), 3, 12);
     pane.add(makeActionButton("Cancel", event -> {
-      System.out.println("Cancelled");
-      Platform.exit();
+      message.set("Cancelled");
+      gotoPrevious();
     }), 4, 12);
     pane.setAlignment(Pos.CENTER);
     pane.setHgap(9.0);
@@ -77,7 +77,7 @@ public class ConfigScene extends Application {
     return pane;
   }
 
-  List<String[]> getButtonText() {
+  private List<String[]> getButtonText() {
     List<String[]> keyArrayList = new ArrayList<>(4);
     for (int i = 0; i < 4; ++i) {
       String[] keyArray = new String[7];
@@ -89,7 +89,7 @@ public class ConfigScene extends Application {
     return keyArrayList;
   }
 
-  void setButtonText(List<String[]> textArrayList) {
+  private void setButtonText(List<String[]> textArrayList) {
     int index = 0;
     for (String[] textArray : textArrayList) {
       for (String text : textArray) {
@@ -100,34 +100,34 @@ public class ConfigScene extends Application {
     return;
   }
 
-  static Text makeNameText(String text) {
+  private Text makeNameText(String text) {
     Text node = new Text(text);
     GridPane.setHalignment(node, HPos.CENTER);
     return node;
   }
 
-  static Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
+  private Button makeActionButton(String text, EventHandler<ActionEvent> handler) {
     Button button = new Button(text);
     button.setOnAction(handler);
     button.setPrefWidth(CONFIG_BUTTON_WIDTH);
-    button.setFont(Font.font(null, FontWeight.BLACK, 16));
+    button.setFont(Font.font("Georgia", FontWeight.BLACK, 16));
     return button;
   }
 
-  private void keyPressHandler(KeyEvent event) {
-    event.consume();
-    if (focusing != null) {
-      KeyCode code = event.getCode();
-      if (code == KeyCode.ESCAPE) {
-        // cancel
-      } else if (code.isFunctionKey() || code.isMediaKey()) {
-        focusing.setText(KeyCode.UNDEFINED.name());
-      } else {
-        focusing.setText(code.name());
-      }
-      focusing.setTextFill(UNFOCUSED_TEXT_FILL);
-      focusing = null;
+  @Override
+  protected void keyHandler(KeyCode keyCode) {
+    if (focusing == null) {
+      return;
     }
+    if (keyCode == KeyCode.ESCAPE) {
+      // cancel
+    } else if (keyCode.isFunctionKey() || keyCode.isMediaKey()) {
+      focusing.setText(KeyCode.UNDEFINED.name());
+    } else {
+      focusing.setText(keyCode.name());
+    }
+    focusing.setTextFill(UNFOCUSED_TEXT_FILL);
+    focusing = null;
     return;
   }
 
@@ -135,22 +135,6 @@ public class ConfigScene extends Application {
     keyButtonList.forEach(b -> b.setTextFill(UNFOCUSED_TEXT_FILL));
     focusing = (Button) event.getSource();
     focusing.setTextFill(FOCUSED_TEXT_FILL);
-    return;
-  }
-
-  @Override
-  public void start(Stage primaryStage) {
-    Scene scene = new Scene(makePane(), 700, 400);
-    scene.setOnKeyPressed(this::keyPressHandler);
-    primaryStage.setScene(scene);
-    primaryStage.setTitle("Little Fighter X - Setting");
-    primaryStage.setX(600.0);
-    primaryStage.show();
-    return;
-  }
-
-  public static void main(String[] args) {
-    Application.launch(args);
     return;
   }
 

@@ -5,8 +5,8 @@ import java.util.List;
 
 import base.Point;
 import base.Type;
+import base.Vector;
 import util.IntMap;
-import util.Vector;
 
 /**
  * Define the frame element -- opoint.

@@ -3,7 +3,7 @@ package util;
 import java.util.List;
 
 public class Selector<T> {
-  public static final Selector<Integer> NULLISH = new Selector<>(false, List.of(0));
+  public static final Selector<Integer> NO_CHOICE = new Selector<>(false, List.of(0));
 
   private final boolean loop;
   private final List<T> elements;

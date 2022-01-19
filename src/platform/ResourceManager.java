@@ -19,22 +19,21 @@ import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
 import base.BaseController;
 import base.Controller;
 import base.InputMonitor;
 import data.*;
-import object.Observable;
-import object.Playable;
-import setting.Configure;
+import ecosystem.Library;
+import ecosystem.Observable;
+import ecosystem.Playable;
 import util.Tuple;
 
 class ResourceManager {
   static final List<Controller> controllerList = new ArrayList<>();
-  static final Map<String, Image> portraitLibrary = new HashMap<>(32);
-  static final Map<String, Tuple<Observable, List<Image>>> library = new HashMap<>(128);
+  private static final Map<String, Image> portraitLibrary = new HashMap<>(32);
+  private static final Map<String, List<Image>> pictureLibrary = new HashMap<>(128);
 
   /**
    * Don't let anyone instantiate this class.
@@ -47,7 +46,7 @@ class ResourceManager {
       public Void call() throws Exception {
         // This method does not run on FX application thread.
         updateMessage("Controllers");
-        for (String[] inputSetting : Configure.load().getInputSetting()) {
+        for (String[] inputSetting : Configuration.load().getInputSetting()) {
           controllerList.add(makeController(inputSetting));
         }
         updateMessage(register(Template.register()));
@@ -80,22 +79,41 @@ class ResourceManager {
     return new BaseController(inputMap);
   }
 
-  private static String register(Observable o) throws Exception {
-    String identifier = o.getIdentifier();
+  private static String register(Observable prototype) throws Exception {
+    String identifier = prototype.getIdentifier();
 
-    if (o instanceof Playable x) {
+    if (prototype instanceof Playable x) {
       Image portrait = new Image("file:" + x.getPortraitPath());
-      portraitLibrary.put(o.getIdentifier(), portrait);
+      portraitLibrary.put(prototype.getIdentifier(), portrait);
     }
 
     ArrayList<Image> pictureList = new ArrayList<>(512);
-    for (Tuple<String, int[]> t : o.getPictureInfo()) {
+    for (Tuple<String, int[]> t : prototype.getPictureInfo()) {
       int[] cell = t.second;
       pictureList.addAll(loadImageCells(t.first, cell[0], cell[1], cell[2], cell[3]));
     }
     pictureList.trimToSize();
-    library.put(o.getIdentifier(), new Tuple<>(o, pictureList));
+    pictureLibrary.put(identifier, pictureList);
+    Library.register(identifier, prototype);
     return identifier;
+  }
+
+  static Image getPortrait(String identifier) {
+    return identifier.isEmpty() ? null : portraitLibrary.computeIfAbsent(identifier, key -> {
+      final double width = 180.0;
+      Canvas canvas = new Canvas(width, width);
+      GraphicsContext gc = canvas.getGraphicsContext2D();
+      gc.fillRect(0.0, 0.0, width, width);
+      gc.setFill(Color.WHITE);
+      gc.setFont(Font.font(width - 2.0 * 15.0));
+      gc.setTextAlign(TextAlignment.CENTER);
+      gc.fillText("?", width * 0.5, width * 0.8, width);
+      return canvas.snapshot(null, null);
+    });
+  }
+
+  static List<Image> getPictureList(String identifier) {
+    return pictureLibrary.get(identifier);
   }
 
   /**
@@ -130,23 +148,6 @@ class ResourceManager {
       }
     }
     return imageList;
-  }
-
-  /**
-   * @param width of generated {@code Image}
-   * @throws IllegalStateException if snapshot() is called on a thread other than
-   *                               the JavaFX Application Thread
-   */
-  private static Image drawSelectionRandomImage(double width) {
-    Canvas canvas = new Canvas(width, width);
-    GraphicsContext gc = canvas.getGraphicsContext2D();
-    gc.setFill(Color.BLACK);
-    gc.fillRect(0.0, 0.0, width, width);
-    gc.setFill(Color.WHITE);
-    gc.setFont(Font.font(null, FontWeight.BOLD, width - 2.0 * 15.0));
-    gc.setTextAlign(TextAlignment.CENTER);
-    gc.fillText("?", width * 0.5, width * 0.8);
-    return canvas.snapshot(null, null);
   }
 
 }

@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 import base.Point;
+import base.Vector;
 import util.IntMap;
-import util.Vector;
 
 /**
  * Define the frame element -- cpoint.

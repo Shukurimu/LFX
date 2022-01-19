@@ -1,5 +1,6 @@
 package platform;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -19,25 +20,27 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
 import base.Controller;
+import ecosystem.Library;
+import ecosystem.Playable;
 import map.Background;
 
-public class PickingScene extends AbstractScreen {
+public class PickingScreen extends AbstractScreen {
   private static final Font TEXT_FONT = Font.font(24.0);
   private static final double ICON_SIZE = 180.0;
 
-  private final List<PlayerCardView> playerCardViewList;
-  private final List<PlayerCard> playerCardList;
+  private final List<DraftView> draftViewList;
+  private final List<DraftCard> draftCardList;
   private final List<Controller> controllerList;
   private final Controller unionController;
   private final BooleanProperty pickingReady = new SimpleBooleanProperty();
 
-  private static class PlayerCardView extends VBox {
+  private static class DraftView extends VBox {
     final Text name = new Text("Player");
     final Text hero = new Text();
     final Text team = new Text();
     final ImageView icon = new ImageView();
 
-    PlayerCardView() {
+    DraftView() {
       super(6.0);
       name.setFont(TEXT_FONT);
       hero.setFont(TEXT_FONT);
@@ -49,23 +52,25 @@ public class PickingScene extends AbstractScreen {
       getChildren().addAll(name, icon, hero, team);
     }
 
-    void update(PlayerCard playerCard) {
-      String identifier = playerCard.getPlayableIdentifier();
+    void update(DraftCard draftCard) {
+      String identifier = draftCard.getPlayableIdentifier();
       hero.setText(identifier);
-      team.setText(playerCard.getTeamText());
-      icon.setImage(ResourceManager.portraitLibrary.get(identifier));
+      team.setText(draftCard.getTeamText());
+      icon.setImage(ResourceManager.getPortrait(identifier));
       return;
     }
 
   }
 
-  public PickingScene() {
+  public PickingScreen() {
     controllerList = ResourceManager.controllerList;
     unionController = Controller.union(controllerList);
 
-    List<String> heroChoice = List.copyOf(ResourceManager.portraitLibrary.keySet());
-    playerCardList = controllerList.stream().map(c -> new PlayerCard(c, heroChoice)).toList();
-    playerCardViewList = Stream.generate(PlayerCardView::new).limit(4).toList();
+    List<String> heroChoice = new ArrayList<>();
+    heroChoice.add(Playable.SELECTION_RANDOM.getIdentifier());
+    heroChoice.addAll(Library.getSelectable());
+    draftCardList = controllerList.stream().map(c -> new DraftCard(c, heroChoice)).toList();
+    draftViewList = Stream.generate(DraftView::new).limit(4).toList();
   }
 
   @Override
@@ -79,20 +84,17 @@ public class PickingScene extends AbstractScreen {
       if (!unionController.press_a()) {
         return;
       }
-      System.out.println("Stop here");
       Background bg = new Background();
-      VersusArena arena = new VersusArena(bg);
-      for (PlayerCard playerCard : playerCardList) {
-        arena.addByPlayerCard(playerCard);
-      }
-      AbstractScreen.sceneChanger.accept(arena.makeScene());
+      BattleScreen arena = new BattleScreen(bg);
+      draftCardList.forEach(arena::addByDraftCard);
+      gotoNext(arena);
     } else {
       for (int i = 0; i < 4; ++i) {
-        PlayerCard playerCard = playerCardList.get(i);
-        playerCard.update();
-        playerCardViewList.get(i).update(playerCard);
+        DraftCard draftCard = draftCardList.get(i);
+        draftCard.update();
+        draftViewList.get(i).update(draftCard);
       }
-      pickingReady.set(PlayerCard.isReady(playerCardList));
+      pickingReady.set(DraftCard.isReady(draftCardList));
     }
   }
 
@@ -107,12 +109,12 @@ public class PickingScene extends AbstractScreen {
 
     Text footer = new Text();
     footer.textProperty().bind(Bindings.convert(pickingReady));
-    footer.setFont(Font.font(null, FontWeight.MEDIUM, 20.0));
+    footer.setFont(Font.font(20.0));
     guiContainer.add(footer, 0, 2, 4, 1);
     GridPane.setHalignment(footer, HPos.RIGHT);
 
     ColumnConstraints columnConstraints = new ColumnConstraints(WINDOW_WIDTH / 4.0);
-    for (PlayerCardView view : playerCardViewList) {
+    for (DraftView view : draftViewList) {
       guiContainer.addRow(1, view);
       guiContainer.getColumnConstraints().add(columnConstraints);
       GridPane.setHalignment(view, HPos.CENTER);

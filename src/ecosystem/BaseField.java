@@ -1,4 +1,4 @@
-package field;
+package ecosystem;
 
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Random;
 
 import base.Region;
-import object.Observable;
 
 public class BaseField implements Field {
   private static final System.Logger logger = System.getLogger("");
@@ -69,16 +68,11 @@ public class BaseField implements Field {
         -ITEM_ADDITIONAL_WIDTH, boundWidth + ITEM_ADDITIONAL_WIDTH, 0, 0, boundTop, boundBottom);
   }
 
-  // ==================== Environment ====================
+  // ==================== Terrain ====================
 
   @Override
   public boolean isUnlimitedMode() {
     return (keyPressedTimes[0] & 1) == 1;
-  }
-
-  @Override
-  public int requestIndependentTeamId() {
-    return ++independentTeamId;
   }
 
   @Override
@@ -97,6 +91,11 @@ public class BaseField implements Field {
   }
 
   // ==================== Field ====================
+
+  @Override
+  public int requestIndependentTeamId() {
+    return ++independentTeamId;
+  }
 
   @Override
   public int getObjectCount() {

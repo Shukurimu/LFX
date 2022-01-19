@@ -1,11 +1,10 @@
-package field;
+package ecosystem;
 
 import java.util.List;
 
 import base.Type;
-import object.Observable;
 
-public interface Field extends Environment {
+public interface Field extends Terrain {
   double ITEM_ADDITIONAL_WIDTH = 50.0;
   double DROP_PROBABILITY = 1.0 / 6.0 / 30.0;
   double FIELD_WIDTH = 794;
@@ -13,6 +12,13 @@ public interface Field extends Environment {
   double WIDTH_DIV2 = FIELD_WIDTH / 2.0;
   double WIDTH_DIV24 = FIELD_WIDTH / 24.0;
   double CAMERA_SPEED_THRESHOLD = 0.9;
+
+  /**
+   * Gets an id in which there is no teammate.
+   *
+   * @return a team id
+   */
+  int requestIndependentTeamId();
 
   /**
    * Returns total objects on this {@code Field}.

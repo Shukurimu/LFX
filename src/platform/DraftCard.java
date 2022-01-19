@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import base.Controller;
-import object.Playable;
+import ecosystem.Playable;
 import util.Selector;
 
-public class PlayerCard {
+public class DraftCard {
 
   enum Phase {
     UNASSIGNED     (0, true),
@@ -34,13 +34,13 @@ public class PlayerCard {
   private final Selector<Integer> teamSelector = new Selector<>(true, List.of(0, 1, 2, 3, 4));
   private final Map<Phase, Selector<?>> manager = new EnumMap<>(Phase.class);
 
-  public PlayerCard(Controller controller, List<String> heroChoice) {
+  public DraftCard(Controller controller, List<String> heroChoice) {
     this.controller = controller;
     heroSelector = new Selector<>(true, heroChoice);
-    manager.put(Phase.UNASSIGNED, Selector.NULLISH);
+    manager.put(Phase.UNASSIGNED, Selector.NO_CHOICE);
     manager.put(Phase.SELECTING_HERO, heroSelector);
     manager.put(Phase.SELECTING_TEAM, teamSelector);
-    manager.put(Phase.FINISHED, Selector.NULLISH);
+    manager.put(Phase.FINISHED, Selector.NO_CHOICE);
   }
 
   protected String getPlayableIdentifier() {
@@ -80,9 +80,9 @@ public class PlayerCard {
     return;
   }
 
-  public static boolean isReady(List<PlayerCard> playerCards) {
+  public static boolean isReady(List<DraftCard> draftCardList) {
     int playerCount = 0;
-    for (PlayerCard card : playerCards) {
+    for (DraftCard card : draftCardList) {
       Phase phase = card.phaseSelector.current();
       if (!phase.stable) {
         return false;
