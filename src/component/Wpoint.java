@@ -1,5 +1,7 @@
 package component;
 
+import java.util.Objects;
+
 import base.Point;
 import base.Vector;
 import util.IntMap;
@@ -12,7 +14,7 @@ public class Wpoint extends Point {
   public enum Usage {
     RELEASE (false),
     HOLD    (false),
-    NORMAL   (true),
+    NORMAL  (true),
     JUMP    (true),
     RUN     (true),
     DASH    (true);
@@ -80,18 +82,30 @@ public class Wpoint extends Point {
 
   /**
    * Creates a {@code Wpoint} to release a {@code Weapon}.
-   * If the given {@code velocity} is not {@code Vector.ZERO},
-   * the {@code Weapon} will be in throwing state.
    *
    * @param x         the x coordinate
    * @param y         the y coordinate
    * @param weaponact {@code Action} of the item
-   * @param velocity  initial released velocity
    * @param cover     {@code true} if the {@code Weapon} should be rendered behind
    * @return a {@code Wpoint} instance
    */
-  public static Wpoint release(int x, int y, Action weaponact, Vector velocity, int cover) {
-    return new Wpoint(x, y, Usage.RELEASE, weaponact, velocity, cover);
+  public static Wpoint release(int x, int y, Action weaponact, int cover) {
+    return new Wpoint(x, y, Usage.RELEASE, weaponact, Vector.ZERO, cover);
+  }
+
+  /**
+   * Creates a {@code Wpoint} to throw a {@code Weapon}.
+   *
+   * @param x         the x coordinate
+   * @param y         the y coordinate
+   * @param weaponact {@code Action} of the item
+   * @param velocity  the throwing velocity
+   * @param cover     {@code true} if the {@code Weapon} should be rendered behind
+   * @return a {@code Wpoint} instance
+   */
+  public static Wpoint doThrow(int x, int y, Action weaponact, Vector velocity, int cover) {
+    Objects.requireNonNull(velocity);
+    return new Wpoint(x, y, Usage.HOLD, weaponact, velocity, cover);
   }
 
   /**
@@ -103,6 +117,11 @@ public class Wpoint extends Point {
    */
   public static Wpoint onHand(int x, int y) {
     return new Wpoint(x, y, Usage.HOLD, Action.UNASSIGNED, Vector.ZERO, 0);
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Wpoint[%.0f, %.0f, %s]", x, y, usage);
   }
 
   // ==================== Parser Utility ====================
@@ -129,13 +148,13 @@ public class Wpoint extends Point {
       case 2:
         return "Wpoint.onHand(%d, %d)".formatted(x, y);
       case 3:
-        return "Wpoint.release(%d, %d, %s, Vector.ZERO, %d)".formatted(x, y, action, cover);
+        return "Wpoint.release(%d, %d, %s, %d)".formatted(x, y, action, cover);
       default:
         throw new IllegalArgumentException("kind");
     }
     if ((dvx | dvy | dvz) != 0) {
       String velocity = "Vector.of(%d, %d, %d)".formatted(dvx, dvy, dvz);
-      return "Wpoint.release(%d, %d, %s, %s, %d)".formatted(x, y, action, velocity, cover);
+      return "Wpoint.doThrow(%d, %d, %s, %s, %d)".formatted(x, y, action, velocity, cover);
     }
     if (attacking == 0) {
       return "Wpoint.hold(%d, %d, %s, %d)".formatted(x, y, action, cover);

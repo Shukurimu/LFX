@@ -24,7 +24,6 @@ import javafx.scene.text.TextAlignment;
 import base.BaseController;
 import base.Controller;
 import base.InputMonitor;
-import data.*;
 import ecosystem.Library;
 import ecosystem.Observable;
 import ecosystem.Playable;
@@ -49,7 +48,8 @@ class ResourceManager {
         for (String[] inputSetting : Configuration.load().getInputSetting()) {
           controllerList.add(makeController(inputSetting));
         }
-        updateMessage(register(Template.register()));
+        updateMessage(register(data.Template.register()));
+        updateMessage(register(data.IceSword.register()));
         return null;
       }
     };

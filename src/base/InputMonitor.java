@@ -1,11 +1,9 @@
 package base;
 
 import java.time.Instant;
-import java.time.ZoneId;
 
 public class InputMonitor implements Comparable<InputMonitor> {
-  private static final Instant DEFAULT_PRESSED_INSTANT = Instant.now().plusSeconds(86400L);
-  private static final ZoneId DEFAULT_ZONE_ID = ZoneId.systemDefault();
+  private static final Instant DEFAULT_PRESSED_INSTANT = Instant.MIN;
 
   private Instant timePressedPrevious = DEFAULT_PRESSED_INSTANT;
   private Instant timePressedCurrent = DEFAULT_PRESSED_INSTANT;
@@ -55,12 +53,7 @@ public class InputMonitor implements Comparable<InputMonitor> {
 
   @Override
   public String toString() {
-    return String.format(
-        "InputMonitor(Previous %1$tT.%1$tL, Current %2$tT.%2$tL, Now %3$tT.%3$tL)",
-        timePressedPrevious.atZone(DEFAULT_ZONE_ID),
-        timePressedCurrent.atZone(DEFAULT_ZONE_ID),
-        Instant.now().atZone(DEFAULT_ZONE_ID)
-    );
+    return String.format("InputMonitor[%s, %s]", timePressedPrevious, timePressedCurrent);
   }
 
   public static final InputMonitor NULL_MONITOR = new InputMonitor () {

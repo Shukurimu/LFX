@@ -3,6 +3,7 @@ package ecosystem;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import base.Controller;
 import base.KeyOrder;
@@ -11,8 +12,8 @@ import base.Scope;
 import base.Type;
 import base.Vector;
 import component.Action;
+import component.Bdy;
 import component.Cost;
-import component.Cpoint;
 import component.Effect;
 import component.Frame;
 import component.Itr;
@@ -40,9 +41,6 @@ public class BaseHero extends AbstractObject implements Hero {
   private final String portrait;
   private Controller controller = Controller.NULL_CONTROLLER;
   private Weapon weapon = NullObject.WEAPON;
-  private Observable grabbedBy = NullObject.DUMMY;
-  private int grabbedTimestamp = 0;
-  private Cpoint latestCpoint = null;
 
   private Vector walkingSpeed;
   private Vector runningSpeed;
@@ -136,12 +134,6 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
-  public void setCpoint(Cpoint cpoint) {
-    latestCpoint = cpoint;
-    return;
-  }
-
-  @Override
   protected Action getDefaultAction() {
     if (weapon.isHeavy()) {
       return Action.HERO_HEAVY_WALK;
@@ -178,15 +170,31 @@ public class BaseHero extends AbstractObject implements Hero {
     return;
   }
 
-  @Override
-  public void run(int timestamp, List<Observable> allObjects) {
+  private void reflectItrAction() {
     if (receivedItrAction != Action.UNASSIGNED) {
       transitGoto(receivedItrAction);
-    } else if (sentItrAction != Action.UNASSIGNED) {
-      transitGoto(sentItrAction);
+      receivedItrAction = Action.UNASSIGNED;
     }
-    receivedItrAction = sentItrAction = Action.UNASSIGNED;
+    if (sentItrAction != Action.UNASSIGNED) {
+      transitGoto(sentItrAction);
+      sentItrAction = Action.UNASSIGNED;
+    }
+    return;
+  }
+
+  @Override
+  public Frame getCurrentFrame() {
+    reflectItrAction();
+    return frame;
+  }
+
+  @Override
+  public void run(int timestamp, List<Observable> allObjects) {
+    reflectItrAction();
+    Optional<SyncPick> osp = SyncPick.getPicker(this);
+    weapon = osp.isPresent() ? osp.get().victim : NullObject.WEAPON;
     super.run(timestamp, allObjects);
+    return;
   }
 
   @Override
@@ -225,10 +233,12 @@ public class BaseHero extends AbstractObject implements Hero {
     }
     Cost cost = frameList.get(orderAction.index).cost;
     if (cost == Cost.FREE || terrain.isUnlimitedMode()) {
+      controller.consume();
       return orderAction;
     } else if (mp >= cost.mp() && hp >= cost.hp()) {
       mp -= cost.mp();
       hp -= cost.hp();
+      controller.consume();
       return orderAction;
     } else {
       return nextAct;
@@ -333,12 +343,17 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   private Action moveJump() {
-    // jump kinetic energy; jumpAttack is followed by Action.HERO_JUMP_AIR.
-    if (frame.next.index == Action.HERO_JUMP_AIR.index && isActionFirstTimeunit()) {
-      // dvx is applied after friction reduction.
-      vx += controller.valueX() * jumpSpeed.x();
-      vy += jumpSpeed.y();
-      vz = controller.valueZ() * jumpSpeed.z();
+    if (frame.curr != Action.HERO_JUMP_AIR.index) {
+      return Action.UNASSIGNED;
+    }
+    if (isActionFirstTimeunit()) {
+      if (py >= 0.0) {
+        // NOTE: Original LF2 seems that velocity gained at the transition from 211 to 212.
+        vx += controller.valueX() * jumpSpeed.x();
+        vy += jumpSpeed.y();
+        vz = controller.valueZ() * jumpSpeed.z();
+      }
+      return Action.UNASSIGNED;
     }
     faceRight = controller.getFacing(faceRight);
     if (controller.press_a()) {
@@ -408,7 +423,9 @@ public class BaseHero extends AbstractObject implements Hero {
 
   private Action moveFall() {
     if (Action.HERO_FACEDOWN_FALL.contains(frame.curr)) {
-      if (Action.HERO_FACEDOWN_FALLR.index == frame.curr) {
+      if (py >= 0.0) {
+        return Action.HERO_FACEDOWN_LYING;
+      } else if (Action.HERO_FACEDOWN_FALLR.index == frame.curr) {
         // Can do nothing.
       } else if (vy < -10.0) {
         return Action.HERO_FACEDOWN_FALL1;
@@ -421,7 +438,9 @@ public class BaseHero extends AbstractObject implements Hero {
         return Action.HERO_FACEDOWN_FALL4;
       }
     } else {
-      if (Action.HERO_FACEUP_FALLR.index == frame.curr) {
+      if (py >= 0.0) {
+        return Action.HERO_FACEUP_LYING;
+      } else if (Action.HERO_FACEUP_FALLR.index == frame.curr) {
         // Can do nothing.
       } else if (vy < -10.0) {
         return Action.HERO_FACEUP_FALL1;
@@ -463,28 +482,55 @@ public class BaseHero extends AbstractObject implements Hero {
     return hp > 0.0 ? Action.UNASSIGNED : Action.REPEAT;
   }
 
-  private Action moveGrabbed() {
-    if (grabbedBy == NullObject.DUMMY) {
-      return buff.containsKey(Effect.THROWN_ATTACK) ? Action.DEFAULT : Action.UNASSIGNED;
+  @Override
+  protected Action moveGrabbing() {
+    if (frame.cpoint == null || frame.cpoint.isThrowing()) {
+      return Action.UNASSIGNED;
     }
-    if (latestCpoint.velocity != Vector.ZERO) {
-      Vector velocity = grabbedBy.getAbsoluteVelocity(latestCpoint.velocity);
+    Optional<SyncGrab> osg = SyncGrab.getGrabber(this);
+    if (osg.isEmpty()) {
+      return Action.DEFAULT;
+    }
+    if (osg.get().getInjury() > 0) {
+      applyActionPause(Itr.DEFAULT_DAMAGE_PAUSE);
+    }
+    if (frame.cpoint.dircontrol && controller.pressX() && (controller.press_L() == faceRight)) {
+      faceRight ^= true;
+    }
+    if (frame.cpoint.tAction != Action.UNASSIGNED && controller.press_a() && controller.pressX()) {
+      return frame.cpoint.tAction;
+    }
+    if (frame.cpoint.aAction != Action.UNASSIGNED && controller.press_a()) {
+      return frame.cpoint.aAction;
+    }
+    return Action.UNASSIGNED;
+  }
+
+  private Action moveGrabbed() {
+    Optional<SyncGrab> osg = SyncGrab.getVictim(this);
+    if (osg.isEmpty()) {
+      return Action.DEFAULT;
+    }
+    SyncGrab sync = osg.get();
+    transitGoto(sync.getVictimAction());
+    Vector velocity = sync.getThrowVelocity();
+    if (velocity == Vector.ZERO) {
+      int injury = sync.getInjury();
+      if (injury > 0) {
+        hpLost(injury);
+        applyActionPause(Itr.DEFAULT_DAMAGE_PAUSE);
+      } else {
+        hpLost(-injury);
+      }
+      faceRight = sync.updateVictim(frame.cpoint);
+      return Action.CONTROLLED;
+    } else {
       vx = velocity.x();
       vy = velocity.y();
       vz = velocity.z();
-      buff.put(Effect.THROWN_ATTACK, latestCpoint.injury);
-      return Action.HERO_FACEUP_FALL2;
+      // buff.put(Effect.THROWN_ATTACK, cpoint.injury);
+      return Action.UNASSIGNED;
     }
-    if (latestCpoint.injury > 0) {
-      hp -= latestCpoint.injury;
-      applyActionPause(Itr.DEFAULT_DAMAGE_PAUSE);
-    } else {
-      hp += latestCpoint.injury;
-    }
-    faceRight = grabbedBy.isFaceRight() ^ latestCpoint.opposideFacing;
-    setRelativePosition(grabbedBy.getRelativePosition(latestCpoint),
-                        frame.cpoint, latestCpoint.cover);
-    return latestCpoint.vAction;
   }
 
   private Action dashableLanding() {
@@ -509,9 +555,9 @@ public class BaseHero extends AbstractObject implements Hero {
     }
   }
 
-  private Action knockOffLanding(boolean reboundable, boolean facingUp, double damage) {
+  private Action knockOutLanding(boolean reboundable, boolean facingUp, double damage) {
     if (reboundable && (vx > 10.0 || vx < -10.0 || vy > 1.0)) {
-      vy = FALLING_BOUNCE_VY;
+      vy *= -0.333;  // no reference
       hpLost(damage);
       return facingUp ? Action.HERO_FACEUP_FALLR : Action.HERO_FACEDOWN_FALLR;
     } else {
@@ -522,6 +568,9 @@ public class BaseHero extends AbstractObject implements Hero {
 
   @Override
   protected Action updateKinetic() {
+    if (SyncGrab.getVictim(this).isPresent()) {
+      return Action.UNASSIGNED;
+    }
     vx = frame.calcVx(vx, faceRight);
     vy = frame.calcVy(vy);
     vz = frame.calcVz(vz, controller.valueZ());
@@ -541,7 +590,7 @@ public class BaseHero extends AbstractObject implements Hero {
     }
 
     if (!afterOnGround) {
-      vy = terrain.applyGravity(vy);
+      vy += terrain.getGravity();
       return Action.UNASSIGNED;
     }
 
@@ -559,17 +608,17 @@ public class BaseHero extends AbstractObject implements Hero {
         boolean reboundable = frame.curr != Action.HERO_FACEUP_FALLR.index
                            && frame.curr != Action.HERO_FACEDOWN_FALLR.index;
         boolean facingUp = Action.HERO_FACEUP_FALL.contains(frame.curr);
-        yield knockOffLanding(reboundable, facingUp, 0.0);
+        yield knockOutLanding(reboundable, facingUp, 0.0);
       }
       case FIRE -> {
-        yield knockOffLanding(true, true, 0.0);
+        yield knockOutLanding(true, true, 0.0);
       }
       case ICE -> {
         if (hp <= 0.0) {
           // TODO: not break for small fall
           yield Action.UNASSIGNED;
         }
-        yield knockOffLanding(true, true, ICED_FALLDOWN_DAMAGE);
+        yield knockOutLanding(true, true, ICED_FALLDOWN_DAMAGE);
       }
       case JUMP, FLIP -> {
         logger.log(Level.INFO, "landing by HERO_CROUCH1 {0}", frame);
@@ -614,6 +663,16 @@ public class BaseHero extends AbstractObject implements Hero {
   }
 
   @Override
+  protected List<Tuple<Bdy, Region>> computeBdyList() {
+    Optional<SyncGrab> osg = SyncGrab.getVictim(this);
+    if (osg.isEmpty() || osg.get().isVictimHurtable()) {
+      return super.computeBdyList();
+    } else {
+      return List.of();
+    }
+  }
+
+  @Override
   protected List<Tuple<Itr, Region>> computeItrList() {
     List<Tuple<Itr, Region>> itrList = super.computeItrList();
     // itrList.addAll(weapon.getStrengthItrs(frame.wpoint.usage));
@@ -635,17 +694,11 @@ public class BaseHero extends AbstractObject implements Hero {
         return;
       case GRAB_DOP:
       case GRAB_BDY:
-        if (grabbingHero == target) {
-          receivedItrAction = ((Itr.Grab) itr.param).caughtingact();
-          logger.log(Level.WARNING, "NotImplemented {0}", itr);
-        } else {
-          logger.log(Level.WARNING, "Grab mismatched: {0} <> {1}", grabbingHero, target);
-        }
+        receivedItrAction = ((Itr.Grab) itr.param).caughtingact();
         return;
       case PICK:
         if (target instanceof Weapon x) {
-          weapon = x;
-          logger.log(Level.TRACE, "{0} successfully picked {1}.", this, x);
+          logger.log(Level.INFO, "{0} successfully picked {1}.", this, x);
           // In the original LF2 you always perform picking action
           // no matter the competition successed or failed.  It is different here.
           receivedItrAction = x.isHeavy() ? Action.HERO_PICK_HEAVY : Action.HERO_PICK_LIGHT;
@@ -654,8 +707,7 @@ public class BaseHero extends AbstractObject implements Hero {
         break;
       case ROLL_PICK:
         if (target instanceof Weapon x) {
-          weapon = x;
-          logger.log(Level.TRACE, "{0} successfully picked {1}.", this, x);
+          logger.log(Level.INFO, "{0} successfully picked {1}.", this, x);
           return;
         }
         break;
@@ -688,40 +740,32 @@ public class BaseHero extends AbstractObject implements Hero {
       } else if (frame.curr == Action.HERO_DEFEND.index) {
         return Action.HERO_DEFEND_HIT;
       }
-    } else {
-      hpLost(x.injury());
-      vx += dvx;
-      defendPoint = Math.max(45, defendPoint + x.bdefend());
-      fallPoint = (fallPoint + x.fall() + 19) / 20 * 20;
-      if (frame.state == State.ICE || fallPoint > 60 || (fallPoint > 20 && py < 0.0) || hp <= 0.0) {
-        vy += x.dvy();
-        return face2face ? Action.HERO_FACEUP_FALL : Action.HERO_FACEDOWN_FALL;
-      } else if (fallPoint > 40) {
-        return Action.HERO_DOP;
-      } else if (fallPoint > 20) {
-        return face2face ? Action.HERO_INJURE3 : Action.HERO_INJURE2;
-      } else if (fallPoint >= 0) {
-        return Action.HERO_INJURE1;
-      } else {
-        // Negative fp causes nothing.
+    }
+
+    hpLost(x.injury());
+    fallPoint = (fallPoint + x.fall() + 19) / 20 * 20;
+
+    if (frame.state == State.GRABBED && fallPoint <= 60) {
+      Optional<SyncGrab> osg = SyncGrab.getVictim(this);
+      if (osg.isPresent()) {
+        return face2face ? frame.cpoint.frontHurtAction : frame.cpoint.backHurtAction;
       }
     }
-    return Action.UNASSIGNED;
-  }
 
-  /**
-   * Deals with the race condition on grabbing.
-   *
-   * @param actor the object performs the grab action
-   * @return true if successed
-   */
-  protected synchronized boolean checkBeingGrabbed(Observable actor) {
-    if (grabbedTimestamp < terrain.getTimestamp()) {
-      grabbedBy = actor;
-      // TODO: release weapon and grabbingHero
-      return true;
+    vx += dvx;
+    defendPoint = Math.max(45, defendPoint + x.bdefend());
+    if (frame.state == State.ICE || fallPoint > 60 || (fallPoint > 20 && py < 0.0) || hp <= 0.0) {
+      vy += x.dvy();
+      return face2face ? Action.HERO_FACEUP_FALL : Action.HERO_FACEDOWN_FALL;
+    } else if (fallPoint > 40) {
+      return Action.HERO_DOP;
+    } else if (fallPoint > 20) {
+      return face2face ? Action.HERO_INJURE3 : Action.HERO_INJURE2;
+    } else if (fallPoint >= 0) {
+      return Action.HERO_INJURE1;
     } else {
-      return false;
+      // Negative fall causes nothing.
+      return Action.UNASSIGNED;
     }
   }
 
@@ -753,7 +797,8 @@ public class BaseHero extends AbstractObject implements Hero {
           return false;
         }
       case GRAB_BDY:
-        if (checkBeingGrabbed(source)) {
+        if (SyncGrab.tryRegister(source, this, terrain.getTimestamp())) {
+          defendPoint = fallPoint = 0;
           receivedItrAction = ((Itr.Grab) itr.param).caughtact();
           return true;
         } else {

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 import base.Region;
+import component.Action;
 
 public class BaseField implements Field {
   private static final System.Logger logger = System.getLogger("");
@@ -33,7 +34,7 @@ public class BaseField implements Field {
   /**
    * Temporary placeholder for newly created objects.
    */
-  protected final List<Observable> pendingList = new ArrayList<>(64);
+  private final List<Observable> pendingList = new ArrayList<>(64);
 
   /**
    * All objects on this {@code Field}.
@@ -102,6 +103,24 @@ public class BaseField implements Field {
     return objectList.size();
   }
 
+  protected void addObject(Observable o) {
+    synchronized (pendingList) {
+      pendingList.add(o);
+    }
+    o.initTerrain(this);
+    return;
+  }
+
+  protected void addObjects(List<Observable> os) {
+    if (!os.isEmpty()) {
+      synchronized (pendingList) {
+        pendingList.addAll(os);
+      }
+      os.forEach(o -> o.initTerrain(this));
+    }
+    return;
+  }
+
   @Override
   public void emplace(Observable o) {
     Region boundary = getHeroBoundary();
@@ -109,7 +128,18 @@ public class BaseField implements Field {
     double px = random.nextDouble(width * 0.4, width * 0.6);
     double pz = random.nextDouble(boundary.z1(), boundary.z2());
     o.setAbsolutePosition(px, 0.0, pz);
-    objectList.add(o);
+    addObject(o);
+    return;
+  }
+
+  protected void emplaceWeapon(Observable o) {
+    logger.log(Level.INFO, o);
+    Region boundary = getItemBoundary();
+    double width = boundary.x2();
+    double px = random.nextDouble(width * 0.05, width * 0.95);
+    double pz = random.nextDouble(boundary.z1(), boundary.z2());
+    o.setAbsolutePosition(px, -500.0, pz);
+    addObject(o);
     return;
   }
 
@@ -128,21 +158,25 @@ public class BaseField implements Field {
 
   @Override
   public void dropNeutralWeapons() {
-    logger.log(Level.INFO, "dropNeutralWeapons()");
+    for (Observable o : Library.getClonedWeapons()) {
+      o.setAction(Action.DEFAULT);
+      o.setProperty(requestIndependentTeamId(), random.nextBoolean());
+      emplaceWeapon(o);
+    }
     ++keyPressedTimes[2];
     return;
   }
 
   @Override
   public void destroyWeapons() {
-    objectList.removeIf(o -> o.getType().isWeapon);
+    // objectList.removeIf(o -> o.getType().isWeapon);
     ++keyPressedTimes[3];
     return;
   }
 
   @Override
   public void disperseEnergies() {
-    objectList.removeIf(o -> o.getType().isEnergy);
+    // objectList.removeIf(o -> o.getType().isEnergy);
     ++keyPressedTimes[4];
     return;
   }
@@ -150,14 +184,17 @@ public class BaseField implements Field {
   @Override
   public void stepOneFrame() {
     ++timestamp;
-    pendingList.clear();
-    objectList.sort(Field::processOrder);
     objectList.forEach(o -> o.spreadItrs(timestamp, objectView));
+    SyncGrab.update();
+    SyncPick.update();
     objectList.forEach(o -> {
       o.run(timestamp, objectView);
-      pendingList.addAll(o.getSpawnedObjectList());
+      addObjects(o.getSpawnedObjectList());
     });
+    objectList.removeIf(o -> !o.exists());
     objectList.addAll(pendingList);
+    pendingList.clear();
+    objectList.sort(Field::processOrder);
     return;
   }
 

@@ -186,29 +186,24 @@ public class Parser {
     frameContent = SOUND_PATTERN.matcher(builder.toString().trim()).replaceFirst("");
     IntMap frameData = parseIntValue(frameContent);
     int rawState = frameData.pop("state");
+    List<String> result = Frame.extract(frameData, type, rawState, frameNumber);
 
-    List<String> blockResult = new ArrayList<>();
     for (Tuple<String, String> e : pendingBlocks) {
       IntMap data = parseIntValue(e.second);
       String content = switch (e.first) {
         case "opoint" -> Opoint.extract(data);
         case "wpoint" -> Wpoint.extract(data);
-        case "cpoint" -> {
-          frameData.replace("hit_a", 0, data.pop("aaction", 0));
-          yield Cpoint.extract(data);
-        }
+        case "cpoint" -> Cpoint.extract(data);
         case "bdy" -> Bdy.extract(data, rawState);
         case "itr" -> Itr.extract(data, rawState, type);
         default -> throw new IllegalArgumentException(e.toString());
       };
-      blockResult.add(".add(%s)".formatted(content));
+      result.add(".add(%s)".formatted(content));
       for (Map.Entry<String, Integer> x : data.entrySet()) {
         logger.log(Level.WARNING, "{0} remains {1}\n{2}", e.first, x, e.second);
       }
     }
 
-    List<String> result = Frame.extract(frameData, type, rawState, frameNumber);
-    result.addAll(blockResult);
     String last = result.remove(result.size() - 1);
     result.add(last + ";");
     return result;

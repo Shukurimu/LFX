@@ -16,7 +16,6 @@ import base.Type;
 import base.Vector;
 import component.Action;
 import component.Bdy;
-import component.Cpoint;
 import component.Effect;
 import component.Frame;
 import component.Itr;
@@ -120,8 +119,6 @@ public abstract class AbstractObject implements Observable {
   private int transition = 0;
   private boolean newAction = true;
   protected Terrain terrain = Terrain.NULL_TERRAIN;
-  protected Hero grabbingHero = NullObject.HERO;
-  protected int grabbingTimer = 0;
 
   protected AbstractObject(Type type, Frame.Collector collector) {
     this.identifier = getClass().getSimpleName();
@@ -273,11 +270,13 @@ public abstract class AbstractObject implements Observable {
                                   : Scope.getEnemyView(baseScope);
   }
 
-  /**
-   * Many functionalities only take effect at the first timeunit.
-   * For example, opoint.
-   */
-  protected boolean isFirstTimeunit() {
+  @Override
+  public Frame getCurrentFrame() {
+    return frame;
+  }
+
+  @Override
+  public boolean isFirstTimeunit() {
     return transition == frame.wait;
   }
 
@@ -369,9 +368,20 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public void initTerrain(Terrain terrain, Action action) {
+  public void initTerrain(Terrain terrain) {
     this.terrain = terrain;
+    return;
+  }
+
+  @Override
+  public void setAction(Action action) {
     transitGoto(action);
+    return;
+  }
+
+  @Override
+  public void setFacing(boolean faceRight) {
+    this.faceRight = faceRight;
     return;
   }
 
@@ -450,21 +460,16 @@ public abstract class AbstractObject implements Observable {
    * @return new {@code Action} after this timestamp
    */
   protected Action moveGrabbing() {
-    Cpoint cpoint = frame.cpoint;
-    if (cpoint.decrease > 0) {
-      grabbingTimer -= cpoint.decrease;
-      // Does not drop on positive decrease.
-    } else {
-      grabbingTimer += cpoint.decrease;
-      if (grabbingTimer < 0) {
-        grabbingHero.setCpoint(Cpoint.DROP);
-        return Action.DEFAULT;
-      }
+    if (frame.cpoint == null) {
+      return Action.UNASSIGNED;
     }
-    if (cpoint.injury > 0) {
+    Optional<SyncGrab> osg = SyncGrab.getGrabber(this);
+    if (osg.isEmpty()) {
+      return Action.DEFAULT;
+    }
+    if (osg.get().getInjury() > 0) {
       applyActionPause(Itr.DEFAULT_DAMAGE_PAUSE);
     }
-    grabbingHero.setCpoint(cpoint);
     return Action.UNASSIGNED;
   }
 
@@ -511,7 +516,9 @@ public abstract class AbstractObject implements Observable {
       nextAct = updateByState();
     }
     newAction = false;
-    if (nextAct != Action.UNASSIGNED) {
+    if (nextAct == Action.CONTROLLED) {
+      newAction = true;
+    } else if (nextAct != Action.UNASSIGNED) {
       transitGoto(nextAct);
     } else if (--transition < 0) {
       transitNext();
@@ -553,7 +560,7 @@ public abstract class AbstractObject implements Observable {
     List<Observable> cloneList = new ArrayList<>();
     for (Vector velocity : opoint.getInitialVelocities(baseVelocity)) {
       Observable clone = result.get().makeClone();
-      clone.initTerrain(terrain, opoint.action);
+      clone.setAction(opoint.action);
       clone.setProperty(teamId, faceRight ^ opoint.opposideDirection);
       clone.setVelocity(velocity);
       clone.setRelativePosition(basePosition, Point.ORIGIN, true);
@@ -569,13 +576,13 @@ public abstract class AbstractObject implements Observable {
   }
 
   @Override
-  public List<? extends Observable> getSpawnedObjectList() {
+  public List<Observable> getSpawnedObjectList() {
     return spawnedObjectList;
   }
 
   @Override
   public String toString() {
-    return String.format("%s[%d]%x", identifier, teamId, hashCode());
+    return String.format("%s.%s#%d[%d]%x", type.name(), identifier, teamId, frame.curr, hashCode());
   }
 
 }

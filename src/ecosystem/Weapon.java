@@ -5,7 +5,6 @@ import java.util.List;
 import base.Region;
 import base.Vector;
 import component.Itr;
-import component.Wpoint;
 
 public interface Weapon extends Observable {
   double INITIAL_MP = 750.0;
@@ -22,13 +21,6 @@ public interface Weapon extends Observable {
   boolean isSmall();
 
   void destroy();
-
-  /**
-   * Sets the latest {@code Wpoint} to this object.
-   *
-   * @param wpoint of the latest state
-   */
-  void setWpoint(Wpoint wpoint);
 
   default Vector consume() {
     return Vector.ZERO;

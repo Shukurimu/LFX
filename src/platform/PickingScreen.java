@@ -68,7 +68,7 @@ public class PickingScreen extends AbstractScreen {
 
     List<String> heroChoice = new ArrayList<>();
     heroChoice.add(Playable.SELECTION_RANDOM.getIdentifier());
-    heroChoice.addAll(Library.getSelectable());
+    heroChoice.addAll(Library.getHeroList());
     draftCardList = controllerList.stream().map(c -> new DraftCard(c, heroChoice)).toList();
     draftViewList = Stream.generate(DraftView::new).limit(4).toList();
   }

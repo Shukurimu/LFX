@@ -40,8 +40,8 @@ public interface Terrain {
    * @param vy initial y-velocity
    * @return result y-velocity
    */
-  default double applyGravity(double vy) {
-    return vy + 1.7;
+  default double getGravity() {
+    return 1.7;
   }
 
   /**

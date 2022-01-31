@@ -47,6 +47,11 @@ public class Action {
   public static final Action REMOVAL = new Action(1000, false);
 
   /**
+   * Used when the object is controlled by others (e.g., picked weapon).
+   */
+  public static final Action CONTROLLED = new Action(888, false);
+
+  /**
    * The index of this {@code Action} in a {@code Frame} list.
    */
   public final int index;
@@ -245,8 +250,8 @@ public class Action {
 
   // ==================== Weapon ====================
   public static final Action LIGHT_IN_THE_SKY = new ReferenceAction(0, 16);
-  public static final Action LIGHT_ON_HAND = new ReferenceAction(20, 16, 0);
-  public static final Action LIGHT_THROWING = new ReferenceAction(40, 16, 0);
+  public static final Action LIGHT_ON_HAND = new ReferenceAction(20, 16);
+  public static final Action LIGHT_THROWING = new ReferenceAction(40, 16);
   public static final Action LIGHT_ON_GROUND = new DefinedAction(60, 5);
   public static final Action LIGHT_STABLE_ON_GROUND = new DefinedAction(64, 1);
   public static final Action LIGHT_JUST_ON_GROUND = new DefinedAction(70, 3);

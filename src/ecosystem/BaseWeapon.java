@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import base.Region;
 import base.Scope;
@@ -35,9 +36,6 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   protected String soundHit = "";
   protected String soundDrop = "";
   protected String soundBroken = "";
-
-  protected Hero holder = NullObject.HERO;
-  protected Wpoint latestWpoint = null;
 
   protected BaseWeapon(Frame.Collector collector, Type type, Map<Wpoint.Usage, Itr> strength) {
     super(type, collector);
@@ -105,7 +103,6 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     vx = velocity.x();
     vy = velocity.y();
     vz = velocity.z();
-    holder = NullObject.HERO;
     return;
   }
 
@@ -113,12 +110,6 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   public void destroy() {
     hp = 0.0;
     // TODO: create fabrics
-    return;
-  }
-
-  @Override
-  public void setWpoint(Wpoint wpoint) {
-    latestWpoint = wpoint;
     return;
   }
 
@@ -131,36 +122,10 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     }
   }
 
-  /**
-   * Deals with the race condition on picking.
-   *
-   * @param actor the object performs the pick action
-   * @return true if successed
-   */
-  protected synchronized boolean checkBeingPicked(Hero actor) {
-    if (holder == NullObject.HERO) {
-      holder = actor;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   @Override
   protected final Action updateByState() {
     return switch (frame.state) {
-      case ON_HAND -> {
-        if (holder == NullObject.HERO) {
-          yield actionOnHand.shift(frame.curr);
-        }
-        // TODO: There is no wpoint in the first frame of picking weapon (Act_punch).
-        if (latestWpoint == null) {
-          release(Vector.ZERO);
-          yield actionOnHand.shift(frame.curr);
-        } else {
-          yield moveOnHand(latestWpoint);
-        }
-      }
+      case ON_HAND -> moveOnHand();
       case IN_THE_SKY, THROWING, ON_GROUND -> Action.UNASSIGNED;
       case JUST_ON_GROUND -> {
         mutuallyExcludedList.clear();
@@ -173,19 +138,26 @@ public class BaseWeapon extends AbstractObject implements Weapon {
     };
   }
 
-  private Action moveOnHand(Wpoint wpoint) {
-    setRelativePosition(holder.getRelativePosition(wpoint), frame.wpoint, wpoint.cover);
-    if (wpoint.usage == Wpoint.Usage.RELEASE) {
-      release(holder.getAbsoluteVelocity(wpoint.velocity));
-      if (wpoint.velocity == Vector.ZERO) {
-        return actionInTheSky.shift(wpoint.weaponact.index);
-      } else {
-        return actionThrowing.shift(wpoint.weaponact.index);
-      }
-      // TODO: hero-side release weapon reference
+  private Action moveOnHand() {
+    Optional<SyncPick> osp = SyncPick.getVictim(this);
+    if (osp.isEmpty()) {
+      return Action.DEFAULT;
+    }
+    SyncPick sync = osp.get();
+    transitGoto(sync.getVictimAction());
+    faceRight = sync.updateVictim(frame.wpoint);
+    Vector velocity = sync.getThrowVelocity();
+    if (velocity == Vector.ZERO) {
+      return Action.CONTROLLED;
     } else {
-      vx = vy = vz = 0.0;
-      return wpoint.weaponact;
+      vx = velocity.x();
+      vy = velocity.y();
+      vz = velocity.z();
+      if (sync.getUsage() == Wpoint.Usage.RELEASE) {
+        return actionInTheSky.shift(frame.curr - actionOnHand.index);
+      } else {
+        return actionThrowing.shift(frame.curr - actionOnHand.index);
+      }
     }
   }
 
@@ -195,20 +167,21 @@ public class BaseWeapon extends AbstractObject implements Weapon {
       vy = 0.0;
       return actionOnGround;
     } else {
-      vy *= type.vyLast;
+      vy *= -0.333;
       return actionInTheSky.shift(random);
     }
   }
 
   @Override
   protected List<Tuple<Itr, Region>> computeItrList() {
-    if (holder == NullObject.HERO) {
+    Optional<SyncPick> osp = SyncPick.getVictim(this);
+    if (osp.isEmpty()) {
       return super.computeItrList();
     }
     if (type == Type.HEAVY) {
       return List.of();
     }
-    Itr strengthItr = strength.get(latestWpoint.usage);
+    Itr strengthItr = strength.get(osp.get().getUsage());
     if (strengthItr == null) {
       return List.of();
     }
@@ -290,7 +263,9 @@ public class BaseWeapon extends AbstractObject implements Weapon {
         return true;
       case ROLL_PICK:
       case PICK:
-        if (source instanceof Hero x && checkBeingPicked(x)) {
+        if (source instanceof Hero x && SyncPick.tryRegister(x, this, terrain.getTimestamp())) {
+          teamId = source.getTeamId();
+          transitGoto(Action.LIGHT_ON_HAND);
           return true;
         } else {
           return false;
@@ -315,25 +290,37 @@ public class BaseWeapon extends AbstractObject implements Weapon {
 
   @Override
   protected Action updateKinetic() {
-    if (holder == NullObject.HERO) {
+    if (SyncPick.getVictim(this).isPresent()) {
       return Action.UNASSIGNED;
     }
     vx = frame.calcVx(vx, faceRight);
     vy = frame.calcVy(vy);
     vz = frame.calcVz(vz, 0.0);
+
     if (buff.getOrDefault(Effect.MOVE_BLOCKING, 0) < terrain.getTimestamp()) {
       px += vx;
       pz += vz;
     }
-    if (py < 0.0) {
-      vy = terrain.applyGravity(vy) * type.gravityRatio;
-      return Action.UNASSIGNED;
-    } else {
+    boolean beforeOnGround = py >= 0.0;
+    py += vy;
+    boolean afterOnGround = py >= 0.0;
+    if (beforeOnGround && afterOnGround) {
       py = 0.0;
-      vx = terrain.applyFriction(vx * type.vxLast);
-      vz = terrain.applyFriction(vz * type.vxLast);
-      return landing();
+      vx = terrain.applyFriction(vx);
+      vz = terrain.applyFriction(vz);
+      return Action.UNASSIGNED;
     }
+
+    if (!afterOnGround) {
+      vy += terrain.getGravity() * type.gravityRatio;
+      return Action.UNASSIGNED;
+    }
+
+    py = 0.0;
+    vx = terrain.applyLandingFriction(vx);
+    vz = terrain.applyLandingFriction(vz);
+
+    return landing();
   }
 
   @Override
@@ -344,7 +331,8 @@ public class BaseWeapon extends AbstractObject implements Weapon {
   @Override
   protected boolean fitBoundary() {
     Region boundary = terrain.getItemBoundary();
-    if (frame.state != State.ON_GROUND || (boundary.x1() >= px && px >= boundary.x2())) {
+    // System.out.printf("%d %.2f %.2f %.2f %n", frame.curr, px, py, pz);
+    if (frame.state != State.ON_GROUND || (boundary.x1() < px && px < boundary.x2())) {
       pz = Math.min(Math.max(pz, boundary.z1()), boundary.z2());
       return true;
     } else {

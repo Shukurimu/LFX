@@ -46,7 +46,6 @@ public final class Main extends Application {
 
     Button playButton = new Button("Game Start");
     playButton.setFont(Font.font(null, FontWeight.BLACK, 32));
-    playButton.setFocusTraversable(false);
     playButton.setOnAction(event -> {
       playButton.setDisable(true);
       AbstractScreen.setEscapeExit();
@@ -57,7 +56,6 @@ public final class Main extends Application {
 
     Button configButton = new Button("Configuration");
     configButton.setFont(Font.font(20.0));
-    configButton.setFocusTraversable(false);
     configButton.setOnAction(event -> {
       mainScreen.gotoNext(new ConfigScreen(messageText.textProperty()));
     });

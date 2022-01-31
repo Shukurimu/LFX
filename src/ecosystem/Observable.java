@@ -8,6 +8,7 @@ import base.Type;
 import base.Vector;
 import component.Action;
 import component.Bdy;
+import component.Frame;
 import component.Itr;
 import util.Tuple;
 
@@ -123,6 +124,19 @@ public interface Observable {
   Vector getAbsoluteVelocity(Vector relativeVelocity);
 
   /**
+   * Gets the current {@code Frame} of this object.
+   *
+   * @return a {@code Frame}
+   */
+  Frame getCurrentFrame();
+
+  /**
+   * Many functionalities only take effect at the first timeunit.
+   * For example, opoint.
+   */
+  boolean isFirstTimeunit();
+
+  /**
    * Gets the {@code Bdy}s this object has in this timestamp.
    *
    * @return a {@code List} of {@code Bdy} with absolute {@code Region}
@@ -158,7 +172,7 @@ public interface Observable {
    *
    * @return a {@code List} of new objects
    */
-  List<? extends Observable> getSpawnedObjectList();
+  List<Observable> getSpawnedObjectList();
 
   /**
    * Clones this object.
@@ -188,11 +202,9 @@ public interface Observable {
    */
   void setVelocity(Vector velocity);
 
-  default void initTerrain(Terrain terrain) {
-    initTerrain(terrain, Action.DEFAULT);
-  }
-
-  void initTerrain(Terrain terrain, Action action);
+  void initTerrain(Terrain terrain);
+  void setAction(Action action);
+  void setFacing(boolean faceRight);
   void setProperty(int teamId, boolean faceRight);
 
   /**

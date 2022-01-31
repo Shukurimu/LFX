@@ -20,6 +20,7 @@ import javafx.scene.transform.Translate;
 
 import base.Controller;
 import base.Vector;
+import component.Action;
 import ecosystem.BaseField;
 import ecosystem.Hero;
 import ecosystem.Observable;
@@ -83,19 +84,30 @@ public class FieldScene extends BaseField {
     camera.getTransforms().add(mouseTranslation);
   }
 
-  private void addNode(Observable object) {
+  @Override
+  protected void addObject(Observable object) {
+    super.addObject(object);
     List<Image> pictureList = ResourceManager.getPictureList(object.getIdentifier());
     objectViewList.add(new ObjectView(object, pictureList));
     return;
   }
 
+  @Override
+  protected void addObjects(List<Observable> objects) {
+    super.addObjects(objects);
+    for (Observable object : objects) {
+      List<Image> pictureList = ResourceManager.getPictureList(object.getIdentifier());
+      objectViewList.add(new ObjectView(object, pictureList));
+    }
+    return;
+  }
+
   public void addPlayer(Hero o, Controller controller, int teamId) {
     logger.log(Level.INFO, o);
-    o.initTerrain(this);
     o.setController(controller);
+    o.setAction(Action.DEFAULT);
     o.setProperty(teamId == 0 ? requestIndependentTeamId() : teamId, random.nextBoolean());
     emplace(o);
-    addNode(o);
     spectatingObjects.add(o);
     return;
   }
@@ -104,7 +116,6 @@ public class FieldScene extends BaseField {
   public void stepOneFrame() {
     super.stepOneFrame();
     objectViewList.removeIf(v -> !v.isVisible());
-    pendingList.forEach(this::addNode);
     objectViewList.forEach(v -> ((ObjectView) v).update());
     double pos = calcCameraPos(spectatingObjects, cameraPosition.get());
     cameraPosition.set(pos);

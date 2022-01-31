@@ -16,13 +16,6 @@ import util.IntMap;
 public class Cpoint extends Point {
 
   /**
-   * From where the timer starts to countdown.
-   * This value reduces by decrease field every timestamp.
-   * Reaching zero is a reason to drop victim in most cases.
-   */
-  public static final int GRABBING_TIME = 305;
-
-  /**
    * Indicates the victim should face as same direction as grabber.
    */
   public static final int SAME_FACING = 0b1;
@@ -42,23 +35,8 @@ public class Cpoint extends Point {
    */
   public static final int UNHURTABLE  = 0b1000;
 
-  /**
-   * Intentionally drop the target.
-   * 1. Countdown timer reaches zero.
-   * 2. Perform transformation.
-   */
-  public static final Cpoint DROP =
-      new Cpoint(0, 0, Action.HERO_FACEUP_FALL2, Action.UNASSIGNED, 0, 0, Vector.of(8, -3), 0);
-
-  /**
-   * Unintentionally release the target.
-   * It is usually caused by going to a frame having no {@code Cpoint}.
-   * For example, (actively) do a combo and (passively) hit by others.
-   */
-  public static final Cpoint RELEASE =
-      new Cpoint(0, 0, Action.DEFAULT, Action.UNASSIGNED, 0, 0, Vector.ZERO, 0);
-
   public final Action vAction;
+  public final Action aAction;
   public final Action tAction;
   public final int decrease;
   public final int injury;  // also throwinjury
@@ -71,10 +49,11 @@ public class Cpoint extends Point {
   public final Action backHurtAction;
 
   /** Constructor for grabber. */
-  private Cpoint(int x, int y, Action vAction, Action tAction,
+  private Cpoint(int x, int y, Action vAction, Action aAction, Action tAction,
                  int decrease, int injury, Vector velocity, int properties) {
     super(x, y);
     this.vAction = vAction;
+    this.aAction = aAction;
     this.tAction = tAction;
     this.decrease = decrease;
     this.injury = injury;
@@ -99,7 +78,9 @@ public class Cpoint extends Point {
    */
   public static Cpoint grab(int x, int y, Action vAction,
                             int decrease, int injury, int properties) {
-    return new Cpoint(x, y, vAction, Action.UNASSIGNED, decrease, injury, Vector.ZERO, properties);
+    Objects.requireNonNull(vAction);
+    return new Cpoint(x, y, vAction, Action.UNASSIGNED, Action.UNASSIGNED,
+                      decrease, injury, Vector.ZERO, properties);
   }
 
   /**
@@ -115,9 +96,13 @@ public class Cpoint extends Point {
    * @param properties additional properties
    * @return a {@code Cpoint} instance
    */
-  public static Cpoint grab(int x, int y, Action vAction, Action tAction,
+  public static Cpoint grab(int x, int y, Action vAction, Action aAction, Action tAction,
                             int decrease, int injury, int properties) {
-    return new Cpoint(x, y, vAction, tAction, decrease, injury, Vector.ZERO, properties);
+    Objects.requireNonNull(vAction);
+    Objects.requireNonNull(aAction);
+    Objects.requireNonNull(tAction);
+    return new Cpoint(x, y, vAction, aAction, tAction,
+                      decrease, injury, Vector.ZERO, properties);
   }
 
   /**
@@ -129,11 +114,12 @@ public class Cpoint extends Point {
    * @param throwInjury the throwing damage
    * @param velocity    the throwing velocity
    * @return a {@code Cpoint} instance
-   * @throws NullPointerException if {@code velocity} is {@code null}
    */
   public static Cpoint doThrow(int x, int y, Action vAction, int throwInjury, Vector velocity) {
+    Objects.requireNonNull(vAction);
     Objects.requireNonNull(velocity);
-    return new Cpoint(x, y, vAction, Action.UNASSIGNED, 0, throwInjury, velocity, 0);
+    return new Cpoint(x, y, vAction, Action.UNASSIGNED, Action.UNASSIGNED,
+                      0, throwInjury, velocity, 0);
   }
 
   /** Constructor for victim. */
@@ -141,7 +127,7 @@ public class Cpoint extends Point {
     super(x, y);
     this.frontHurtAction = frontHurtAction;
     this.backHurtAction = backHurtAction;
-    vAction = tAction = Action.UNASSIGNED;
+    vAction = aAction = tAction = Action.UNASSIGNED;
     decrease = injury = 0;
     velocity = Vector.ZERO;
     this.hurtable = hurtable;
@@ -156,8 +142,13 @@ public class Cpoint extends Point {
    * @param frontHurtAction reacting {@code Action} when hit from front
    * @param backHurtAction  reacting {@code Action} when hit from back
    * @return a {@code Cpoint} instance
+   * @throws IllegalArgumentException if either {@code frontHurtAction} or
+   *                                  {@code backHurtAction} is {@code Action.UNASSIGNED}
    */
   public static Cpoint grabbed(int x, int y, Action frontHurtAction, Action backHurtAction) {
+    if (frontHurtAction.equals(Action.UNASSIGNED) || backHurtAction.equals(Action.UNASSIGNED)) {
+      throw new IllegalArgumentException();
+    }
     return new Cpoint(x, y, frontHurtAction, backHurtAction, true);
   }
 
@@ -170,6 +161,15 @@ public class Cpoint extends Point {
    */
   public static Cpoint grabbed(int x, int y) {
     return new Cpoint(x, y, Action.UNASSIGNED, Action.UNASSIGNED, false);
+  }
+
+  public boolean isThrowing() {
+    return velocity != Vector.ZERO;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Cpoint[v%s]", vAction);
   }
 
   // ==================== Parser Utility ====================
@@ -226,6 +226,7 @@ public class Cpoint extends Point {
     String properties = property.isEmpty() ? "0" : String.join(" | ", property);
 
     String vaction = Action.processGoto(data.pop("vaction"));
+    int aaction = data.pop("aaction", 0);  // It is different from Combo in synchronicity.
     int taction = data.pop("taction", 0);
     int decrease = data.pop("decrease", 0);
     int injury = data.pop("injury", 0);
@@ -240,12 +241,13 @@ public class Cpoint extends Point {
     if ((throwinjury | throwvx | throwvy | throwvz) != 0) {
       return "Cpoint.doThrow(%d, %d, %s, %d, Vector.of(%d, %d, %d))"
           .formatted(x, y, vaction, throwinjury, throwvx, throwvy, throwvz);
-    } else if (taction == 0) {
+    } else if (aaction == 0 && taction == 0) {
       return "Cpoint.grab(%d, %d, %s, %d, %d, %s)"
           .formatted(x, y, vaction, decrease, injury, properties);
     } else {
-      return "Cpoint.grab(%d, %d, %s, %s, %d, %d, %s)"
-          .formatted(x, y, vaction, Action.processGoto(taction), decrease, injury, properties);
+      return "Cpoint.grab(%d, %d, %s, %s, %s, %d, %d, %s)"
+          .formatted(x, y, vaction, Action.processGoto(aaction), Action.processGoto(taction),
+                     decrease, injury, properties);
     }
   }
 

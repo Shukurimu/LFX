@@ -9,9 +9,8 @@ import base.Type;
 import base.Vector;
 import component.Action;
 import component.Bdy;
-import component.Cpoint;
+import component.Frame;
 import component.Itr;
-import component.Wpoint;
 import util.Tuple;
 
 public final class NullObject implements Hero, Weapon, Energy {
@@ -98,6 +97,16 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
+  public Frame getCurrentFrame() {
+    return Frame.NULL_FRAME;
+  }
+
+  @Override
+  public boolean isFirstTimeunit() {
+    return false;
+  }
+
+  @Override
   public List<Tuple<Bdy, Region>> getBdys() {
     return List.of();
   }
@@ -118,7 +127,7 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
-  public List<? extends Observable> getSpawnedObjectList() {
+  public List<Observable> getSpawnedObjectList() {
     throw new UnsupportedOperationException(getIdentifier());
   }
 
@@ -138,7 +147,17 @@ public final class NullObject implements Hero, Weapon, Energy {
   }
 
   @Override
-  public void initTerrain(Terrain terrain, Action action) {
+  public void initTerrain(Terrain terrain) {
+    throw new UnsupportedOperationException(getIdentifier());
+  }
+
+  @Override
+  public void setAction(Action action) {
+    throw new UnsupportedOperationException(getIdentifier());
+  }
+
+  @Override
+  public void setFacing(boolean faceRight) {
     throw new UnsupportedOperationException(getIdentifier());
   }
 
@@ -171,11 +190,6 @@ public final class NullObject implements Hero, Weapon, Energy {
     throw new UnsupportedOperationException(getIdentifier());
   }
 
-  @Override
-  public void setCpoint(Cpoint cpoint) {
-    throw new UnsupportedOperationException(getIdentifier());
-  }
-
   // ==================== Weapon ====================
 
   @Override
@@ -200,11 +214,6 @@ public final class NullObject implements Hero, Weapon, Energy {
 
   @Override
   public void destroy() {
-    throw new UnsupportedOperationException(getIdentifier());
-  }
-
-  @Override
-  public void setWpoint(Wpoint wpoint) {
     throw new UnsupportedOperationException(getIdentifier());
   }
 

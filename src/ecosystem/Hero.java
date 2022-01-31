@@ -1,14 +1,11 @@
 package ecosystem;
 
 import base.Controller;
-import component.Cpoint;
 
 public interface Hero extends Observable, Playable {
   double DEFEND_INJURY_REDUCTION = 0.10;
   double DEFEND_DVX_REDUCTION = 0.10;
-  double FALLING_BOUNCE_VY = -4.25; // guess
   double CONTROL_VZ = 2.5; // press U or D; test
-  double DIAGONAL_VX_RATIO = 1.0 / 1.4; // test
   double ICED_FALLDOWN_DAMAGE = 10.0;
   double SONATA_FALLDOWN_DAMAGE = 10.0;
 
@@ -16,13 +13,6 @@ public interface Hero extends Observable, Playable {
    * Sets the {@code Controller} for this object.
    */
   void setController(Controller controller);
-
-  /**
-   * Sets the latest {@code Cpoint} to this object.
-   *
-   * @param cpoint of the latest state
-   */
-  void setCpoint(Cpoint cpoint);
 
   /**
    * The transition of walking and running do not follow standard wait-next rule.
